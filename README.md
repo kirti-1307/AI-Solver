@@ -1,0 +1,102 @@
+# Thermodynamic Reaction Energy Solver
+
+An interactive solver for the energetics of chemical reactions: heat of reaction, entropy change, Gibbs energy and equilibrium constant as functions of temperature and pressure. Built for Assignment 2 of the Chemical Engineering Thermodynamics course (Prof. M. Ali Haider), on the data and equations of Smith, Van Ness & Abbott, *Introduction to Chemical Engineering Thermodynamics* (SVN).
+
+**Live app:** https://kirti-1307.github.io/AI-Solver/
+
+The page needs no installation. The first visit takes about ten seconds while the browser downloads the Python runtime; after that everything is instant.
+
+## What it does
+
+| Tab | What you get |
+|---|---|
+| 1 · Reaction | ΔH°, ΔS°, ΔG° and K at any temperature for 45 predefined reactions or your own. Elemental balance check, exothermic/endothermic label, sensible heat of each species, step-by-step working, plots against temperature, plain-language explanation. |
+| 2 · Pressure & real gas | How pressure changes ΔH at constant temperature, through residual enthalpies: ΔH(T,P) = ΔH°(T) + Σ νᵢHᵢᴿ. Five real-gas models (generalized virial, van der Waals, Redlich/Kwong, SRK, Peng/Robinson), fugacity coefficients, and ideal against real equilibrium conversion. |
+| 3 · Combine reactions | Add and subtract two or more reactions with multipliers (Hess's law). The net reaction is evaluated two ways and the difference is shown. |
+| 4 · Product slate (extra feature) | Equilibrium of competing reactions by Gibbs-energy minimisation. You choose which species may exist; the solver finds the mixture. Includes a coke-formation check. |
+| 5 · Electrochemical lens (extra feature) | The same ΔG and ΔH as cell voltages: reversible and thermoneutral voltage, ideal fuel-cell efficiency against the Carnot limit, electricity against heat demand for electrolysis. |
+| 6 · Species data | The full database (57 species) with the source of every entry, and a sensible-heat calculator for one species. |
+| 7 · Validation | The solver against the textbook's worked examples, the assignment's five AI-error stress tests, and published research values, all computed live. |
+
+## Why you can trust the numbers
+
+- **Traceable data.** 54 of the 57 species use SVN Tables B.1 and C.1 to C.4 only. The other three (hydrogen peroxide gas, acetic acid vapour, and the heat capacity of liquid acetic acid) are not in SVN and come from the NIST Chemistry WebBook; they are labelled wherever they appear. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
+- **Checked against the book.** The solver reproduces the numbers printed in SVN's worked examples, for instance ΔH° = −103,566 J for methanol synthesis at 800 °C and K = 2.942 × 10⁻³ for ethylene hydration at 320 °C.
+- **Self-auditing.** Each result is re-derived through an independent thermodynamic identity (Kirchhoff, van 't Hoff, Gibbs-Helmholtz and others) and the outcome is shown under the result.
+- **Honest about limits.** Unbalanced reactions are rejected. Heat-capacity correlations used outside their range raise a warning. Species that would condense at the chosen pressure are flagged.
+
+Every equation, with the SVN section it comes from and the function that implements it: [docs/THEORY.md](docs/THEORY.md).
+
+## Run it on your own computer
+
+You need Python 3.9 or newer. Nothing else has to be installed.
+
+```
+python serve.py
+```
+
+Then open http://localhost:8000. (An internet connection is still needed for the plotting library and the in-browser Python runtime.)
+
+Use the solver without the web page:
+
+```
+python -m thermosolver "CO + 2 H2 -> CH3OH(g)" --T 1073.15
+python -m thermosolver "N2 + 3 H2 -> 2 NH3" --T 723.15 --P 200 --model pr
+python -m thermosolver --validate
+```
+
+Or from Python:
+
+```python
+from thermosolver import Reaction
+
+rxn = Reaction.parse("CO + 2 H2 -> CH3OH(g)")
+rxn.dH(1073.15)     # -103565.95 J/mol   (SVN: -103,566)
+rxn.K(523.15)       # equilibrium constant at 250 C
+```
+
+## Run the tests
+
+```
+python -m unittest discover -s tests -t .
+```
+
+The test strategy is described in [docs/TESTING.md](docs/TESTING.md), and the bugs found along the way in [docs/DEBUG_LOG.md](docs/DEBUG_LOG.md).
+
+## How it is built
+
+```
+index.html, web/        the page: forms, tables, plots (no thermodynamics in JavaScript)
+thermosolver/           the solver, pure Python, standard library only
+    data.py             SVN tables, transcribed
+    heatcap.py          Cp polynomial and its integrals
+    species.py          species objects and name lookup
+    reaction.py         parsing, elemental balance, ΔH°, ΔS°, ΔG°, K
+    realgas.py          virial and cubic equations of state, residual properties
+    combine.py          Hess's-law combination of reactions
+    equilibrium.py      single-reaction equilibrium and Gibbs minimisation
+    electrochem.py      electrochemical lens
+    audit.py            consistency checks
+    benchmarks.py       textbook values the solver must reproduce
+    literature.py       published research values for comparison
+    api.py              JSON interface used by the page
+tests/                  automated tests (unittest)
+docs/                   theory, data sources, testing, debug log, review, deploy checklist
+report/                 the two-page assignment report
+```
+
+The web page runs the *same* Python files in the browser through [Pyodide](https://pyodide.org) (Python compiled to WebAssembly), inside a web worker. So the numbers on the hosted page are produced by exactly the code the tests exercise.
+
+## Limitations
+
+- Heat capacities are valid only in the temperature ranges SVN gives (298 K to 1000-3000 K for gases, 273 to 373 K for liquids). Outside them the solver extrapolates and warns.
+- No phase change is applied automatically. Water as liquid and water as vapour are separate species that you choose.
+- Pressure effects use pure-species residual properties (ideal-solution mixing). Solids and liquids are taken as incompressible.
+- Hydrogen peroxide is available as a gas only (NIST data) and, having no critical constants in SVN Table B.1, is treated as an ideal gas under pressure. Liquid acetic acid has a constant heat capacity that is valid from 290 to 320 K only, and acetic acid vapour is the ideal-gas monomer (the real vapour is partly dimerised).
+- Equilibrium results say where a reaction can go, not how fast.
+
+## Data sources
+
+- Smith, J. M., Van Ness, H. C., Abbott, M. M., *Introduction to Chemical Engineering Thermodynamics*, McGraw-Hill: Table B.1 (characteristic properties of pure species), Tables C.1 to C.3 (heat capacities), Table C.4 (standard enthalpies and Gibbs energies of formation at 298.15 K). This is the source for everything the textbook covers.
+- NIST Chemistry WebBook, NIST Standard Reference Database 69 (webbook.nist.gov), for hydrogen peroxide gas and acetic acid, which the textbook does not fully cover.
+- CODATA Key Values for Thermodynamics, for the entropies of the elements.

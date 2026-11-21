@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Local tooling
+.claude/
+.vscode/
+.idea/
+
+# Course material that is not mine to publish
+Assignment_2_Thermodynamic_Reaction_Energy_Solver.pdf
+
+# Word lock files and OS clutter
+~$*
+Thumbs.db
+.DS_Store

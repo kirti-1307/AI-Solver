@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thermodynamic Reaction Energy Solver</title>
+  <meta name="description" content="Reaction enthalpy, entropy, Gibbs energy and equilibrium from Smith, Van Ness & Abbott data, with residual properties, reaction combination, Gibbs minimisation and an electrochemical lens.">
+  <link rel="stylesheet" href="web/styles.css">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+  <script src="web/ui.js" defer></script>
+  <script src="web/tab-reaction.js" defer></script>
+  <script src="web/tab-pressure.js" defer></script>
+  <script src="web/tab-combine.js" defer></script>
+  <script src="web/tab-network.js" defer></script>
+  <script src="web/tab-electro.js" defer></script>
+  <script src="web/tab-data.js" defer></script>
+  <script src="web/tab-validation.js" defer></script>
+  <script src="web/main.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <div>
+      <h1>Thermodynamic Reaction Energy Solver</h1>
+      <p class="sub">Heat of reaction, entropy, Gibbs energy and equilibrium, built on the data and equations of
+        Smith, Van Ness &amp; Abbott.</p>
+    </div>
+    <div id="engine" class="engine loading" role="status" aria-live="polite">
+      <span class="dot"></span><span id="engine-text">Starting…</span>
+    </div>
+  </div>
+  <nav class="wrap tabs" role="tablist" aria-label="Sections">
+    <button role="tab" id="tabbtn-reaction" aria-controls="tab-reaction" aria-selected="true" data-tab="reaction" class="active">1 · Reaction</button>
+    <button role="tab" id="tabbtn-pressure" aria-controls="tab-pressure" aria-selected="false" data-tab="pressure">2 · Pressure &amp; real gas</button>
+    <button role="tab" id="tabbtn-combine" aria-controls="tab-combine" aria-selected="false" data-tab="combine">3 · Combine reactions</button>
+    <button role="tab" id="tabbtn-network" aria-controls="tab-network" aria-selected="false" data-tab="network">4 · Product slate <span class="tag">new</span></button>
+    <button role="tab" id="tabbtn-electro" aria-controls="tab-electro" aria-selected="false" data-tab="electro">5 · Electrochemical lens <span class="tag">new</span></button>
+    <button role="tab" id="tabbtn-data" aria-controls="tab-data" aria-selected="false" data-tab="data">6 · Species data</button>
+    <button role="tab" id="tabbtn-validation" aria-controls="tab-validation" aria-selected="false" data-tab="validation">7 · Validation</button>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <!-- ============================================================ 1 -->
+  <section id="tab-reaction" role="tabpanel" aria-labelledby="tabbtn-reaction" class="tab active">
+    <div class="panel">
+      <h2>Standard reaction thermodynamics</h2>
+      <p class="hint">Pick a reaction or type your own. The elemental balance is checked before anything is
+        calculated. Write phases as <code>(g)</code>, <code>(l)</code>, <code>(s)</code>; if you leave the phase out, gas is assumed when available.</p>
+      <div class="form">
+        <label class="grow2">Predefined reaction
+          <select id="rx-select"></select>
+        </label>
+        <label class="grow3">Reaction (editable)
+          <input id="rx-equation" type="text" spellcheck="false" autocomplete="off"
+                 placeholder="e.g. CO2 + 3 H2 -> CH3OH + H2O">
+        </label>
+        <label>Temperature (K)
+          <input id="rx-T" type="number" step="any" value="298.15">
+          <small id="rx-TC" class="unit"></small>
+        </label>
+        <label>Plot from (K)
+          <input id="rx-Tmin" type="number" step="any" placeholder="auto">
+        </label>
+        <label>Plot to (K)
+          <input id="rx-Tmax" type="number" step="any" placeholder="auto">
+        </label>
+        <button id="rx-run" class="primary">Calculate</button>
+      </div>
+    </div>
+    <div id="rx-out" aria-live="polite"></div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="tab-pressure" role="tabpanel" aria-labelledby="tabbtn-pressure" class="tab">
+    <div class="panel">
+      <h2>Effect of pressure at constant temperature</h2>
+      <p class="hint">For an ideal gas, enthalpy does not depend on pressure. For a real gas it does, and the
+        difference is the residual enthalpy H<sup>R</sup>. Here every reactant and product is taken as the pure
+        species at T and P:
+        ΔH(T,P) = ΔH°(T) + Σ ν<sub>i</sub> H<sub>i</sub><sup>R</sup>(T,P).</p>
+      <div class="form">
+        <label class="grow2">Predefined reaction
+          <select id="pr-select"></select>
+        </label>
+        <label class="grow3">Reaction (editable)
+          <input id="pr-equation" type="text" spellcheck="false" autocomplete="off">
+        </label>
+        <label>Temperature (K)
+          <input id="pr-T" type="number" step="any" value="723.15">
+        </label>
+        <label>Pressure (bar)
+          <input id="pr-P" type="number" step="any" value="200">
+        </label>
+        <label>Plot up to (bar)
+          <input id="pr-Pmax" type="number" step="any" value="300">
+        </label>
+        <label>Real-gas model
+          <select id="pr-model">
+            <option value="pr">Peng/Robinson</option>
+            <option value="srk">Soave/Redlich/Kwong</option>
+            <option value="rk">Redlich/Kwong</option>
+            <option value="vdw">van der Waals</option>
+            <option value="virial">Generalized virial (Pitzer)</option>
+            <option value="ideal">Ideal gas</option>
+          </select>
+        </label>
+        <button id="pr-run" class="primary">Calculate</button>
+      </div>
+    </div>
+    <div id="pr-out" aria-live="polite"></div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="tab-combine" role="tabpanel" aria-labelledby="tabbtn-combine" class="tab">
+    <div class="panel">
+      <h2>Build a reaction from other reactions (Hess's law)</h2>
+      <p class="hint">Add two or more reactions, each with a multiplier. A negative multiplier reverses the
+        reaction. The solver adds the stoichiometry, cancels the intermediates and gets ΔH, ΔS, ΔG and K of the net
+        reaction two ways: by summing the steps and directly from the net equation.</p>
+      <div class="form">
+        <label class="grow3">Worked example
+          <select id="cb-preset"></select>
+        </label>
+        <label>Temperature (K)
+          <input id="cb-T" type="number" step="any" value="523.15">
+        </label>
+      </div>
+      <div id="cb-steps" class="steps"></div>
+      <div class="form">
+        <button id="cb-add" class="ghost">+ Add reaction</button>
+        <button id="cb-run" class="primary">Combine</button>
+      </div>
+    </div>
+    <div id="cb-out" aria-live="polite"></div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="tab-network" role="tabpanel" aria-labelledby="tabbtn-network" class="tab">
+    <div class="panel">
+      <h2>Product slate: what actually forms? <span class="tag">extra feature 1</span></h2>
+      <p class="hint">A single-reaction ΔG tells you whether one reaction can go. A real reactor has several
+        reactions competing for the same atoms. Here you only choose which species are allowed to exist; the
+        solver minimises the total Gibbs energy subject to the element balances and returns the equilibrium
+        mixture. No reaction list is needed. Removing a species shows what a selective catalyst that cannot make
+        it would be limited to.</p>
+      <div class="form">
+        <label class="grow3">Example system
+          <select id="nw-preset"></select>
+        </label>
+        <label>Temperature (K)
+          <input id="nw-T" type="number" step="any" value="523.15">
+        </label>
+        <label>Pressure (bar)
+          <input id="nw-P" type="number" step="any" value="50">
+        </label>
+        <label>Gas model
+          <select id="nw-model">
+            <option value="ideal">Ideal gas</option>
+            <option value="pr">Peng/Robinson (φ of pure species)</option>
+            <option value="srk">Soave/Redlich/Kwong</option>
+            <option value="virial">Generalized virial</option>
+          </select>
+        </label>
+        <label>Sweep
+          <select id="nw-sweep">
+            <option value="T">Temperature</option>
+            <option value="P">Pressure</option>
+          </select>
+        </label>
+        <label>From
+          <input id="nw-min" type="number" step="any" value="400">
+        </label>
+        <label>To
+          <input id="nw-max" type="number" step="any" value="900">
+        </label>
+      </div>
+      <p id="nw-note" class="hint"></p>
+      <div class="species-picker">
+        <div class="picker-head"><strong>Species allowed at equilibrium</strong> and feed (mol). Tick a species to allow it; give it moles to feed it.</div>
+        <div id="nw-species" class="chips"></div>
+      </div>
+      <div class="form"><button id="nw-run" class="primary">Find equilibrium</button></div>
+    </div>
+    <div id="nw-out" aria-live="polite"></div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="tab-electro" role="tabpanel" aria-labelledby="tabbtn-electro" class="tab">
+    <div class="panel">
+      <h2>Electrochemical lens <span class="tag">extra feature 2</span></h2>
+      <p class="hint">The same ΔG and ΔH, read as voltages. Run reversibly in an electrochemical cell, a reaction
+        exchanges electrical work equal to ΔG, so E<sub>rev</sub> = −ΔG/(nF) and the thermoneutral voltage is
+        E<sub>tn</sub> = −ΔH/(nF). A spontaneous reaction is a fuel cell; its reverse is an electrolyser.</p>
+      <div class="form">
+        <label class="grow2">Example
+          <select id="el-select"></select>
+        </label>
+        <label class="grow3">Reaction (editable)
+          <input id="el-equation" type="text" spellcheck="false" autocomplete="off">
+        </label>
+        <label>Temperature (K)
+          <input id="el-T" type="number" step="any" value="1073.15">
+        </label>
+        <label>Pressure (bar)
+          <input id="el-P" type="number" step="any" value="1">
+        </label>
+        <label>Electrons, n
+          <input id="el-n" type="number" step="any" placeholder="auto">
+        </label>
+        <button id="el-run" class="primary">Calculate</button>
+      </div>
+    </div>
+    <div id="el-out" aria-live="polite"></div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="tab-data" role="tabpanel" aria-labelledby="tabbtn-data" class="tab">
+    <div class="panel">
+      <h2>Sensible heat of one species</h2>
+      <p class="hint">Heat needed to take a species from T<sub>1</sub> to T<sub>2</sub> at constant pressure with no
+        phase change: Q = n R ∫ (C<sub>p</sub>/R) dT.</p>
+      <div class="form">
+        <label class="grow2">Species
+          <select id="sh-species"></select>
+        </label>
+        <label>T<sub>1</sub> (K)
+          <input id="sh-T1" type="number" step="any" value="533.15">
+        </label>
+        <label>T<sub>2</sub> (K)
+          <input id="sh-T2" type="number" step="any" value="873.15">
+        </label>
+        <label>Amount (mol)
+          <input id="sh-n" type="number" step="any" value="1">
+        </label>
+        <button id="sh-run" class="primary">Calculate</button>
+      </div>
+      <div id="sh-out" aria-live="polite"></div>
+    </div>
+    <div class="panel">
+      <h2>Property database</h2>
+      <p class="hint" id="db-summary"></p>
+      <div class="form">
+        <label class="grow3">Search
+          <input id="db-search" type="search" placeholder="name, formula or phase">
+        </label>
+      </div>
+      <div id="db-table" class="table-scroll"></div>
+      <div id="db-notes"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="tab-validation" role="tabpanel" aria-labelledby="tabbtn-validation" class="tab">
+    <div class="panel">
+      <h2>Solver versus the textbook</h2>
+      <p class="hint">These checks are computed live in your browser by the same code that produced every other
+        number on this site. Expected values are the ones printed in Smith, Van Ness &amp; Abbott.</p>
+      <div id="vl-bench"></div>
+    </div>
+    <div class="panel">
+      <h2>AI Error Challenge: five stress tests</h2>
+      <div id="vl-challenge"></div>
+    </div>
+    <div class="panel">
+      <h2>Solver versus published research</h2>
+      <div id="vl-literature"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p><strong>Data:</strong> Smith, Van Ness &amp; Abbott, <em>Introduction to Chemical Engineering Thermodynamics</em>:
+    Table C.1 (gas heat capacities), C.2 (solids), C.3 (liquids), C.4 (formation properties at 298.15 K) and
+    B.1 (critical constants). Hydrogen peroxide and acetic acid, which SVN does not fully cover, use the NIST Chemistry WebBook
+    and are labelled wherever they appear. Standard state: pure species at 1 bar; gases as ideal gases. R = 8.314 J/(mol·K).</p>
+  <p>All calculations run in your browser. The solver is the Python package <code>thermosolver</code>, executed with Pyodide.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>Thermodynamic Reaction Energy Solver: Assignment 2 report</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 9.5pt; line-height: 112%; color: #111; }
+  h1 { font-size: 15pt; margin: 0 0 1pt 0; color: #0b3d73; }
+  p.meta { font-size: 8.8pt; margin: 0 0 4pt 0; color: #333; }
+  h2 { font-size: 10.5pt; margin: 5pt 0 1.5pt 0; color: #0b3d73; }
+  p { margin: 0 0 3pt 0; text-align: justify; }
+  ul { margin: 0 0 2pt 0; padding-left: 13pt; }
+  li { margin: 0 0 1.5pt 0; text-align: justify; }
+  table { border-collapse: collapse; width: 100%; margin: 1pt 0 3pt 0; }
+  th, td { border: 0.75pt solid #9aa5b1; padding: 1.2pt 4pt; font-size: 8.6pt; vertical-align: top; text-align: left; }
+  th { background: #e6eef7; }
+  p.cap { font-size: 8.3pt; color: #333; margin: 1pt 0 3pt 0; text-align: left; }
+  span.fill { background: #fff2a8; }
+</style>
+</head>
+<body>
+
+<h1>Thermodynamic Reaction Energy Solver</h1>
+<p class="meta"><b>Assignment 2 report</b> &nbsp;|&nbsp; Submitted by: Kirti Roshankumar Thakar, Roll No. 25A1CHEB0107 &nbsp;|&nbsp; AI platform used: Claude<br>
+Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: https://github.com/kirti-1307/AI-Solver</p>
+
+<p>I built the solver as a web page that runs a Python backend inside the browser. The user picks one of 45 predefined reactions or types a new one, and the solver first checks the elemental balance and only then calculates the heat of reaction, entropy change, Gibbs energy change and equilibrium constant at the chosen temperature and pressure, with plots and a written explanation. Property data come from Smith, Van Ness and Abbott (SVN): Tables C.1 to C.3 for heat capacities, Table C.4 for &Delta;H&deg;<sub>f</sub> and &Delta;G&deg;<sub>f</sub> at 298.15 K, and Table B.1 for critical constants. The database has 57 species (42 gases, 7 liquids, 8 solids) with a reference state of 298.15 K and 1 bar, and it covers all 26 species suggested in the assignment. Hydrogen peroxide and acetic acid vapour are not tabulated in SVN, so for these I used the NIST Chemistry WebBook, and the app labels them as NIST data wherever they appear.</p>
+
+<h2>1. Models used</h2>
+<table>
+<tr><th style="width:23%">Quantity</th><th>Equation (SVN Chapters 4, 6 and 14)</th></tr>
+<tr><td>Heat capacity, sensible heat</td><td>C<sub>p</sub>/R = A + BT + CT<sup>2</sup> + DT<sup>&minus;2</sup>; &nbsp; Q = R&int;(C<sub>p</sub>/R)dT = &lang;C<sub>p</sub>&rang;<sub>H</sub>(T<sub>2</sub> &minus; T<sub>1</sub>), reported for each species</td></tr>
+<tr><td>Heat of reaction</td><td>&Delta;H&deg;<sub>298</sub> = &Sigma;&nu;<sub>i</sub>&Delta;H&deg;<sub>f,i</sub>; &nbsp; &Delta;H&deg;(T) = &Delta;H&deg;<sub>298</sub> + R&int;(&Delta;C<sub>p</sub>&deg;/R)dT</td></tr>
+<tr><td>Entropy, Gibbs energy, K</td><td>&Delta;S&deg;<sub>298</sub> = (&Delta;H&deg;<sub>298</sub> &minus; &Delta;G&deg;<sub>298</sub>)/T<sub>0</sub>; &nbsp; &Delta;S&deg;(T) = &Delta;S&deg;<sub>298</sub> + R&int;(&Delta;C<sub>p</sub>&deg;/R)dT/T; &nbsp; &Delta;G&deg; = &Delta;H&deg; &minus; T&Delta;S&deg;; &nbsp; ln K = &minus;&Delta;G&deg;/RT</td></tr>
+<tr><td>Pressure at constant T</td><td>&Delta;H(T,P) = &Delta;H&deg;(T) + &Sigma;&nu;<sub>i</sub>H<sub>i</sub><sup>R</sup>(T,P), with H<sup>R</sup>, S<sup>R</sup> and &phi; from the generalized virial correlation or a cubic equation of state (van der Waals, RK, SRK, Peng/Robinson)</td></tr>
+<tr><td>Combining reactions</td><td>For target = &Sigma;m<sub>j</sub>(reaction j): &Delta;H = &Sigma;m<sub>j</sub>&Delta;H<sub>j</sub>, &Delta;G = &Sigma;m<sub>j</sub>&Delta;G<sub>j</sub>, K = &Pi;K<sub>j</sub><sup>m<sub>j</sub></sup>, checked against the net reaction evaluated directly</td></tr>
+</table>
+<p>Every result is also re-derived inside the app by an independent route (the Kirchhoff, van 't Hoff and Gibbs-Helmholtz relations by numerical differentiation), and 175 automated tests run on the backend. The solver reproduces 47 of 47 reference values, 42 of them printed in SVN's worked examples, for example &Delta;H&deg; = &minus;103,566 J for methanol synthesis at 800 &deg;C and K = 2.942 &times; 10<sup>&minus;3</sup> for ethylene hydration at 320 &deg;C.</p>
+
+<h2>2. Important findings</h2>
+<ul>
+<li><b>Temperature.</b> CO<sub>2</sub> + 3H<sub>2</sub> &rarr; CH<sub>3</sub>OH + H<sub>2</sub>O is exothermic (&Delta;H&deg; = &minus;48.97 kJ/mol at 298 K and &minus;57.94 kJ/mol at 523 K), but &Delta;G&deg; at 523 K is +46.56 kJ/mol and K = 2.2 &times; 10<sup>&minus;5</sup>, because the loss of two moles of gas makes &Delta;S&deg; strongly negative. The reaction is thus enthalpy-driven and favoured at low temperature. Steam reforming is the opposite case, and its &Delta;G&deg; changes sign at 893 K.</li>
+<li><b>Pressure and residual functions.</b> For ammonia synthesis at 723 K the ideal-gas &Delta;H&deg; is &minus;106.50 kJ/mol at every pressure. At 200 bar the residual enthalpies add &minus;5.16 kJ/mol (Peng/Robinson), so the real heat of reaction is 4.8 % larger, mostly because of NH<sub>3</sub>, which is closest to its critical point. The equilibrium conversion also rises from 39.8 % (ideal gas) to 42.8 %. Moreover, &Delta;G changes from +60.1 kJ/mol at 1 bar to &minus;5.5 kJ/mol at 200 bar, so pressure alone turns the reaction from unfavourable to favourable.</li>
+<li><b>Combining reactions.</b> Adding the reverse water-gas shift and CO-based methanol synthesis gives the CO<sub>2</sub> route, and the summed &Delta;H&deg; and &Delta;G&deg; agree with the directly calculated values to 10<sup>&minus;11</sup> J/mol, which confirms Hess's law numerically.</li>
+</ul>
+
+<h2>3. Two additional features</h2>
+<p><b>Product slate (Gibbs energy minimisation).</b> A single-reaction &Delta;G&deg; only tells whether one reaction can go, but in a real reactor several reactions compete for the same atoms. In this tab the user only selects the species that are allowed to exist, and the solver minimises the total Gibbs energy subject to the element balances (the Lagrange multiplier method of SVN), so no reaction list is needed. For a CO<sub>2</sub> + 3H<sub>2</sub> feed at 523 K and 50 bar, if methane is allowed, 74.8 % of the carbon ends up as CH<sub>4</sub> and practically none as methanol. If methane is removed from the list, the CO<sub>2</sub> conversion is 25.2 % with a methanol selectivity of 68.6 %. Thermodynamics thus favours methane, and it is the selectivity of the catalyst that makes methanol possible (Fig. a). The same calculation also gives the carbon activity, which shows that dry reforming with a 1:1 feed is prone to coke formation below about 1470 K. With the data of SVN's own example (steam reforming at 1000 K) the solver reproduces the book's mole fractions to four decimals.</p>
+<p><b>Electrochemical lens.</b> The same &Delta;G and &Delta;H can also be read as voltages, since a reaction carried out reversibly in a cell exchanges electrical work equal to &Delta;G: E<sub>rev</sub> = &minus;&Delta;G/nF and E<sub>tn</sub> = &minus;&Delta;H/nF. For H<sub>2</sub> + &frac12;O<sub>2</sub> &rarr; H<sub>2</sub>O(g) the solver gives 1.184 V at 25 &deg;C, the same value as SVN's fuel-cell section, and 0.977 V at 1073 K. The ideal fuel-cell efficiency &Delta;G/&Delta;H falls from 94.5 % to 75.9 % over this range while the Carnot limit rises, and the two cross at 1149 K (Fig. b). Read in reverse, the same numbers explain high-temperature electrolysis: at 1073 K only 75.9 % of the energy needed to split steam has to be electricity, and the rest can be supplied as heat.</p>
+<p style="text-align:center; margin:2pt 0 0 0"><img src="figure.png" width="672" height="202"></p>
+<p class="cap"><b>Figure.</b> (a) Equilibrium carbon distribution for CO<sub>2</sub> + 3H<sub>2</sub> at 50 bar with methane blocked, and the methane share when it is allowed. (b) Ideal fuel-cell efficiency against the Carnot limit. Both panels are drawn from the solver's output.</p>
+
+<h2>4. AI Error Challenge</h2>
+<table>
+<tr><th style="width:19%">Stress test</th><th>Result</th></tr>
+<tr><td>1. Stoichiometry</td><td>CH<sub>4</sub> + O<sub>2</sub> &rarr; CO<sub>2</sub> + H<sub>2</sub>O is rejected before any calculation. The message names the unbalanced elements (H and O) and offers the balanced form.</td></tr>
+<tr><td>2. C<sub>p</sub> assumption, 1000 K</td><td>Steam reforming: &Delta;H&deg; = 225.3 kJ/mol with C<sub>p</sub>(T), 238.8 with a constant &Delta;C<sub>p</sub> and 205.8 if &Delta;C<sub>p</sub> is ignored. K is 25.8, 50.3 and 2.8 respectively, so the shortcut changes K by a factor of two or more.</td></tr>
+<tr><td>3. Physical state</td><td>Methane combustion gives &minus;890.65 kJ/mol with H<sub>2</sub>O(l) and &minus;802.63 kJ/mol with H<sub>2</sub>O(g). The difference of 88.02 kJ is exactly twice the heat of vaporisation of water (44.01 kJ/mol). If no phase is typed, the solver states which one it assumed.</td></tr>
+<tr><td>4. Correlation validity</td><td>Each species carries the temperature range of its own SVN correlation. Outside it (for example CH<sub>4</sub> above 1500 K) the result is shown with a warning and a shaded band on the plots.</td></tr>
+<tr><td>5. Published work</td><td>&Delta;H&deg;<sub>298</sub> of eight reactions agrees with values printed in research papers within 0.5 kJ/mol (for example +205.81 against +205.9 kJ/mol for steam reforming, Helmi et al., Molecules 2016). &Delta;G&deg; of H<sub>2</sub>O(g) formation at 1000 K is &minus;192.57 against &minus;192.59 kJ/mol in the NIST-JANAF tables, and the pressure effect on the ammonia heat of reaction at 700 K (&minus;2.73 kJ/mol NH<sub>3</sub> from 1 to 200 bar) matches NIST fluid data (&minus;2.72).</td></tr>
+</table>
+<p><b>Errors of the AI-generated solver that I found and corrected.</b> (1) <i>Physically unreasonable:</i> for CO<sub>2</sub> hydrogenation at 523 K and 100 bar the first version predicted 48 % conversion and &Sigma;&nu;H<sup>R</sup> = &minus;49 kJ/mol, because the cubic equation had only a liquid root for water and the code used it as a gas. The solver now detects this state and refuses to report a gas-phase value. (2) <i>Incorrect data:</i> the AI recalled &Delta;G&deg;<sub>f</sub> of ammonia as &minus;16,450 J/mol from an older edition, while the current edition prints &minus;16,400. I learnt from this to compare every number with the printed tables. (3) <i>Inconsistent:</i> the rounded constants 0.675 and 0.722 in the virial derivative formulas made H<sup>R</sup> disagree with &phi; by up to 0.06 %, which the Gibbs-Helmholtz check detected, so the unrounded 0.6752 and 0.7224 are used. (4) <i>Misleading:</i> the explanation said "practically no reaction" for ammonia synthesis at 723 K because K is small, although the conversion at 200 bar is 43 %. The text now refers to the 1 bar standard state and gives a separate verdict at the chosen pressure. (5) <i>Wrong attribution:</i> a benchmark credited 1.229 V to SVN's fuel-cell section, but the book works the vapour case (1.184 V). (6) <i>Crash:</i> extreme inputs (1 K, 5000 bar) caused a numerical overflow instead of a message. The data check also flagged 1,3-butadiene, where the C<sub>p,298</sub>/R printed in Table C.1 (10.720) does not match the table's own constants (9.931). An independent review of the code then found further issues, which I also fixed. For example, my first correction of error (1) judged the roots of the cubic equation with a separate vapour-pressure correlation and wrongly refused some valid van der Waals and Redlich/Kwong states, and the ideal-gas conversion curve was plotted at the wrong pressures. All of these are listed with their tests in the repository.</p>
+<p><b>Limitations.</b> Pressure effects use pure-species residual properties (ideal-solution mixing), no phase change is applied automatically, and equilibrium results say where a reaction can go, not how fast.</p>
+
+</body>
+</html>
