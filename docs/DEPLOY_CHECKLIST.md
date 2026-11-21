@@ -1,7 +1,7 @@
 # Deploy checklist: Thermodynamic Reaction Energy Solver v1.0
 
 **Target:** GitHub Pages, served from the root of the `main` branch of `kirti-1307/AI-Solver`
-**Live URL after deploy:** https://kirti-1307.github.io/AI-Solver/
+**Live URL:** https://kirti-1307.github.io/AI-Solver/
 **What ships:** a static site. `index.html`, `web/` and the Python package `thermosolver/`, which the browser runs through Pyodide. No server, no database, no secrets, no build step.
 
 Boxes are ticked only for what has actually been verified.
@@ -22,25 +22,44 @@ Boxes are ticked only for what has actually been verified.
 
 ## Deploy
 
-- [ ] Commit and push to `main`
-- [ ] GitHub repository → Settings → Pages → Source: "Deploy from a branch", Branch: `main`, folder `/ (root)`
-- [ ] Wait for the "pages build and deployment" workflow to finish (Actions tab), usually one to two minutes
-- [ ] The `tests` workflow is green for all four Python versions
+- [x] Commit and push to `main`
+- [x] GitHub repository → Settings → Pages → Source: "Deploy from a branch", Branch: `main`, folder `/ (root)`
+- [x] Wait for the "pages build and deployment" workflow to finish (Actions tab), usually one to two minutes
+- [x] The `tests` workflow is green for all four Python versions
+
+**Result, 21 November 2026, commit `7df9d71`:** the repository is public, "pages build and deployment" finished with success, and the `tests` workflow passed on Python 3.10, 3.11, 3.12 and 3.13.
 
 ## Smoke test on the live URL
 
 Do these on the hosted page, in a normal browser window and once more in a private window (to test a cold cache):
 
-- [ ] Status pill turns green, "Solver ready"
-- [ ] Tab 1: default reaction shows ΔH°₂₉₈ = −48.97 kJ/mol for CO₂ + 3 H₂ → CH₃OH + H₂O
-- [ ] Tab 1: typing `CH4 + O2 -> CO2 + H2O` is rejected and offers the balanced form
-- [ ] Tab 1: `CO + 2 H2 -> CH3OH` at 1073.15 K gives ΔH° = −103.57 kJ/mol
-- [ ] Tab 2: ammonia synthesis at 723.15 K, 200 bar shows a negative Σ ν Hᴿ of about −5 kJ/mol
-- [ ] Tab 3: the first worked example reports agreement between the two routes
-- [ ] Tab 4: CO₂ hydrogenation example draws the mole-fraction plot
-- [ ] Tab 5: hydrogen fuel cell at 1073.15 K shows about 0.98 V
-- [ ] Tab 7: every textbook benchmark reads "pass"
-- [ ] The page is usable on a phone-width screen (tabs scroll sideways, tables scroll inside their panels)
+- [x] Status pill turns green, "Solver ready"
+- [x] Tab 1: default reaction shows ΔH°₂₉₈ = −48.97 kJ/mol for CO₂ + 3 H₂ → CH₃OH + H₂O
+- [x] Tab 1: typing `CH4 + O2 -> CO2 + H2O` is rejected and offers the balanced form
+- [x] Tab 1: `CO + 2 H2 -> CH3OH` at 1073.15 K gives ΔH° = −103.57 kJ/mol
+- [x] Tab 2: ammonia synthesis at 723.15 K, 200 bar shows a negative Σ ν Hᴿ of about −5 kJ/mol
+- [x] Tab 3: the first worked example reports agreement between the two routes
+- [x] Tab 4: CO₂ hydrogenation example draws the mole-fraction plot
+- [x] Tab 5: hydrogen fuel cell at 1073.15 K shows about 0.98 V
+- [x] Tab 7: every textbook benchmark reads "pass"
+- [x] The page is usable on a phone-width screen (tabs scroll sideways, tables scroll inside their panels)
+
+**Result, 21 November 2026, on https://kirti-1307.github.io/AI-Solver/ (commit `7df9d71`):** all ten pass. What the live page showed:
+
+| Check | Seen on the live page |
+|---|---|
+| Status | "Solver ready", no console errors, no failed downloads |
+| Tab 1, default reaction | ΔH°₂₉₈ = −48.97 kJ/mol, ΔH°(523 K) = −57.94 kJ/mol, K = 2.244 × 10⁻⁵ |
+| Tab 1, unbalanced reaction | "Reaction rejected", H and O imbalance listed, balanced form CH₄ + 2 O₂ → CO₂ + 2 H₂O offered |
+| Tab 1, methanol synthesis at 1073.15 K | ΔH° = −103.57 kJ/mol (ΔH°₂₉₈ = −90.14 kJ/mol) |
+| Tab 2, ammonia, 723.15 K, 200 bar, Peng/Robinson | Σ ν Hᴿ = −5.158 kJ/mol, ΔH(T,P) = −111.662 kJ/mol |
+| Tab 3, first worked example | "the two routes agree to 7.3 × 10⁻¹² J/mol" |
+| Tab 4, CO₂ hydrogenation | mole-fraction plot drawn with six species, plus the three other plots |
+| Tab 5, hydrogen fuel cell, 1073.15 K | reversible voltage 0.977 V, ideal efficiency 75.9 % |
+| Tab 7 | "47 of 47 textbook values reproduced", no "FAIL" anywhere |
+| Phone width (375 px) | page does not scroll sideways; the tab bar and the tables scroll inside their own boxes |
+
+The test was run in one browser (Chromium). It was the first time that browser had opened the address, so it was a cold load, but a private window and a second browser were not tried.
 
 ## Before the classroom demonstration
 
@@ -51,7 +70,8 @@ Do these on the hosted page, in a normal browser window and once more in a priva
 
 ## Post-deploy
 
-- [ ] Put the live URL in the report and in the repository's "About" box
+- [x] Put the live URL in the report
+- [ ] Put the live URL in the repository's "About" box
 - [ ] Tag the release: `git tag v1.0 && git push --tags`
 
 ## Rollback
