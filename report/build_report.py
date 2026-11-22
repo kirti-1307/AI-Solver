@@ -4,8 +4,11 @@
 
 report.html is the single source of the report text. This script converts
 the small set of HTML tags it uses (h1, h2, p, ul/li, table, b, i, sub, sup,
-br, img and two classes) into a Word document, so the report can be edited
-in one place and rebuilt.
+br, img and three paragraph classes) into a Word document, so the report can
+be edited in one place and rebuilt.
+
+The layout is set for easy reading: 10.5 pt text, generous margins, a rule
+under each section heading and some air inside the table cells.
 """
 
 from __future__ import annotations
@@ -23,22 +26,25 @@ OUTPUT = os.path.join(HERE, "Assignment2_Report.docx")
 
 # A4 page and margins, in twentieths of a point
 PAGE_W, PAGE_H = 11906, 16838
-M_TOP, M_BOTTOM, M_SIDE = 700, 660, 840
+M_TOP, M_BOTTOM, M_SIDE = 740, 700, 940
 TEXT_W = PAGE_W - 2 * M_SIDE
 FONT = "Calibri"
-BASE_SIZE = 20            # half-points: 10 pt
+BASE_SIZE = 21            # half-points: 10.5 pt
 BLUE = "0B3D73"
+RULE = "9AA5B1"
+LINE = 250                # line spacing, 240 = single
 
 STYLES = {
     # name: (size half-pt, bold, colour, space before, space after, justify, keep with next)
-    "h1": (32, True, BLUE, 0, 20, "left", True),
-    "meta": (18, False, "333333", 0, 90, "left", False),
-    "h2": (22, True, BLUE, 110, 40, "left", True),
-    "p": (BASE_SIZE, False, None, 0, 70, "both", False),
-    "li": (BASE_SIZE, False, None, 0, 44, "both", False),
-    "cell": (18, False, None, 0, 0, "left", False),
-    "cap": (17, False, "333333", 20, 60, "left", False),
-    "fig": (BASE_SIZE, False, None, 40, 0, "center", True),
+    "h1": (34, True, BLUE, 0, 30, "left", True),
+    "meta": (18, False, "444444", 0, 120, "left", False),
+    "h2": (24, True, BLUE, 140, 70, "left", True),
+    "p": (BASE_SIZE, False, None, 0, 80, "both", False),
+    "li": (BASE_SIZE, False, None, 0, 50, "left", False),
+    "cell": (19, False, None, 0, 0, "left", False),
+    "cap": (18, False, "444444", 30, 80, "left", False),
+    "ref": (17, False, "333333", 0, 20, "left", False),
+    "fig": (BASE_SIZE, False, None, 60, 0, "center", True),
 }
 
 
@@ -63,10 +69,14 @@ def run_xml(text: str, fmt: dict, size: int, bold: bool, colour) -> str:
 
 def para_xml(runs, style: str, bullet: bool = False) -> str:
     size, bold, colour, before, after, align, keep = STYLES[style]
-    ppr = [f'<w:spacing w:before="{before}" w:after="{after}" w:line="259" w:lineRule="auto"/>']
+    ppr = [f'<w:spacing w:before="{before}" w:after="{after}" w:line="{LINE}" w:lineRule="auto"/>']
     if bullet:
-        ppr.append('<w:ind w:left="250" w:hanging="190"/>')
+        ppr.append('<w:ind w:left="280" w:hanging="200"/>')
+    elif style == "ref":
+        ppr.append('<w:ind w:left="340" w:hanging="340"/>')
     ppr.append(f'<w:jc w:val="{align}"/>')
+    if style == "h2":       # a thin rule under each section heading
+        ppr.insert(0, f'<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="2" w:color="{RULE}"/></w:pBdr>')
     if keep:
         ppr.insert(0, "<w:keepNext/>")
     out = []
@@ -78,11 +88,14 @@ def para_xml(runs, style: str, bullet: bool = False) -> str:
 
 
 def table_xml(rows) -> str:
+    # Column widths: the percentages given on the header cells; columns
+    # without one share what is left.
     first = rows[0]
-    pct = first[0]["width"] or 25
-    widths = [round(TEXT_W * pct / 100)]
-    rest = len(first) - 1
-    widths += [round((TEXT_W - widths[0]) / rest)] * rest
+    given = [cell["width"] for cell in first]
+    free = [w for w in given if w is None]
+    share = (100 - sum(w for w in given if w is not None)) / len(free) if free else 0
+    widths = [round(TEXT_W * (w if w is not None else share) / 100) for w in given]
+    widths[-1] += TEXT_W - sum(widths)
     border = "".join(
         f'<w:{side} w:val="single" w:sz="6" w:space="0" w:color="9AA5B1"/>'
         for side in ("top", "left", "bottom", "right", "insideH", "insideV"))
@@ -90,8 +103,8 @@ def table_xml(rows) -> str:
         "<w:tbl><w:tblPr>",
         f'<w:tblW w:w="{TEXT_W}" w:type="dxa"/><w:tblBorders>{border}</w:tblBorders>',
         '<w:tblLayout w:type="fixed"/>',
-        '<w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="80" w:type="dxa"/>'
-        '<w:bottom w:w="20" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar>',
+        '<w:tblCellMar><w:top w:w="28" w:type="dxa"/><w:left w:w="100" w:type="dxa"/>'
+        '<w:bottom w:w="28" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar>',
         "</w:tblPr><w:tblGrid>",
         "".join(f'<w:gridCol w:w="{w}"/>' for w in widths),
         "</w:tblGrid>",
@@ -106,7 +119,7 @@ def table_xml(rows) -> str:
         xml.append("</w:tr>")
     xml.append("</w:tbl>")
     # Word needs a paragraph after a table; make it tiny
-    xml.append('<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="60" w:lineRule="exact"/></w:pPr></w:p>')
+    xml.append('<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="120" w:lineRule="exact"/></w:pPr></w:p>')
     return "".join(xml)
 
 
@@ -194,7 +207,7 @@ class Converter(HTMLParser):
             return
         if tag in self.BLOCKS:
             style = self.BLOCKS[tag]
-            if tag == "p" and a.get("class") in ("meta", "cap"):
+            if tag == "p" and a.get("class") in ("meta", "cap", "ref"):
                 style = a["class"]
             self._open(style)
         elif tag == "table":
@@ -214,7 +227,7 @@ class Converter(HTMLParser):
             self.runs.append(("\n", {}))
         elif tag == "img":
             self.images.append(os.path.join(HERE, a["src"]))
-            self.body.append(image_xml(f"rIdImg{len(self.images)}", self.images[-1], 6.95))
+            self.body.append(image_xml(f"rIdImg{len(self.images)}", self.images[-1], 0.77 * TEXT_W / 1440.0))
             self.runs = None
 
     def handle_endtag(self, tag):
