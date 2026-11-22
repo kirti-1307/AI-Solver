@@ -136,3 +136,10 @@ Extra feature 2 was rebuilt on course material only: an energy balance on a reac
 - **Fix:** the numerical cross-check stops at 50 K, and the tolerances scale with the size of the enthalpies that are added. A deliberately wrong balance is still caught.
 - **Prevention:** `test_audit_does_not_cry_wolf_at_extreme_but_legal_settings`.
 
+### 19. After an update the browser kept running the old script
+
+- **Actual:** a fix to the calorimeter readout was pushed and deployed, yet the live page still showed the old behaviour.
+- **Investigation:** fetching the script with the cache switched off returned the new file; the page itself was using the copy the browser had cached. GitHub Pages lets browsers keep files for ten minutes, so for that long a visitor can run new HTML with old scripts.
+- **Fix:** every local script and the stylesheet are linked with a version tag (`web/ui.js?v=1.1.1`), and the worker is started the same way. A new release raises the tag, so the browser asks for fresh files. The Python files were already fetched with `cache: "no-cache"`.
+- **Prevention:** `test_page_loads_every_script_it_needs` requires one and the same tag on every local file and on the worker.
+

@@ -68,11 +68,20 @@ class TestDeployment(unittest.TestCase):
     def test_page_loads_every_script_it_needs(self):
         with open(os.path.join(self.ROOT, "index.html"), encoding="utf-8") as fh:
             html = fh.read()
-        for src in re.findall(r'<script src="(web/[^"]+)"', html):
+        # Every local file carries the same ?v= tag, so that a browser never mixes
+        # files of two releases from its cache.
+        tagged = re.findall(r'(?:src|href)="(web/[^"?]+)\?v=([^"]+)"', html)
+        for src, _ in tagged:
             self.assertTrue(os.path.exists(os.path.join(self.ROOT, src)), src)
-        scripts = set(re.findall(r'<script src="web/([^"]+)"', html))
+        self.assertEqual(len({version for _, version in tagged}), 1)
+        self.assertNotRegex(html, r'(?:src|href)="web/[^"?]+"')            # nothing left untagged
+        scripts = {src[len("web/"):] for src, _ in tagged if src.endswith(".js")}
         on_disk = {f for f in os.listdir(os.path.join(self.ROOT, "web")) if f.endswith(".js")}
         self.assertEqual(scripts, on_disk - {"worker.js"})
+        with open(os.path.join(self.ROOT, "web", "ui.js"), encoding="utf-8") as fh:
+            worker = re.search(r'new Worker\("web/worker\.js\?v=([^"]+)"\)', fh.read())
+        self.assertIsNotNone(worker)
+        self.assertEqual(worker.group(1), tagged[0][1])
 
     def test_no_thermodynamic_constants_in_the_front_end(self):
         # The page must not carry its own copy of R or of any correlation constant.

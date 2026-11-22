@@ -17,6 +17,7 @@ Boxes are ticked only for what has actually been verified.
 - [x] Site works from a local static server (`python serve.py`): engine loads, all seven tabs render, no console errors
 - [x] `.nojekyll` is present at the repository root. Without it GitHub Pages silently refuses to serve `thermosolver/__init__.py` and `__main__.py` (files starting with an underscore), and the solver cannot load.
 - [x] The worker's file list in `web/worker.js` matches the files in `thermosolver/` that the solver imports
+- [x] The `?v=` tag on the local scripts in `index.html` and on the worker in `web/ui.js` was raised for this release (a test checks that all of them agree), so no browser mixes old and new files
 - [x] No secrets, tokens or personal data in the repository
 - [x] Rollback plan written (below)
 
@@ -58,7 +59,7 @@ Boxes are ticked only for what has actually been verified.
 | Theme switch | page background changed to dark and back |
 | Phone width (375 px) | page does not scroll sideways; the tab bar and the tables scroll inside their own boxes |
 
-The test was run in one browser (Chromium) in a background tab. In a background tab the first version did not animate the calorimeter readout, which stayed at 0.00 although the result below it was right; the readout now shows its final value at once when the tab is hidden.
+The test was run in one browser (Chromium) in a background tab. There the animated calorimeter readout stayed at 0.00 although the result below it was right, because a background tab gets no animation frames. This was fixed (a timer now sets the final value) and the files were given version tags; see [DEBUG_LOG.md](DEBUG_LOG.md), items 17 to 19.
 
 ## Before the classroom demonstration
 
