@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Dict, List, Optional, Tuple
 
 from . import data
 from .constants import R, T0
 from .errors import DataUnavailableError, InputError, UnknownSpeciesError
 from .formula import molar_mass, parse_formula
-from .heatcap import Coeffs, cp_over_r, icph, icps, shomate_to_coeffs
+from .heatcap import (Coeffs, cp_over_r, icph, icps, quadratic_through, quadratic_with_integral,
+                      shomate_to_coeffs)
 
 
 @dataclass(frozen=True)
@@ -35,14 +36,18 @@ class Species:
     dHf: float                      # J/mol, standard enthalpy of formation at 298.15 K
     dGf: float                      # J/mol, standard Gibbs energy of formation at 298.15 K
     cp: Optional[Coeffs]            # (A, B, C, D) of Cp/R, or None if SVN gives no Cp
-    cp_Tmin: Optional[float]        # K
+    cp_Tmin: Optional[float]        # K, lowest temperature with heat-capacity data
     cp_Tmax: Optional[float]        # K
     cp298_tab: Optional[float]      # Cp/R at 298.15 K as printed in SVN (checksum only)
     critical: Optional[Critical]
     cp_source: str
     elements: Dict[str, int] = field(default_factory=dict, compare=False, hash=False)
     formation_source: str = data.SOURCES["formation"]
-    from_svn: bool = True           # False when any property comes from outside SVN
+    from_svn: bool = True           # False when a property at or above 298.15 K comes from outside SVN
+    # Heat capacity below 298.15 K (NIST tables); None when there is none.
+    cp_low: Optional[Coeffs] = None       # (A, B, C, 0, 0) of Cp/R from cp_Tmin to 298.15 K
+    cp_low_source: Optional[str] = None
+    cp_main_Tmin: Optional[float] = None  # K, where the correlation ``cp`` itself starts
 
     @property
     def remark(self) -> Optional[str]:
@@ -90,9 +95,28 @@ class Species:
             )
         return self.cp
 
+    def coeffs_at(self, T: float) -> Coeffs:
+        """The constants of Cp/R that apply at T.
+
+        From 298.15 K upwards this is the main correlation (SVN for almost
+        every species). Below 298.15 K it is the low-temperature set from the
+        NIST tables when the species has one. The two meet at 298.15 K, which
+        is also the lower limit of every integral the solver takes, so an
+        integral from 298.15 K to T never crosses from one set to the other.
+        """
+        if self.cp_low is not None and T < T0:
+            return self.cp_low
+        return self.require_cp()
+
+    def cp_source_at(self, T: float) -> str:
+        """Where the heat capacity used at T comes from."""
+        if self.cp_low is not None and T < T0:
+            return self.cp_low_source or ""
+        return self.cp_source
+
     def cp_R(self, T: float) -> float:
         """Cp/R at T."""
-        return cp_over_r(self.require_cp(), T)
+        return cp_over_r(self.coeffs_at(T), T)
 
     def cp_J(self, T: float) -> float:
         """Cp in J/(mol K) at T."""
@@ -104,17 +128,26 @@ class Species:
         return self.cp_Tmin - 1e-9 <= T <= self.cp_Tmax + 1e-9
 
     # --- standard-state properties at T ----------------------------------------
+    def _integral(self, integral, T1: float, T2: float) -> float:
+        """An integral of the heat capacity from T1 to T2. If the two
+        temperatures lie on different sides of 298.15 K it is taken in two
+        parts, each with its own set of constants."""
+        c1, c2 = self.coeffs_at(T1), self.coeffs_at(T2)
+        if c1 is c2:
+            return integral(T1, T2, c1)
+        return integral(T1, T0, c1) + integral(T0, T2, c2)
+
     def sensible_dH(self, T1: float, T2: float) -> float:
         """Sensible enthalpy change, integral of Cp dT from T1 to T2, J/mol."""
         if abs(T1 - T2) < 1e-12:
             return 0.0
-        return R * icph(T1, T2, self.require_cp())
+        return R * self._integral(icph, T1, T2)
 
     def sensible_dS(self, T1: float, T2: float) -> float:
         """Entropy change at constant pressure, integral of Cp dT/T, J/(mol K)."""
         if abs(T1 - T2) < 1e-12:
             return 0.0
-        return R * icps(T1, T2, self.require_cp())
+        return R * self._integral(icps, T1, T2)
 
     def H(self, T: float) -> float:
         """Standard-state enthalpy at T on the formation scale, J/mol:
@@ -154,6 +187,18 @@ class Species:
             "cp_Tmax": self.cp_Tmax,
             "cp298_R": cp_over_r(self.cp, T0) if self.cp else None,
             "cp298_R_tab": self.cp298_tab,
+            "cp_low": list(self.cp_low) if self.cp_low else None,
+            "cp_low_source": self.cp_low_source,
+            "cp_main_Tmin": self.cp_main_Tmin,
+            "cp298_R_low": cp_over_r(self.cp_low, T0) if self.cp_low else None,
+            # for the table of low-temperature data: Cp in J/(mol K) at the two
+            # ends of the NIST range, the main correlation's value at 298.15 K,
+            # and how far the two sources are apart there
+            "cp_low_at_Tmin_J": R * cp_over_r(self.cp_low, self.cp_Tmin) if self.cp_low else None,
+            "cp298_low_J": R * cp_over_r(self.cp_low, T0) if self.cp_low else None,
+            "cp298_main_J": R * cp_over_r(self.cp, T0) if self.cp else None,
+            "cp298_step_percent": (100.0 * (cp_over_r(self.cp, T0) / cp_over_r(self.cp_low, T0) - 1.0)
+                                   if self.cp_low else None),
             "cp_source": self.cp_source,
             "formation_source": self.formation_source,
             "from_svn": self.from_svn,
@@ -249,7 +294,35 @@ def _build() -> Dict[str, Species]:
             data.SOURCES["nist_acetic_gas"], elements,
             formation_source=data.SOURCES["nist_acetic_gas"], from_svn=False,
         )
+
+    # ---- heat capacities from 200 K to 298.15 K (NIST tables) ---------------------
+    for sid, (coeffs, source) in low_temperature_sets().items():
+        sp = db[sid]
+        db[sid] = replace(sp, cp_low=coeffs, cp_low_source=source,
+                          cp_main_Tmin=sp.cp_Tmin, cp_Tmin=data.LOW_T_MIN)
+    for sid, sp in list(db.items()):
+        if sp.cp is not None and sp.cp_main_Tmin is None:
+            db[sid] = replace(sp, cp_main_Tmin=sp.cp_Tmin)
     return db
+
+
+def low_temperature_sets() -> Dict[str, Tuple[Coeffs, str]]:
+    """Constants of Cp/R = A + B*T + C*T^2 for 200 K to 298.15 K, computed
+    from the tabulated rows in ``data`` (see the comment block there).
+
+    * NIST-JANAF: Cp at 200 K, Cp at 298.15 K and the tabulated enthalpy
+      difference H(200 K) - H(298.15 K) fix the three constants.
+    * NIST WebBook: the curve passes through three tabulated Cp values.
+    """
+    out: Dict[str, Tuple[Coeffs, str]] = {}
+    for sid, (table, rows) in data.JANAF_LOW_T.items():
+        low, ref = rows[0], rows[-1]
+        coeffs = quadratic_with_integral((low[0], low[1] / R), (ref[0], ref[1] / R), low[3] * 1000.0 / R)
+        out[sid] = (coeffs, f"{data.SOURCES['low_T_janaf']}, table {table}")
+    for sid, (webbook_id, reference, rows) in data.WEBBOOK_LOW_T.items():
+        coeffs = quadratic_through([(T, cp / R) for T, cp in rows])
+        out[sid] = (coeffs, f"{data.SOURCES['low_T_webbook']}, species {webbook_id}, {reference}")
+    return out
 
 
 SPECIES: Dict[str, Species] = _build()

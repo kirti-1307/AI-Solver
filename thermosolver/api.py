@@ -18,7 +18,7 @@ from . import benchmarks, heatbalance, library
 from .audit import audit_reaction, audit_residuals
 from .combine import combine_reactions, formation_decomposition, formation_reaction
 from .constants import P0, R, T0
-from .data import SOURCES
+from .data import LOW_T_MIN, LOW_T_NOT_COVERED, SOURCES
 from .equilibrium import atom_distribution, gibbs_minimize, reaction_equilibrium
 from .errors import InputError, SolverError, UnbalancedReactionError
 from .heatcap import mcph, mcps
@@ -151,8 +151,8 @@ def _sweep_range(rxn: Reaction, payload: dict):
     hi = _num(payload, "T_max", None, 1.0, T_ABS_MAX, "Maximum temperature")
     lo = rng[0] if lo is None else lo
     hi = rng[1] if hi is None else hi
-    if lo < 298.15 and rng[0] <= 298.15 and payload.get("T_min") in (None, ""):
-        lo = 298.15
+    if lo == 298.0 and payload.get("T_min") in (None, ""):
+        lo = T0                        # SVN prints "298 K" for 298.15 K
     if hi <= lo:
         raise InputError("The maximum temperature of the plot must be above the minimum.")
     return lo, hi
@@ -174,7 +174,27 @@ def database(payload: Optional[dict] = None) -> dict:
         "constants": {"R": R, "T0": T0, "P0": P0},
         "sources": SOURCES,
         "models": MODEL_NAMES,
+        "low_T": {
+            "T_min": LOW_T_MIN, "covered": sum(1 for sp in SPECIES.values() if sp.cp_low is not None),
+            "not_covered": LOW_T_NOT_COVERED,
+        },
         "data_notes": [
+            {"species": "Below 298.15 K", "reason": (
+                "SVN's heat-capacity tables start at 298 K, and extrapolating them downwards is not safe "
+                "(for CO2 at 200 K the SVN constants give a heat capacity 29 % too low). From 200 K to 298.15 K "
+                "the heat capacities of all 40 SVN gases, of acetic acid vapour and of six solids are therefore "
+                "taken from NIST: the NIST-JANAF Thermochemical Tables (Chase 1998) and the recommended "
+                "ideal-gas values of the NIST Chemistry WebBook. Each is a quadratic in T fixed by the tabulated "
+                "values. The formation data at 298.15 K and everything above 298.15 K are unchanged. Liquids keep "
+                "the SVN range of 273.15 to 373.15 K. Not covered below 298.15 K: H2O2(g) (its NIST-JANAF table is "
+                "not consistent with itself there), CaCO3(s) and CaC2(s) (not in NIST-JANAF).")},
+            {"species": "Step at 298.15 K", "reason": (
+                "The SVN correlation and the NIST value do not give exactly the same heat capacity at 298.15 K. "
+                "For 25 of the 47 species the two agree within 1 %. The largest differences: SVN's constants are "
+                "14 % above NIST for ethanol, 7 % for styrene and calcium hydroxide, and 5 % for methanol. "
+                "Neither source is altered, so "
+                "plots of the heat capacity show a small step at 298.15 K. Enthalpy, entropy and Gibbs energy "
+                "stay continuous because every integral starts at 298.15 K.")},
             {"species": "H2O2(g)", "reason": "Hydrogen peroxide is absent from SVN Tables B.1 and C.1 to C.4. The gas is taken from the NIST Chemistry WebBook (NIST-JANAF: ΔH°f = -136.11 kJ/mol, S° = 232.95 J/(mol·K), Shomate heat-capacity equation, 298 to 1500 K). It has no critical constants in Table B.1, so it is an ideal gas in pressure calculations. Liquid H2O2 is not included."},
             {"species": "CH3COOH(g)", "reason": "Acetic acid vapour is not in SVN. NIST Chemistry WebBook: ΔH°f = -432.9 kJ/mol, S° = 282.84 J/(mol·K), heat capacity fitted to the tabulated values (largest deviation 0.21 %). Values are for the ideal-gas monomer; the real vapour is partly dimerised."},
             {"species": "1,3-Butadiene", "reason": "The Cp298/R printed in SVN Table C.1 (10.720) does not agree with the printed A, B, C (9.931). The constants are used."},
@@ -241,8 +261,10 @@ def _derivation(rxn: Reaction, ev: dict) -> List[dict]:
     ]
     if ev.get("dA") is None:
         return steps
+    low = bool(ev.get("low_T_species"))
     steps += [
-        {"title": "Heat-capacity change of reaction",
+        {"title": ("Heat-capacity change of reaction (constants for 200 to 298.15 K, from NIST tables)"
+                   if low else "Heat-capacity change of reaction"),
          "formula": ("ΔCp°/R = ΔA + ΔB·T + ΔC·T² + ΔD·T⁻²"
                      + (" + ΔE·T³" if ev["dE"] else "") + ",  Δ = Σ νᵢ (…)ᵢ"),
          "work": (f"ΔA = {ev['dA']:.4g},  ΔB = {ev['dB']:.4e},  "
@@ -271,6 +293,11 @@ def _derivation(rxn: Reaction, ev: dict) -> List[dict]:
 
 def _T_sweep(rxn: Reaction, lo: float, hi: float, n: int) -> dict:
     Ts = _grid(lo, hi, n)
+    if lo < T0 < hi and rxn.uses_low_T_data(lo):
+        # The heat capacity changes its source at 298.15 K. Two points right
+        # at that temperature let a plot show the small step in dCp honestly
+        # instead of smearing it over one grid spacing.
+        Ts = sorted(set(Ts) | {T0 - 1e-6, T0})
     rng = rxn.valid_range()
     out: Dict[str, list] = {k: [] for k in (
         "T", "dH", "dS", "dG", "TdS", "lnK", "log10K", "dCp",
@@ -761,10 +788,17 @@ def sensible(payload: dict) -> dict:
     T1 = _temperature(payload, "T1")
     T2 = _temperature(payload, "T2", 1000.0)
     moles = _num(payload, "moles", 1.0, 0.0, 1e12, "Amount")
-    cp = sp.require_cp()
+    sp.require_cp()
     dH = sp.sensible_dH(T1, T2)
     dS = sp.sensible_dS(T1, T2)
+    same = abs(T2 - T1) < 1e-9
     warnings = []
+    if sp.cp_low is not None and min(T1, T2) < T0:
+        warnings.append({
+            "level": "info", "species": sp.id, "kind": "low_T_data",
+            "message": (f"Below {T0} K the heat capacity of {sp.id} is not from SVN, whose tables start at 298 K. "
+                        f"{sp.cp_low_source}."),
+        })
     for T in (T1, T2):
         if not sp.in_cp_range(T):
             warnings.append({
@@ -772,12 +806,17 @@ def sensible(payload: dict) -> dict:
                 "message": (f"{T:g} K is outside the validity range of the heat-capacity "
                             f"correlation of {sp.id} ({sp.cp_Tmin:g} to {sp.cp_Tmax:g} K)."),
             })
-    Ts = _grid(min(T1, T2), max(T1, T2), 61) if abs(T2 - T1) > 1e-9 else [T1]
+    Ts = _grid(min(T1, T2), max(T1, T2), 61) if not same else [T1]
+    if sp.cp_low is not None and min(T1, T2) < T0 < max(T1, T2):
+        Ts = sorted(set(Ts) | {T0 - 1e-6, T0})     # show the change of source at 298.15 K
     return _safe({
         "species": sp.to_dict(), "note": note, "T1": T1, "T2": T2, "moles": moles,
         "dH_molar": dH, "dS_molar": dS, "Q": moles * dH, "dS_total": moles * dS,
         "cp_T1": sp.cp_J(T1), "cp_T2": sp.cp_J(T2),
-        "mean_cp_H": R * mcph(T1, T2, cp), "mean_cp_S": R * mcps(T1, T2, cp),
+        # mean heat capacities by their definitions, so that an interval that
+        # crosses 298.15 K (two sets of constants) is handled as well
+        "mean_cp_H": sp.cp_J(T1) if same else dH / (T2 - T1),
+        "mean_cp_S": sp.cp_J(T1) if same else dS / math.log(T2 / T1),
         "dH_constant_cp": sp.cp_J(T1) * (T2 - T1),
         "curve": {"T": Ts, "cp": [sp.cp_J(t) for t in Ts], "H": [sp.sensible_dH(T1, t) for t in Ts]},
         "warnings": warnings,
@@ -866,7 +905,7 @@ def challenge(payload: Optional[dict] = None) -> dict:
     ext = []
     for text, T in (("CH4 + H2O(g) -> CO + 3 H2", 1400.0), ("CH4 + H2O(g) -> CO + 3 H2", 2200.0),
                     ("H2 + 1/2 O2 -> H2O(l)", 450.0), ("CaCO3 -> CaO + CO2", 1500.0),
-                    ("N2 + 3 H2 -> 2 NH3", 250.0)):
+                    ("N2 + 3 H2 -> 2 NH3", 150.0)):
         rxn = Reaction.parse(text)
         w = [x for x in rxn.range_warnings(T) if x.get("kind") == "cp_extrapolation"]
         ext.append({"equation": rxn.equation, "T": T, "valid_range": rxn.valid_range(),

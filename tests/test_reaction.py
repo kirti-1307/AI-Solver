@@ -255,7 +255,9 @@ class TestStandardProperties(unittest.TestCase):
         # Acetaldehyde oxidation to liquid acetic acid: SVN formation data
         rxn = Reaction.parse("CH3CHO + 1/2 O2 -> CH3COOH(l)")
         self.assertAlmostEqual(rxn.dH(T0), -318310.0, places=6)
-        self.assertEqual(rxn.valid_range(), (298.0, 320.0))
+        # the liquid's constant Cp (290 to 320 K) is now the narrowest range: the
+        # two gases have NIST heat capacities down to 200 K
+        self.assertEqual(rxn.valid_range(), (290.0, 320.0))
         self.assertTrue(any(w["kind"] == "cp_extrapolation" for w in rxn.range_warnings(400.0)))
         # every use of a NIST species is announced
         for eq in ("H2 + O2 -> H2O2", "CH3OH(g) + CO -> CH3COOH(g)", "CH3CHO + 1/2 O2 -> CH3COOH(l)"):
@@ -315,9 +317,19 @@ class TestWarnings(unittest.TestCase):
         warned = {w["species"] for w in rxn.range_warnings(2600.0) if w["kind"] == "cp_extrapolation"}
         self.assertEqual(warned, {"CH4(g)", "H2O(g)", "CO(g)"})
 
-    def test_warning_below_298K(self):
+    def test_warning_below_the_low_temperature_tables(self):
         rxn = Reaction.parse("N2 + 3 H2 -> 2 NH3")
-        self.assertEqual(len([w for w in rxn.range_warnings(250.0) if w["kind"] == "cp_extrapolation"]), 3)
+        # 150 K is below the NIST tables (200 K): all three species are extrapolated
+        self.assertEqual(len([w for w in rxn.range_warnings(150.0) if w["kind"] == "cp_extrapolation"]), 3)
+        # 250 K is inside them: no extrapolation, and one note that the data are not SVN's
+        kinds = [w["kind"] for w in rxn.range_warnings(250.0)]
+        self.assertNotIn("cp_extrapolation", kinds)
+        self.assertEqual(kinds.count("low_T_data"), 1)
+        self.assertNotIn("low_T_data", [w["kind"] for w in rxn.range_warnings(T0)])
+        # hydrogen peroxide has no low-temperature data and is still flagged below 298 K
+        h2o2 = Reaction.parse("H2 + O2 -> H2O2")
+        warned = {w["species"] for w in h2o2.range_warnings(250.0) if w["kind"] == "cp_extrapolation"}
+        self.assertEqual(warned, {"H2O2(g)"})
 
     def test_liquid_range(self):
         rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(l)")

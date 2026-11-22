@@ -72,7 +72,26 @@ class Stream:
         self.without_cp = [s for s in self.moles if SPECIES[s].cp is None]
         self.coeffs = combine((n, SPECIES[s].cp) for s, n in self.moles.items()
                               if SPECIES[s].cp is not None)
+        # Below 298.15 K each species contributes its low-temperature
+        # constants (NIST tables) where it has them.
+        if any(SPECIES[s].cp_low is not None for s in self.moles):
+            self.coeffs_low = combine((n, SPECIES[s].cp_low or SPECIES[s].cp) for s, n in self.moles.items()
+                                      if SPECIES[s].cp is not None)
+        else:
+            self.coeffs_low = self.coeffs
         self._window: Optional[Tuple[float, float]] = None
+
+    def coeffs_at(self, T: float):
+        """The summed constants that apply at T (see Species.coeffs_at)."""
+        return self.coeffs_low if T < T0 else self.coeffs
+
+    def _integral(self, integral, T1: float, T2: float) -> float:
+        """An integral of the heat capacity from T1 to T2, taken in two parts
+        when the temperatures lie on different sides of 298.15 K."""
+        c1, c2 = self.coeffs_at(T1), self.coeffs_at(T2)
+        if c1 is c2:
+            return integral(T1, T2, c1)
+        return integral(T1, T0, c1) + integral(T0, T2, c2)
 
     def _need_cp(self) -> None:
         if self.without_cp:
@@ -86,7 +105,7 @@ class Stream:
         if abs(T1 - T2) < 1e-12:
             return 0.0
         self._need_cp()
-        return R * icph(T1, T2, self.coeffs)
+        return R * self._integral(icph, T1, T2)
 
     def H(self, T: float) -> float:
         """Enthalpy of the stream at T on the formation scale, in J."""
@@ -95,7 +114,7 @@ class Stream:
     def cp(self, T: float) -> float:
         """Total heat capacity sum n_i Cp_i at T, in J/K."""
         self._need_cp()
-        return R * cp_over_r(self.coeffs, T)
+        return R * cp_over_r(self.coeffs_at(T), T)
 
     def entropy_change(self, T1: float, T2: float) -> float:
         """sum n_i * integral of Cp_i dT/T from T1 to T2 at constant pressure
@@ -103,7 +122,7 @@ class Stream:
         if abs(T1 - T2) < 1e-12:
             return 0.0
         self._need_cp()
-        return R * icps(T1, T2, self.coeffs)
+        return R * self._integral(icps, T1, T2)
 
     def window(self) -> Tuple[float, float]:
         """Temperature interval around 298.15 K in which the total heat
@@ -329,7 +348,7 @@ def solve(case: dict, T_in: float, mode: str = "adiabatic", T_out: Optional[floa
         "H_in": feed.H(T_in), "H_out": outlet.H(T_out),
         "mean_cp_products": mean_cp,
         "cp_feed_T_in": feed.cp(T_in), "cp_products_T_out": outlet.cp(T_out),
-        "sum_coeffs_products": list(outlet.coeffs),
+        "sum_coeffs_products": list(outlet.coeffs_at(T_out)),
         "species": rows,
         "reactions": [{"equation": rxn.equation, "extent": xi, "dH0": rxn.dH0, "heat": xi * rxn.dH0}
                       for rxn, xi in case["reactions"]],
@@ -397,7 +416,7 @@ def audit(case: dict, T_in: float, T_out: float, Q: float) -> List[dict]:
     # Near absolute zero the D/T^2 term makes the integrand too steep for a
     # fixed-step quadrature, so the numerical cross-check stops at 50 K.
     if abs(T_out - T0) > 1e-9 and T_out >= 50.0:
-        numeric = R * simpson(lambda t: cp_over_r(outlet.coeffs, t), T0, T_out)
+        numeric = R * simpson(lambda t: cp_over_r(outlet.coeffs_at(T_out), t), T0, T_out)
         checks.append(_check("Sensible heat of the products",
                              "analytical integral of sum n_i Cp_i dT = Simpson quadrature",
                              outlet.sensible(T0, T_out), numeric, 1e-8, 1e-6))

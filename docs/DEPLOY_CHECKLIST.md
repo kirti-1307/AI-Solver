@@ -60,7 +60,7 @@ Boxes are ticked only for what has actually been verified.
 | Tab 5, methane, 20 % excess air | 2,066 K |
 | Tab 5, steam reformer | +328.0 kJ per mol CH₄ |
 | Tab 5, bomb calorimeter, 1 g ethanol | rise 2.31 °C, calorific value 29.62 MJ/kg |
-| Tab 7 | "51 of 51 reference values reproduced", no "FAIL" |
+| Tab 7 | "57 of 57 reference values reproduced" (51 of 51 before v1.3), no "FAIL" |
 | Theme switch | page background changed to dark and back |
 | Phone width (375 px) | page does not scroll sideways; the tab bar and the tables scroll inside their own boxes |
 
@@ -69,6 +69,13 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 **Checked again after the review fixes, 22 November 2026, commit `b4a988a`, version tag 1.1.2:** both workflows green; on the live page the same values as in the table above (−48.97 kJ/mol, −5.158 kJ/mol, 25.2 %, 2,066 K, +328.0 kJ, 2.31 °C, 51 of 51), the temperature-limit card shows 97 % excess air for 1,500 K, and a hydrogen flame calculated right after a single-reactant reaction shows 2,252 K with the 20 % excess air that the page displays (review finding R2). No console errors, no failed downloads.
 
 **v1.2 checked on the live page, 22 November 2026, commit `1e40f8e`, version tag 1.2.0:** both workflows green. The start page shows nine cards and the eight that run an example each produced a result (−57.94 kJ/mol headline, the rejected reaction, −5.158 kJ/mol, the Hess check, 25.2 %, 2,066 K, 2.31 °C, 51 of 51). Tab 1 shows six "i" buttons and the first opens "Heat of reaction at 298.15 K". `guide.html` loads with ten sections and the stylesheet of this release. No console errors, no failed downloads.
+
+**v1.3 (heat capacities below 298.15 K, standard-state wording, headline):**
+
+- [ ] v1.3: tab 1, CO₂ + 3 H₂ → CH₃OH + H₂O at 250 K shows ΔH° = −46.77 kJ/mol, "Products favoured", K = 8.76, no extrapolation warning, and plots that start at 200 K
+- [ ] v1.3: the same reaction at 523.15 K shows "Reactants favoured ... Some product still forms" and −57.94 kJ/mol as before
+- [ ] v1.3: tab 6 lists "Heat capacities below 298.15 K (47 species ...)"
+- [ ] v1.3: tab 7 reports 57 of 57
 
 ## Before the classroom demonstration
 

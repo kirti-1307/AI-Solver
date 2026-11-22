@@ -108,6 +108,47 @@ def mcps(T0: float, T: float, c: Sequence[float]) -> float:
     return icps(T0, T, c) / math.log(T / T0)
 
 
+def _solve3(rows) -> Tuple[float, float, float]:
+    """Solve three linear equations given as rows [a, b, c, right-hand side]."""
+    m = [list(map(float, row)) for row in rows]
+    for i in range(3):
+        pivot = max(range(i, 3), key=lambda r: abs(m[r][i]))
+        if abs(m[pivot][i]) < 1e-300:
+            raise ValueError("The three conditions do not fix a quadratic.")
+        m[i], m[pivot] = m[pivot], m[i]
+        for r in range(3):
+            if r != i:
+                f = m[r][i] / m[i][i]
+                m[r] = [u - f * v for u, v in zip(m[r], m[i])]
+    return (m[0][3] / m[0][0], m[1][3] / m[1][1], m[2][3] / m[2][2])
+
+
+def quadratic_through(points: Sequence[Tuple[float, float]]) -> Coeffs:
+    """The quadratic y = A + B*T + C*T^2 through three (T, y) points, as a
+    coefficient set (A, B, C, 0, 0)."""
+    if len(points) != 3:
+        raise ValueError("Three points are needed.")
+    A, B, C = _solve3([[1.0, T, T * T, y] for T, y in points])
+    return (A, B, C, 0.0, 0.0)
+
+
+def quadratic_with_integral(p1: Tuple[float, float], p2: Tuple[float, float], integral: float) -> Coeffs:
+    """The quadratic y = A + B*T + C*T^2 through the two points p1 = (T1, y1)
+    and p2 = (T2, y2) whose integral from T2 to T1 equals ``integral``.
+
+    Used for a table that lists the heat capacity at two temperatures and
+    the enthalpy difference between them: the curve then carries the
+    tabulated enthalpy exactly.
+    """
+    (T1, y1), (T2, y2) = p1, p2
+    A, B, C = _solve3([
+        [1.0, T1, T1 * T1, y1],
+        [1.0, T2, T2 * T2, y2],
+        [T1 - T2, (T1 * T1 - T2 * T2) / 2.0, (T1 ** 3 - T2 ** 3) / 3.0, integral],
+    ])
+    return (A, B, C, 0.0, 0.0)
+
+
 def combine(terms) -> Coeffs:
     """Stoichiometric sum of coefficient sets: sum(nu_i * (A_i, ..., E_i))."""
     total = [0.0] * 5

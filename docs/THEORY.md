@@ -13,7 +13,7 @@ Each block names the Python function that implements it, so the code can be chec
 | Standard-state pressure P° | 1 bar | SVN Sec. 4.3 |
 | Air | 21 mol-% O₂, 79 mol-% N₂ | SVN Ch. 4 examples |
 
-- **Standard state** (SVN Sec. 4.3): the pure species at 1 bar. Gases are in the ideal-gas state; liquids and solids are the real pure substance.
+- **Standard state** (SVN Sec. 4.3): the pure species at 1 bar, at the temperature of interest. Gases are in the ideal-gas state; liquids and solids are the real pure substance. The standard state fixes the pressure, not the temperature: ΔH°(T), ΔS°(T) and ΔG°(T) are standard property changes at any T. 298.15 K is the reference temperature T₀ at which Table C.4 lists the formation data, nothing more.
 - **Stoichiometric numbers** νᵢ are positive for products and negative for reactants. Every property change of reaction is ΔM = Σ νᵢ Mᵢ, per mole of reaction as written.
 - **Units** in the code: T in K, P in bar, energy in J/mol, entropy in J/(mol·K), volume in cm³/mol.
 
@@ -33,6 +33,12 @@ Its two integrals between T₀ and T (`heatcap.icph`, `heatcap.icps`):
     Cp/R = A + B·T + C·T² + D·T⁻² + E·T³
 
 which adds (E/4)(T⁴ − T₀⁴) to the first integral and (E/3)(T³ − T₀³) to the second. E is zero for every SVN species, so for them nothing changes. It is non-zero only for hydrogen peroxide and acetic acid vapour (see [DATA_SOURCES.md](DATA_SOURCES.md)).
+
+**Below 298.15 K.** Tables C.1 and C.2 are valid from 298 K. From 200 K to 298.15 K the solver uses a second set of constants for the same form, with D = 0,
+
+    Cp/R = A + B·T + C·T²        (200 K ≤ T < 298.15 K)
+
+computed from NIST tables (see [DATA_SOURCES.md](DATA_SOURCES.md); `species.low_temperature_sets`, `heatcap.quadratic_with_integral`, `heatcap.quadratic_through`). `Species.coeffs_at(T)` returns the set that applies at T. Because every integral in this file runs from T₀ = 298.15 K to T, and the two sets meet exactly at T₀, an integral never crosses from one set to the other, and all formulas below hold unchanged with the constants of the side T lies on. A sensible heat between two temperatures on opposite sides of T₀ is taken in two parts. H, S and G are continuous at T₀; Cp itself has a small step there, the difference between the two sources.
 
 Mean heat capacities (`heatcap.mcph`, `heatcap.mcps`), in the form used on the course slides:
 
@@ -72,7 +78,7 @@ At temperature T (`Reaction.dS`, `Reaction.dG`, `Reaction.lnK`):
 
 The last line of ΔG°(T) is the closed form SVN gives; the solver evaluates it both ways and the audit checks that they agree.
 
-Reading K: ΔG° < 0 means K > 1, products favoured when every species is in its standard state. It says nothing about rate, and the actual conversion also depends on pressure and feed composition (Section 6).
+Reading K: ΔG° < 0 means K > 1, products favoured when every species is in its standard state. It says nothing about rate, and the actual conversion also depends on pressure and feed composition (Section 6). ΔG° > 0 does not mean that nothing reacts, only that K < 1, and it takes nothing away from ΔH°: the heat of reaction is a difference of state functions and exists for any balanced reaction. It is the heat exchanged per mole that does react, and the heat of the reverse reaction with the opposite sign.
 
 **Simplified treatments shown for comparison** (`Reaction.dH_constant_cp`, `Reaction.dG_no_cp`): ΔCp° frozen at its 298.15 K value, and ΔCp° ignored altogether. These are the shortcuts that the assignment's stress test 2 asks about; the solver never uses them for its own results.
 

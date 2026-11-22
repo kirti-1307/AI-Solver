@@ -173,3 +173,32 @@ The full list is in [CODE_REVIEW.md](CODE_REVIEW.md), second review. The three t
 - **Root cause:** the buttons were added in a `requestAnimationFrame` callback, and a tab that is not being painted gets no animation frames. It is the same trap as item 17's calorimeter readout, in a new place.
 - **Fix:** a zero-delay timer instead of an animation frame. Nothing that puts content on the page depends on animation frames any more; they are used only to resize plots that are already drawn.
 
+## Round 8: three questions asked about the solver (v1.3)
+
+These were not found by a test. They were raised as questions about the page and the guide, and all three were right.
+
+### 24. "Standard state" was explained as 298.15 K and 1 bar
+
+- **Actual:** the guide said that 298.15 K and 1 bar "is the standard state".
+- **Root cause:** the reference temperature of the tables was mixed up with the standard state. The standard state fixes the pressure (1 bar; ideal gas for a gas) and nothing else. ΔH°(T) is a standard heat of reaction at any T. 298.15 K is only where Table C.4 lists the formation data.
+- **Fix:** the guide, the page (tab 1 hint, footer, glossary, Species tab), THEORY.md and DATA_SOURCES.md now keep the two apart. The calculation itself never had this error: it has always evaluated ΔH°(T) at the temperature asked for.
+
+### 25. Below 298 K the SVN heat capacities were simply extrapolated
+
+- **Actual:** for CO₂ + 3 H₂ → CH₃OH + H₂O at 250 K the page gave numbers with a warning that they were unreliable, and the plots started at 298 K. There was no usable value below 298.15 K.
+- **Root cause:** SVN Tables C.1 and C.2 start at 298 K and the solver had no other data. The warning was honest, but the extrapolation is bad: the D/T² term takes over, and at 200 K the SVN constants give a heat capacity 29 % too low for CO₂, 37 % too low for SO₃ and a negative one for graphite.
+- **Fix:** tabulated heat capacities from 200 K to 298.15 K for all 40 SVN gases, acetic acid vapour and six solids, read from the NIST-JANAF tables and the NIST Chemistry WebBook (see DATA_SOURCES.md). The rows are stored as read and the constants are computed from them. Columns and rows that were not used for the fit check the result.
+- **What the check found in the source itself:** the NIST-JANAF table of hydrogen peroxide is not consistent with itself between 200 K and 298.15 K, so that species was left out; and the tabulated entropy of H₂S at 200 K is 0.26 J/(mol·K) away from the table's own heat capacities. Both are listed in DATA_SOURCES.md.
+- **A consequence worth knowing:** with real data the reaction above turns favourable below 276 K (K = 8.8 at 250 K). The extrapolated constants put ΔH° at 200 K only 0.14 kJ/mol off, because the errors of the four species largely cancel in this reaction; for a single species they do not.
+- **Tests that had to change:** four tests had 250 K as their example of "outside the data". They now use 150 K, and a fifth checks that 250 K is inside.
+
+### 26. "Not favourable" read as "cannot happen"
+
+- **Actual:** the headline of tab 1 said "Not favourable" next to a heat of reaction, which raised the question of how a reaction that is not feasible can have an enthalpy.
+- **Root cause:** wording. ΔG° > 0 means K < 1, reactants favoured at equilibrium, not that nothing reacts. ΔH° is a difference of state functions and exists for any balanced reaction.
+- **Fix:** the headline now reads "Products favoured" or "Reactants favoured", with "Some product still forms" in the second case, and the explanation adds two sentences on why ΔH° is still meaningful. The guide has a short section on it.
+
+### 27. Three of the new tests expected a hand estimate that was too rough
+
+- A trapezium estimate of the methanol enthalpy ignored the curvature of its heat capacity, a count of species was off by two, and a tolerance on the H₂S entropy was 0.0006 too tight. The solver values were right in all three; the expectations were corrected. Same lesson as items 6 and 15.
+

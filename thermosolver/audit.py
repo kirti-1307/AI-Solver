@@ -49,12 +49,14 @@ def audit_reaction(rxn, T: float) -> List[dict]:
     checks.append(_check("Elemental balance", "atoms in = atoms out, every element",
                          worst, 0.0, 0.0, 1e-8))
 
-    if not rxn.has_cp or abs(T - T0) < 1e-9:
+    if not rxn.has_cp or abs(T - T0) < 1e-6:
         checks.append(_check("G = H - T S at 298.15 K", "dG0 = dH0 - T0 dS0",
                              rxn.dG0, rxn.dH0 - T0 * rxn.dS0, 1e-12, 1e-6))
         return checks
 
-    d = rxn.delta_coeffs()
+    # The constants that apply at T: SVN from 298.15 K upwards, the NIST
+    # low-temperature set below it.
+    d = rxn.delta_coeffs(T)
     closed = (rxn.dH0 - (T / T0) * (rxn.dH0 - rxn.dG0)
               + R * icph(T0, T, d) - R * T * icps(T0, T, d))
     by_species = sum(nu * SPECIES[s].G(T) for s, nu in rxn.stoich.items())
@@ -62,7 +64,9 @@ def audit_reaction(rxn, T: float) -> List[dict]:
                          "closed form (dH0, dG0, IDCPH, IDCPS) = sum nu_i G_i(T)",
                          closed, by_species, 1e-10, 1e-6))
 
-    h = 0.01
+    # The heat capacity changes its source at 298.15 K, so the step of the
+    # numerical derivatives must not reach across that temperature.
+    h = min(0.01, abs(T - T0))
     dH_slope = (rxn.dH(T + h) - rxn.dH(T - h)) / (2 * h)
     checks.append(_check("Kirchhoff's law", "d(dH)/dT = dCp",
                          dH_slope, rxn.dCp(T), 1e-6, 1e-6))

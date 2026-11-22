@@ -1,6 +1,6 @@
 # Data sources
 
-Smith, Van Ness & Abbott, *Introduction to Chemical Engineering Thermodynamics* (SVN) is the source for everything it covers: 54 of the 57 species use SVN data only. Three entries that SVN does not cover come from the NIST Chemistry WebBook and are described in their own section below. Nothing is taken from an AI model's memory without being checked against the source itself.
+Smith, Van Ness & Abbott, *Introduction to Chemical Engineering Thermodynamics* (SVN) is the source for everything it covers: from 298.15 K upwards, 54 of the 57 species use SVN data only. Three entries that SVN does not cover come from the NIST Chemistry WebBook and are described in their own section below. SVN's heat capacities start at 298 K, so between 200 K and 298.15 K the heat capacities come from NIST tables; that also has its own section. Nothing is taken from an AI model's memory without being checked against the source itself.
 
 The data lives in one file, [`thermosolver/data.py`](../thermosolver/data.py). The SVN tables are in the same column layout as the book so they can be compared row by row, and the NIST entries are kept in separate tables so that the two sources are never mixed silently.
 
@@ -16,9 +16,9 @@ The data lives in one file, [`thermosolver/data.py`](../thermosolver/data.py). T
 | Molar mass, acentric factor, critical constants, normal boiling point | M, ω, Tc, Pc, Zc, Vc, Tn | g/mol, –, K, bar, –, cm³/mol, K | B.1 |
 | Gas constant | R = 8.314 J/(mol·K) | | A.2 |
 
-Reference conditions: 298.15 K and a standard-state pressure of 1 bar. Gases are in the ideal-gas standard state; liquids and solids are the real pure substance at 1 bar.
+Standard state: the pure species at 1 bar, at whatever temperature is being considered. Gases are in the ideal-gas standard state; liquids and solids are the real pure substance at 1 bar. The standard state does not fix the temperature. 298.15 K is only the reference temperature at which Table C.4 lists the formation data; ΔH°, ΔS° and ΔG° at any other temperature are standard values too, reached with the heat capacities.
 
-Validity of the heat-capacity correlations, exactly as the tables state: gases and solids from 298 K to the listed Tmax (1000 to 3000 K depending on the species); liquids from 273.15 K to 373.15 K.
+Validity of the heat-capacity correlations, exactly as the tables state: gases and solids from 298 K to the listed Tmax (1000 to 3000 K depending on the species); liquids from 273.15 K to 373.15 K. Below 298.15 K the SVN constants are not used for gases and solids (next but one section).
 
 ## The database
 
@@ -48,6 +48,30 @@ Three points follow from using a second source:
 
 What is still not available: liquid hydrogen peroxide (NIST's WebBook has no condensed-phase data for it), and critical constants for H₂O₂, so the gas is ideal in pressure calculations.
 
+## Heat capacities below 298.15 K
+
+SVN's Tables C.1 and C.2 are valid from 298 K. Extrapolating them downwards is not safe, because the D/T² term takes over: at 200 K the SVN constants give a heat capacity 29 % too low for CO₂ and 37 % too low for SO₃, and a negative one for graphite. So from 200 K to 298.15 K the solver uses tabulated values instead.
+
+| Source | Species | What was read |
+|---|---|---|
+| NIST-JANAF Thermochemical Tables, 4th edition (Chase 1998), janaf.nist.gov | 21 gases (HCN, CH₂O, CH₄, CO, CO₂, C₂H₂, C₂H₄, HCl, H₂, H₂O, H₂S, NH₃, NO, NO₂, N₂, N₂O, N₂O₄, O₂, SO₂, SO₃, Cl₂) and 6 solids (graphite, CaO, Ca(OH)₂, Fe, Fe₂O₃, Fe₃O₄) | The rows at 200 K, 250 K (where the table has one) and 298.15 K: Cp, S and H − H(298.15 K) |
+| NIST Chemistry WebBook, "Constant pressure heat capacity of gas", recommended ideal-gas values | 20 organic gases: methanol, ethanol, acetaldehyde, ethylene oxide, acetic acid, ethane to n-octane, propylene, 1-butene, 1,3-butadiene, benzene, cyclohexane, toluene, ethylbenzene, styrene | Cp at 200 K, 273.15 K and 298.15 K (for ethane at 100 K, 200 K and 298.15 K, because NIST lists nothing in between) |
+
+Both were read on 22 November 2026. The rows are stored as read in `data.py` (`JANAF_LOW_T`, `WEBBOOK_LOW_T`) with the table number or the WebBook species ID of each. No fitted constant is typed in: Cp/R = A + B·T + C·T² is computed from the rows when the package is loaded.
+
+- **NIST-JANAF species.** The quadratic takes the tabulated Cp at 200 K and at 298.15 K, and its integral between them equals the tabulated H(200 K) − H(298.15 K). So the enthalpy at 200 K is exactly the table's.
+- **WebBook species.** The quadratic passes through the three tabulated Cp values.
+
+**How this was checked.** The NIST-JANAF entropy column and the 250 K rows were not used for the fit, so they are an independent test of both the transcription and the method. The fitted curves reproduce the 14 rows at 250 K within 0.01 J/(mol·K) in Cp, 1.4 J/mol in enthalpy and 0.004 J/(mol·K) in entropy, and the entropy at 200 K within 0.03 J/(mol·K) for every species but one (see the oddities below). For ethane, five measured heat capacities listed on the same WebBook page (209 to 292 K) are reproduced within 0.8 %.
+
+**What is not changed.** The formation data at 298.15 K, and every heat capacity from 298.15 K upwards. Every integral the solver takes starts at 298.15 K, so a calculation above that temperature never touches the low-temperature data, and one below it never touches the SVN constants.
+
+**The step at 298.15 K.** The SVN correlation and the NIST value do not give exactly the same Cp at 298.15 K. For 25 of the 47 species they agree within 1 %. The largest differences: SVN is 14 % above NIST for ethanol, 7 % for styrene and for calcium hydroxide, 5 % for methanol. Neither source is altered to hide this, so a plot of Cp or ΔCp shows a small step at 298.15 K. ΔH°, ΔS°, ΔG° and K stay continuous. The Species tab lists the step for every species.
+
+**Not covered below 298.15 K.** H₂O₂(g), CaCO₃(s) and CaC₂(s) (reasons in the oddities table below and in `LOW_T_NOT_COVERED`), and the liquids, which keep the SVN range of 273.15 to 373.15 K. Below 200 K nothing is stored: hydrogen then needs its ortho and para forms treated separately, and several solids have transitions. The solver extrapolates there and warns.
+
+**A reminder about phases.** Below its boiling point a species is not a gas at 1 bar. The ideal-gas standard state is still well defined, and that is what "(g)" means in a reaction; the solver adds a note whenever a gas is used below its normal boiling point.
+
 ## Species that SVN covers only in part
 
 | Species | Situation | What the solver does |
@@ -62,7 +86,8 @@ What is still not available: liquid hydrogen peroxide (NIST's WebBook has no con
 3. **Formula check.** The molar mass computed from each chemical formula must match the molar mass printed in Table B.1 to 0.02 g/mol.
 4. **Third-law cross-check.** ΔS°f from Table C.4 plus the CODATA element entropies must reproduce the absolute entropies tabulated by CODATA / NIST for 15 common species to within 1 J/(mol·K). This catches an error in ΔH°f or ΔG°f of about 300 J/mol.
 5. **NIST entries.** The NIST numbers were read from the species pages themselves. For hydrogen peroxide the solver's enthalpy and entropy integrals reproduce NIST's own H°(T) − H°(298.15) and S°(T) functions to nine decimal places; for acetic acid vapour every point of the NIST heat-capacity table is compared with the fitted polynomial.
-6. **Worked examples.** The solver reproduces 51 reference values: 44 from SVN's worked examples, four from course material (two cubic-equation roots from the slides and two results of the bomb-calorimeter handout), one hand calculation from Table C.4 and two steam-table checks. See [TESTING.md](TESTING.md) and the Validation tab of the web app.
+6. **Low-temperature rows.** See "How this was checked" in the section on heat capacities below 298.15 K.
+7. **Worked examples.** The solver reproduces 57 reference values: 44 from SVN's worked examples, four from course material (two cubic-equation roots from the slides and two results of the bomb-calorimeter handout), one hand calculation from Table C.4, two steam-table checks and six from NIST tables below 298.15 K (rows and columns that were not used for the fit). See [TESTING.md](TESTING.md) and the Validation tab of the web app.
 
    **Not yet confirmed against a printed copy:** five of the 44 SVN values belong to the two heat-balance examples of Chapter 4 (flame temperature of methane with 20 % excess air, 2066 K; heat requirement of the steam reformer, −34,390 + 200,460 + 161,940 = 328,010 J). They were added together with the heat lab, when no copy of the book could be opened, and are quoted as remembered from the 7th and 8th editions. The solver reproduces all five to four significant figures without having been given them, which makes a wrong recollection unlikely, but they should be compared with the book before they are relied on.
 
@@ -88,3 +113,11 @@ These are not transcription errors; the printed tables contain them.
 | Carbon monoxide, Table B.1 | Zc = 0.299 | Pc·Vc/(R·Tc) = 0.296 | Same. |
 | Ammonia, Table C.4 | ΔG°f,298 = −16,400 J/mol (8th, 9th ed.) | The 6th edition printed −16,450 J/mol. | The 8th-edition value is used. The 50 J/mol difference changes K of ammonia synthesis by about 2 % at 700 K. |
 | Virial derivative constants | dB⁰/dTr = 0.675/Tr^2.6, dB¹/dTr = 0.722/Tr^5.2 | Exact derivatives are 0.6752 and 0.7224 | The unrounded values are used so that Hᴿ, Sᴿ and φ stay mutually consistent (see THEORY.md, Section 5.1). |
+| Ethanol, Table C.1 | A = 3.518, 10³B = 20.001, 10⁶C = −6.002, so Cp298 = 74.4 J/(mol·K) | NIST recommends 65.21 J/(mol·K) at 298.15 K: SVN is 14 % higher at its lower limit | SVN is used from 298.15 K upwards, as everywhere. The difference is shown, not smoothed. |
+
+## Oddities found in the NIST-JANAF tables
+
+| Item | What the table prints | What it implies | Handling |
+|---|---|---|---|
+| H₂O₂(g), table H-070 | Cp = 36.874 and 43.116 J/(mol·K) at 200 K and 298.15 K; S = 210.632 and 232.991 | The entropy column rises by 22.4 J/(mol·K), but no heat capacity between 36.9 and 43.1 can give more than about 17 over that interval. The enthalpy column disagrees with the heat capacities as well. | Not used. Hydrogen peroxide keeps its range of 298 to 1500 K. |
+| H₂S(g), table H-080 | S(200 K) = 192.038 J/(mol·K) | The table's own heat capacities and enthalpy give 192.30 from its entropy at 298.15 K, 0.26 higher | Only Cp and the enthalpy are used, and they agree with each other to 1 J/mol. The entropy check lists this species as its only exception. |

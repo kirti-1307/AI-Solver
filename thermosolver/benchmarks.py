@@ -185,6 +185,33 @@ def build() -> List[dict]:
         -3230.0, lambda: heatbalance.enthalpy_from_internal_energy(-3228.7e3, -0.5, 303.15) / 1000.0, "kJ/mol", 3e-5,
         "Course bomb-calorimeter handout (ΔH = ΔU + Δn·RT)")
 
+    # --- Below 298.15 K (NIST tables) ----------------------------------------------
+    # The low-temperature heat capacities are fixed by the 200 K and 298.15 K
+    # rows of each table. Every value below comes from a row or a column that
+    # was NOT used for that, so it is an independent check.
+    h2, co2_gas = SPECIES["H2(g)"], SPECIES["CO2(g)"]
+    add("Below 298.15 K", "Hydrogen cooled from 298.15 K to 250 K: H(250 K) − H(298.15 K)",
+        -1378.0, lambda: h2.sensible_dH(T0, 250.0), "J/mol", 1e-3,
+        "NIST-JANAF table H-050, 250 K row (not used for the fit)")
+    add("Below 298.15 K", "Methane: heat capacity at 250 K",
+        34.216, lambda: ch4.cp_J(250.0), "J/(mol K)", 5e-4,
+        "NIST-JANAF table C-067, 250 K row (not used for the fit)")
+    add("Below 298.15 K", "Carbon dioxide: S(200 K) − S(298.15 K)",
+        -13.820, lambda: co2_gas.sensible_dS(T0, 200.0), "J/(mol K)", 1e-3,
+        "NIST-JANAF table C-095, entropy column (not used for the fit)")
+    no = Reaction.parse("N2 + O2 -> 2 NO")
+    add("Below 298.15 K", "N2 + O2 -> 2 NO: ΔH° at 250 K",
+        180430.0, lambda: no.dH(250.0), "J/mol", 2e-5,
+        "SVN ΔH°f plus the 250 K rows of NIST-JANAF tables N-005, N-023, O-029")
+    form_co2 = Reaction.parse("C(s) + O2 -> CO2")
+    add("Below 298.15 K", "C + O2 -> CO2: ΔH° at 200 K minus ΔH° at 298.15 K",
+        118.0, lambda: form_co2.dH(200.0) - form_co2.dH0, "J/mol", 2e-2,
+        "NIST-JANAF table C-095, ΔfH° column: −393.404 and −393.522 kJ/mol")
+    ethane = SPECIES["C2H6(g)"]
+    add("Below 298.15 K", "Ethane: heat capacity at 272.07 K against a measured value",
+        49.51, lambda: ethane.cp_J(272.07), "J/(mol K)", 5e-3,
+        "NIST Chemistry WebBook, measured value (not used for the fit)")
+
     # --- Independent physical check -------------------------------------------
     vap = Reaction.parse("H2O(l) -> H2O(g)")
     add("Physical sanity", "Water: K of vaporisation at 100 C, which should equal Psat/P°",

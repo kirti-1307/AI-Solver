@@ -19,8 +19,29 @@
           <td>${c ? `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}` : "298.15 only"}</td>
           <td>${c ? fix(s.cp298_R, 3) : "–"}</td>
           <td>${cr ? fix(cr.Tc, 1) : "–"}</td><td>${cr ? fix(cr.Pc, 2) : "–"}</td><td>${cr ? fix(cr.omega, 3) : "–"}</td>
-          <td class="l" title="${esc(s.formation_source + " | " + s.cp_source)}">${s.from_svn ? "SVN" : '<span class="badge neutral">NIST</span>'}</td></tr>`;
+          <td class="l" title="${esc(s.formation_source + " | " + s.cp_source + (s.cp_low_source ? " | " + s.cp_low_source : ""))}">${s.from_svn ? "SVN" : '<span class="badge neutral">NIST</span>'}${s.cp_low ? ' <span class="dim">+ NIST below 298 K</span>' : ""}</td></tr>`;
       }).join("");
+  }
+
+  /* Heat capacities from 200 K to 298.15 K: the constants computed from the NIST rows. */
+  function lowTemperatureBlock(db) {
+    const rows = db.species.filter((s) => s.cp_low).map((s) => {
+      const c = s.cp_low;
+      return `<tr><td class="l mono">${chem(s.id)}</td><td class="l">${esc(s.name)}</td>
+        <td>${fix(c[0], 4)}</td><td>${fix(c[1] * 1e3, 4)}</td><td>${fix(c[2] * 1e6, 4)}</td>
+        <td>${fix(s.cp_low_at_Tmin_J, 3)}</td><td>${fix(s.cp298_low_J, 3)}</td><td>${fix(s.cp298_main_J, 3)}</td>
+        <td>${TS.signed(s.cp298_step_percent, 2)} %</td>
+        <td class="l">${esc(s.cp_low_source.replace(/^Heat capacities from 200 K to 298\.15 K: /, ""))}</td></tr>`;
+    }).join("");
+    const left = Object.entries(db.low_T.not_covered).map(([id, why]) => `<li><strong>${chem(id)}:</strong> ${esc(why)}.</li>`).join("");
+    return `<details><summary>Heat capacities below 298.15 K (${db.low_T.covered} species, ${fix(db.low_T.T_min, 0)} to 298.15 K, from NIST)</summary>
+      <p class="hint">SVN's tables start at 298 K, so between ${fix(db.low_T.T_min, 0)} K and 298.15 K the solver uses
+        C<sub>p</sub>/R = A + BT + CT² with constants computed from tabulated NIST values. Formation data and everything above 298.15 K are unchanged.
+        The last number column is how far the SVN correlation is from the NIST value at 298.15 K.</p>
+      <div class="table-scroll"><table><thead><tr><th class="l">Species</th><th class="l">Name</th><th>A</th><th>10³B</th><th>10⁶C</th>
+        <th>C<sub>p</sub> at ${fix(db.low_T.T_min, 0)} K</th><th>C<sub>p</sub> at 298.15 K, NIST</th><th>C<sub>p</sub> at 298.15 K, SVN</th>
+        <th>SVN − NIST</th><th class="l">Source</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="hint" style="margin-top:8px">C<sub>p</sub> in J/(mol·K). Not covered below 298.15 K:</p><ul class="explain">${left}</ul></details>`;
   }
 
   function drawTable() {
@@ -60,14 +81,16 @@
     init() {
       const db = TS.database;
       $("#db-summary").innerHTML = `${db.count} species (${db.phase_counts.g} gases, ${db.phase_counts.l} liquids, ${db.phase_counts.s} solids). ` +
-        `${db.svn_count} use Smith, Van Ness &amp; Abbott (SVN) data only. The other ${db.count - db.svn_count}, marked NIST in the last column, ` +
+        `From 298.15 K upwards ${db.svn_count} use Smith, Van Ness &amp; Abbott (SVN) data only. The other ${db.count - db.svn_count}, marked NIST in the last column, ` +
         `cover what SVN does not tabulate (hydrogen peroxide, and acetic acid beyond its liquid formation values) with data from the NIST Chemistry WebBook. ` +
-        `Reference temperature ${db.constants.T0} K, standard-state pressure ${db.constants.P0} bar, R = ${db.constants.R} J/(mol·K). ` +
+        `Standard state: the pure species at ${db.constants.P0} bar, at any temperature. The formation data are listed at the reference temperature ${db.constants.T0} K. R = ${db.constants.R} J/(mol·K). ` +
         `C<sub>p</sub>/R = A + BT + CT² + DT⁻² (the SVN form), plus ET³ for the NIST species. ` +
+        `SVN's constants hold from 298 K upwards; from ${fix(db.low_T.T_min, 0)} K to 298.15 K the heat capacities of ${db.low_T.covered} species come from NIST tables (listed below the table). ` +
         `ΔS°<sub>f</sub> = (ΔH°<sub>f</sub> − ΔG°<sub>f</sub>)/298.15; the absolute entropy S°<sub>298</sub> adds the CODATA entropies of the elements.`;
       $("#db-notes").innerHTML = `<details><summary>Sources and notes on the data</summary><ul class="explain">` +
         Object.values(db.sources).map((s) => `<li>${esc(s)}</li>`).join("") +
-        db.data_notes.map((n) => `<li><strong>${esc(n.species)}:</strong> ${esc(n.reason)}</li>`).join("") + `</ul></details>`;
+        db.data_notes.map((n) => `<li><strong>${esc(n.species)}:</strong> ${esc(n.reason)}</li>`).join("") + `</ul></details>` +
+        lowTemperatureBlock(db);
       $("#db-search").addEventListener("input", drawTable);
       drawTable();
 

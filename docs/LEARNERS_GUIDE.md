@@ -7,7 +7,7 @@ This guide explains the Thermodynamic Reaction Energy Solver in plain words. You
 You give it a chemical reaction, a temperature and a pressure. It tells you four things:
 
 - **How much heat** the reaction gives out or takes in.
-- **Whether the reaction can go** at that temperature.
+- **Which side is favoured** at that temperature: the products or the reactants.
 - **How far it goes** before it stops.
 - **What changes** if you raise the pressure.
 
@@ -45,16 +45,16 @@ Example: CO₂ + 3 H₂ → CH₃OH + H₂O turns 4 gas molecules into 2, so ΔS
 
 ### Gibbs energy, ΔG
 
-ΔG combines the two ideas above into one number that decides whether a reaction can go:
+ΔG combines the two ideas above into one number that tells which way a reaction leans:
 
     ΔG = ΔH − T·ΔS
 
-- **Negative ΔG**: the reaction can go forward.
-- **Positive ΔG**: it would rather go backward.
+- **Negative ΔG**: the products are favoured.
+- **Positive ΔG**: the reactants are favoured. Some product still forms, only less.
 
-Notice the T in the formula. The same reaction can be favourable at one temperature and unfavourable at another.
+Notice the T in the formula. The same reaction can favour the products at one temperature and the reactants at another.
 
-Example at 523 K: ΔG = −57.94 − 523.15 × (−0.19976) = +46.56 kJ/mol. The reaction gives out heat, but the loss of entropy wins, so it is not favourable at this temperature.
+Example at 523 K: ΔG = −57.94 − 523.15 × (−0.19976) = +46.56 kJ/mol. The reaction gives out heat, but the loss of entropy wins, so the reactants are favoured at this temperature.
 
 ### Equilibrium constant, K
 
@@ -76,11 +76,13 @@ At high pressure the molecules are close and attract each other. The gas is then
 
 So at high pressure: ΔH(real) = ΔH(ideal) + the residual part.
 
-## 3. Why everything starts at 298.15 K
+## 3. Standard state, and why the calculation starts at 298.15 K
 
-The textbook lists the heat of formation of each substance at one temperature only: 298.15 K (25 °C), at 1 bar. That is the **standard state**. The small ° in ΔH° means "standard state".
+**Standard state** is about pressure, not temperature. It means the pure substance at 1 bar, and a gas is taken as an ideal gas. The temperature can be anything you choose. The small ° in ΔH° means "at the standard state", so ΔH° at 250 K, at 298.15 K and at 800 K are all standard values.
 
-To get ΔH at another temperature, the solver walks a three-step path:
+298.15 K (25 °C) is only the **reference temperature**. It is the one temperature at which the textbook lists the heat of formation of each substance. So every calculation starts there.
+
+To get ΔH° at another temperature, the solver walks a three-step path:
 
 1. Take the reactants from your temperature to 298.15 K.
 2. Let them react at 298.15 K, where the data are known.
@@ -90,6 +92,24 @@ Steps 1 and 3 are sensible heat, calculated from Cp. The answer does not depend 
 
 Example from the textbook: CO + 2 H₂ → CH₃OH has ΔH° = −90,135 J at 298.15 K and −103,566 J at 800 °C. The solver gives the same numbers.
 
+### Below 298.15 K
+
+The textbook's Cp formulas start at 298 K. They must not be stretched downwards: for CO₂ at 200 K the formula gives a Cp that is 29 % too low.
+
+So from 200 K to 298.15 K the solver uses Cp values from NIST tables instead (the NIST-JANAF tables and the NIST Chemistry WebBook). This covers every gas of the textbook and six solids. Above 298.15 K nothing changes.
+
+Example: CO₂ + 3 H₂ → CH₃OH + H₂O has ΔH° = −46.77 kJ/mol at 250 K. There ΔG° = −4.51 kJ/mol, so the reaction is favourable when it is cold. ΔG° changes sign at 276 K.
+
+One thing to remember: at 250 K and 1 bar, real methanol and water are not gases. The solver still treats them as ideal gases, because that is what the standard state of a gas means. It tells you so in a note.
+
+### Not favourable does not mean no ΔH
+
+ΔH is the enthalpy of the products minus the enthalpy of the reactants. Both are properties of the substances, so ΔH exists for any balanced reaction, whether it goes by itself or not.
+
+"Not favourable" only means K is smaller than 1: at equilibrium there is more reactant than product. It does not mean nothing reacts. Whatever amount does react gives out, or takes in, ΔH per mole. You also need this ΔH to design the reactor, and it is the ΔH of the reverse reaction with the sign flipped.
+
+Example: at 523 K, CO₂ + 3 H₂ → CH₃OH + H₂O is not favourable (K = 2.2 × 10⁻⁵), and still every mole that reacts releases 57.94 kJ. A methanol plant runs this reaction at 50 bar and has to remove exactly that heat.
+
 ## 4. The tabs, one by one
 
 ### Start
@@ -98,19 +118,19 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 
 ### Tab 1: Reaction
 
-**It answers:** how much heat, and can the reaction go?
+**It answers:** how much heat, and which side is favoured?
 
 **You do:** pick a reaction or type one, set the temperature, press Calculate.
 
 **You read:**
 
-- The headline at the top: "Gives out heat" or "Takes in heat", and "Favourable" or "Not favourable".
+- The headline at the top: "Gives out heat" or "Takes in heat", and "Products favoured" or "Reactants favoured". The second one compares K with 1. It never means that nothing reacts.
 - The cards: ΔH, ΔS, ΔG and K at your temperature.
 - "What the numbers mean": the same result in sentences.
 - The plots: how ΔH, ΔG and K change with temperature.
 - The step-by-step calculation, if you want to follow the arithmetic.
 
-A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens.
+A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens. For gases the range now starts at 200 K, so the plots start there too.
 
 ### Tab 2: Pressure and real gas
 
@@ -187,13 +207,13 @@ The full table of the 57 substances, with the source of every number. There is a
 
 This is the proof that the numbers are right. It has three parts:
 
-- **51 reference values** from textbook examples, course slides and the lab handout. The solver recalculates each one while you watch. All 51 pass.
+- **57 reference values** from textbook examples, course slides, the lab handout and the NIST tables. The solver recalculates each one while you watch. All 57 pass.
 - **Five stress tests** from the assignment (see section 6).
 - **Comparison with published research** values.
 
 ## 5. Why you can trust the answers
 
-- **The data are traceable.** 54 of the 57 substances use only the textbook tables. The other three come from the NIST database and are labelled.
+- **The data are traceable.** From 298.15 K upwards, 54 of the 57 substances use only the textbook tables. The other three come from the NIST database and are labelled. Below 298.15 K, where the textbook has no data, the heat capacities come from NIST tables, and the solver says so whenever it uses them.
 - **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency audit" under each result.
 - **It has more than 200 automated tests.** They run every time the code changes.
 - **It refuses bad input.** An unbalanced reaction gets no answer at all.
@@ -211,6 +231,9 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now gives a separate verdict at your pressure |
 | The calorimeter named a gas as the unknown sample | A gas cannot be weighed into a crucible | Only liquids and solids are compared |
 | The "excess air for a temperature limit" search gave a wrong value | It never checked its own answer | It now solves again with its answer before showing it |
+| "Standard state" was explained as 298.15 K and 1 bar | Standard state fixes only the pressure (1 bar). 298.15 K is just where the tables list the data | The guide and the page now keep the two apart |
+| Below 298 K the textbook Cp formulas were simply stretched | They are valid from 298 K only. For CO₂ at 200 K the stretched formula is 29 % too low | NIST table values are used from 200 K to 298.15 K |
+| The headline said "Not favourable" | It read as if the reaction could not happen, so its ΔH looked meaningless | It now says "Reactants favoured" and adds that some product still forms |
 
 The five stress tests of the assignment:
 
@@ -234,9 +257,10 @@ This is why the first visit takes about ten seconds: the browser downloads Pytho
 |---|---|
 | ΔH | Heat given out (negative) or taken in (positive) by the reaction |
 | ΔS | Change in disorder; positive when more gas is made |
-| ΔG | Decides if the reaction can go; negative means yes |
+| ΔG | Tells which side is favoured; negative means the products |
 | K | Where the reaction stops; bigger than 1 means mostly products |
-| ° (as in ΔH°) | Standard state: pure substance at 1 bar |
+| ° (as in ΔH°) | Standard state: pure substance at 1 bar, at whatever temperature you choose |
+| Reference temperature | 298.15 K, where the tables list the heats of formation |
 | Cp | Heat needed to warm a substance by 1 K |
 | Sensible heat | Heat that changes temperature without any reaction |
 | Exothermic / endothermic | Gives out heat / takes in heat |
@@ -262,13 +286,15 @@ Try to answer before you read the answer.
 3. **Can an exothermic reaction be unfavourable?** Yes. If ΔS is negative, the −T·ΔS term is positive and grows with temperature. Methanol from CO₂ at 523 K is an example.
 4. **K = 0.00002. Mostly products or mostly reactants?** Mostly reactants.
 5. **Why does pressure help ammonia synthesis?** The reaction reduces the number of gas molecules from 4 to 2. Higher pressure favours the side with fewer molecules.
-6. **Why is the heat of formation given at 298.15 K only?** That is the temperature the tables use. Other temperatures are reached with Cp.
+6. **Does "standard state" mean 298.15 K?** No. It fixes the pressure at 1 bar. The temperature is whatever you choose. 298.15 K is only the temperature at which the tables list the heats of formation; other temperatures are reached with Cp.
 7. **Why does extra air cool a flame?** The extra air does not react. It only has to be heated, so the same heat is shared by more gas.
 8. **Why does a bomb calorimeter measure ΔU and not ΔH?** Its volume is fixed, so no work is done. Heat at constant volume equals ΔU.
 9. **Why is LHV smaller than HHV?** With LHV the water leaves as vapour, so the heat of condensing it is not collected.
 10. **In tab 4, why does switching methane off change the answer?** Methane is the most stable product. Remove it, and the atoms settle into the next best mixture, which contains methanol.
 11. **What does the consistency audit prove?** That two different ways of calculating the same quantity agree. A wrong sign or unit would break it.
 12. **Does a favourable ΔG mean the reaction is fast?** No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.
+13. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
+14. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
 
 ## 10. A five-minute tour
 
@@ -278,4 +304,4 @@ Try to answer before you read the answer.
 4. Click "What actually forms?" Switch methane off and on. Drag the temperature slider.
 5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool.
 6. Click "Bomb calorimeter" and press Ignite.
-7. Finish on **Validation**: 51 of 51 reference values reproduced.
+7. Finish on **Validation**: 57 of 57 reference values reproduced.

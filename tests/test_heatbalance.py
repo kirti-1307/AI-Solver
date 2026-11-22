@@ -564,10 +564,12 @@ class TestApi(unittest.TestCase):
         self.assertEqual(single["sweep"]["variable"], "T_in")
         self.assertTrue(700.0 < single["point"]["T_out"] < 850.0, single["point"]["T_out"])
         # Cracking half of the ethane adiabatically from 1000 K needs more heat than the feed carries
-        # above 298 K: the balance puts the outlet at 235 K, and the page must say that this is extrapolated.
+        # above 298 K: the balance puts the outlet at 234 K. That is inside the NIST low-temperature
+        # tables (200 to 298.15 K), so nothing is extrapolated and nothing is flagged.
         half = ok("heat_balance", {"equation": "C2H6 -> C2H4 + H2", "T_in": 1000, "conversion": 0.5})
-        self.assertAlmostEqual(half["point"]["T_out"], 234.9, delta=0.5)
-        self.assertEqual({w["species"] for w in half["point"]["warnings"]}, {"C2H6(g)", "C2H4(g)", "H2(g)"})
+        self.assertAlmostEqual(half["point"]["T_out"], 234.2, delta=0.5)
+        self.assertEqual(half["point"]["warnings"], [])
+        self.assertTrue(all(c["passed"] for c in half["point"]["audit"]))
         # 80 % cannot be reached at all: the outlet would lie below the 200 K floor
         out = call("heat_balance", {"equation": "C2H6 -> C2H4 + H2", "T_in": 1000, "conversion": 0.8})
         self.assertEqual(out["error"]["kind"], "input_error")

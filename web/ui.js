@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.2.0");
+      this.worker = new Worker("web/worker.js?v=1.3.0");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -421,13 +421,13 @@ TS.GLOSSARY = [
   [/^ΔH\(T,P\)/, "Heat of reaction of the real gas",
     "The ideal-gas heat of reaction plus the residual part. This is the value that holds at your pressure."],
   [/^ΔH°298|Heat of reaction at 298/, "Heat of reaction at 298.15 K",
-    "Heat the reaction gives out (negative) or takes in (positive) at 25 °C and 1 bar. It comes straight from the heats of formation in the textbook table."],
-  [/^ΔH°/, "Heat of reaction at your temperature",
-    "The heat of reaction at 298.15 K, corrected to your temperature with the heat capacities of all the species."],
+    "Heat the reaction gives out (negative) or takes in (positive) at 25 °C and 1 bar. It comes straight from the heats of formation in the textbook table. 298.15 K is the reference temperature of that table; the standard state (the ° sign) only fixes the pressure at 1 bar."],
+  [/^ΔH°/, "Standard heat of reaction at your temperature",
+    "The heat of reaction at 298.15 K, corrected to your temperature with the heat capacities of all the species. It is still a standard value: the standard state fixes the pressure at 1 bar, and the temperature can be any."],
   [/^ΔS/, "Entropy change",
     "The change in disorder. It is positive when the reaction makes more gas molecules and negative when it makes fewer."],
   [/^ΔG/, "Gibbs energy change",
-    "ΔG = ΔH − T·ΔS. A negative value means the reaction can go forward under these conditions. A positive value means it would rather go backward."],
+    "ΔG = ΔH − T·ΔS. A negative value means the products are favoured (K above 1). A positive value means the reactants are favoured (K below 1); some product still forms, only less."],
   [/^Kφ/, "Fugacity-coefficient ratio",
     "It collects how far each gas is from ideal behaviour. It is 1 for ideal gases; any other value shifts the equilibrium at high pressure."],
   [/Equilibrium constant|^K = /, "Equilibrium constant",

@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from . import data
 from .constants import R, T0
 from .errors import DataUnavailableError, InputError, SolverError, UnbalancedReactionError
 from .heatcap import Coeffs, combine, cp_over_r, icph, icps, mcph, mcps
@@ -304,14 +305,27 @@ class Reaction:
     def has_cp(self) -> bool:
         return all(sp.cp is not None for sp in self.species)
 
-    def delta_coeffs(self) -> Coeffs:
+    def delta_coeffs(self, T: Optional[float] = None) -> Coeffs:
         """(dA, dB, dC, dD, dE) = sum of nu_i * (A_i, B_i, C_i, D_i, E_i).
-        dE is zero unless a species with a cubic heat-capacity term (NIST) takes part."""
-        return combine((nu, SPECIES[s].require_cp()) for s, nu in self.stoich.items())
+        dE is zero unless a species with a cubic heat-capacity term (NIST) takes part.
+
+        Without T, or from 298.15 K upwards, these are the constants of the
+        main correlations (SVN). Below 298.15 K each species contributes its
+        low-temperature constants (NIST tables) where it has them.
+        """
+        if T is None:
+            return combine((nu, SPECIES[s].require_cp()) for s, nu in self.stoich.items())
+        return combine((nu, SPECIES[s].coeffs_at(T)) for s, nu in self.stoich.items())
+
+    def uses_low_T_data(self, T: float) -> List[str]:
+        """Species whose heat capacity at T comes from the low-temperature tables."""
+        if T >= T0:
+            return []
+        return [sp.id for sp in self.species if sp.cp_low is not None]
 
     def dCp(self, T: float) -> float:
         """Heat-capacity change of reaction at T, J/(mol K)."""
-        return R * cp_over_r(self.delta_coeffs(), T)
+        return R * cp_over_r(self.delta_coeffs(T), T)
 
     def valid_range(self) -> Optional[Tuple[float, float]]:
         """Temperature range in which every species' Cp correlation is valid."""
@@ -343,14 +357,14 @@ class Reaction:
         self._check_T(T)
         if self._is_T0(T):
             return self.dH0
-        return self.dH0 + R * icph(T0, T, self.delta_coeffs())
+        return self.dH0 + R * icph(T0, T, self.delta_coeffs(T))
 
     def dS(self, T: float) -> float:
         """Standard entropy change of reaction at T, J/(mol K)."""
         self._check_T(T)
         if self._is_T0(T):
             return self.dS0
-        return self.dS0 + R * icps(T0, T, self.delta_coeffs())
+        return self.dS0 + R * icps(T0, T, self.delta_coeffs(T))
 
     def dG(self, T: float) -> float:
         """Standard Gibbs energy change of reaction at T, J/mol."""
@@ -419,6 +433,16 @@ class Reaction:
     def range_warnings(self, T: float) -> List[dict]:
         """Warnings about heat-capacity extrapolation and physical state at T."""
         out = []
+        low = self.uses_low_T_data(T)
+        if low:
+            out.append({
+                "level": "info", "species": ", ".join(low), "kind": "low_T_data",
+                "message": (
+                    f"Below {T0} K the heat capacities are not from SVN, whose tables start at 298 K. "
+                    f"From {data.LOW_T_MIN:g} K to {T0} K they come from NIST tables (NIST-JANAF and the "
+                    f"NIST Chemistry WebBook) for: {', '.join(low)}."
+                ),
+            })
         for sp in self.species:
             if sp.remark:
                 out.append({"level": "info", "species": sp.id, "kind": "data_source",
@@ -436,7 +460,7 @@ class Reaction:
                     "level": "warning", "species": sp.id, "kind": "cp_extrapolation",
                     "message": (
                         f"{sp.id}: T = {T:g} K is {side} the validity range of its heat-capacity "
-                        f"correlation ({sp.cp_Tmin:g} to {sp.cp_Tmax:g} K, {sp.cp_source}). "
+                        f"correlation ({sp.cp_Tmin:g} to {sp.cp_Tmax:g} K, {sp.cp_source_at(T)}). "
                         f"The polynomial is being extrapolated and the result is unreliable."
                     ),
                 })
@@ -476,7 +500,7 @@ class Reaction:
                 sens_H = sp.sensible_dH(T0, T)
                 sens_S = sp.sensible_dS(T0, T)
                 cp_T = sp.cp_J(T)
-                mean_cp = R * mcph(T0, T, sp.cp)
+                mean_cp = R * mcph(T0, T, sp.coeffs_at(T))
             rows.append({
                 "id": sid,
                 "name": sp.name,
@@ -492,6 +516,7 @@ class Reaction:
                 "sensible_dS": sens_S,
                 "H_T": None if sens_H is None else sp.dHf + sens_H,
                 "in_cp_range": sp.in_cp_range(T),
+                "cp_from_low_T_table": sp.cp_low is not None and T < T0,
                 "cp_Tmin": sp.cp_Tmin,
                 "cp_Tmax": sp.cp_Tmax,
             })
@@ -508,12 +533,14 @@ class Reaction:
             "delta_n_gas": self.delta_n_gas,
         }
         if self.has_cp:
-            d = self.delta_coeffs()
+            # Below 298.15 K these are the low-temperature constants (NIST)
+            d = self.delta_coeffs(T)
             idcph = 0.0 if self._is_T0(T) else icph(T0, T, d)
             idcps = 0.0 if self._is_T0(T) else icps(T0, T, d)
             out.update({
                 "dA": d[0], "dB": d[1], "dC": d[2], "dD": d[3], "dE": d[4],
-                "dCp0": R * cp_over_r(d, T0),
+                "low_T_species": self.uses_low_T_data(T),
+                "dCp0": R * cp_over_r(self.delta_coeffs(), T0),
                 "dCp": R * cp_over_r(d, T),
                 "IDCPH": idcph, "IDCPS": idcps,
                 "mean_dCp_H": R * mcph(T0, T, d),

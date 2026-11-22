@@ -93,7 +93,7 @@ The web page runs the *same* Python files in the browser through [Pyodide](https
 
 ## Limitations
 
-- Heat capacities are valid only in the temperature ranges SVN gives (298 K to 1000-3000 K for gases, 273 to 373 K for liquids). Outside them the solver extrapolates and warns.
+- Heat capacities are valid from 200 K to 1000-3000 K for gases (SVN from 298 K upwards, NIST tables from 200 K to 298.15 K) and from 273 to 373 K for liquids. Outside these ranges the solver extrapolates and warns. The standard state fixes the pressure at 1 bar, not the temperature; a gas used below its boiling point is the hypothetical ideal gas, and the solver says so.
 - No phase change is applied automatically. Water as liquid and water as vapour are separate species that you choose.
 - Pressure effects use pure-species residual properties (ideal-solution mixing). Solids and liquids are taken as incompressible.
 - Hydrogen peroxide is available as a gas only (NIST data) and, having no critical constants in SVN Table B.1, is treated as an ideal gas under pressure. Liquid acetic acid has a constant heat capacity that is valid from 290 to 320 K only, and acetic acid vapour is the ideal-gas monomer (the real vapour is partly dimerised).

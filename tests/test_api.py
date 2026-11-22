@@ -168,7 +168,16 @@ class TestEndpoints(unittest.TestCase):
             self.assertGreaterEqual(len(res["steps"]), 3)
             assert_json_safe(self, res)
             if res["has_cp"]:
-                self.assertEqual(len(res["sweep"]["T"]), 81)
+                # 81 grid points. When the plot starts below 298.15 K, two more are
+                # added right at 298.15 K, where the heat capacities change from the
+                # NIST tables to SVN (one more if the grid already holds 298.15 K).
+                Ts = res["sweep"]["T"]
+                if Ts[0] < 298.15:
+                    self.assertIn(len(Ts), (82, 83), row[0])
+                    self.assertIn(298.15, Ts, row[0])
+                else:
+                    self.assertEqual(len(Ts), 81, row[0])
+                self.assertEqual(Ts, sorted(Ts), row[0])
 
     def test_pressure_every_gas_reaction(self):
         for row in library.REACTIONS:

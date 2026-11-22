@@ -29,6 +29,10 @@ are kept in separate tables further down (NIST_...), with the exact source:
   only mentions it in its aqueous-solution table and in one problem
   statement). The gas is taken from NIST.
 
+SVN's heat capacities start at 298 K. From 200 K to 298.15 K the heat
+capacities of the gases and of six solids come from NIST tables (JANAF_LOW_T
+and WEBBOOK_LOW_T further down). Nothing above 298.15 K is changed by them.
+
 Verification. Every number below was compared with the printed tables (8th
 edition appendices, cross-checked against the 6th-edition page scans). Two
 oddities belong to the book itself, not to this transcription:
@@ -185,6 +189,113 @@ SPECIES_REMARKS = {
     "CH3COOH(l)": ("formation data are from SVN Table C.4; the heat capacity is a constant 123.1 J/(mol K) "
                    "from the NIST Chemistry WebBook, valid near room temperature only."),
 }
+
+# ---------------------------------------------------------------------------
+# Heat capacities BELOW 298.15 K (not from SVN)
+#
+# SVN Tables C.1 and C.2 start at 298 K. Below that the printed constants
+# cannot be used: the D/T^2 term takes over, and for CO2 at 200 K it gives a
+# heat capacity 29 % too low. The standard state itself exists at any
+# temperature (it fixes the pressure at 1 bar, not the temperature), so the
+# range from 200 K to 298.15 K is covered with tabulated values from NIST.
+#
+# Only the rows that were read are stored here. The constants of
+# Cp/R = A + B*T + C*T^2 are computed from these rows when the package is
+# loaded (species.py), so no fitted number is typed in by hand:
+#
+# * NIST-JANAF rows: the quadratic takes the tabulated Cp at 200 K and at
+#   298.15 K, and its integral between them equals the tabulated enthalpy
+#   difference H(200 K) - H(298.15 K). The tabulated entropy, and the 250 K
+#   row where the table has one, are not used for the fit; the test-suite
+#   checks that they are reproduced.
+# * NIST WebBook rows: the quadratic passes through the three tabulated Cp.
+#
+# Below 200 K nothing is stored: hydrogen then needs its ortho/para forms
+# treated separately and several solids have transitions.
+# ---------------------------------------------------------------------------
+LOW_T_MIN = 200.0   # K, lower limit of the low-temperature heat capacities
+
+# NIST-JANAF Thermochemical Tables, 4th edition (Chase 1998), janaf.nist.gov,
+# read on 22 November 2026.
+# id: (JANAF table, rows of (T in K, Cp in J/(mol K), S in J/(mol K), H - H(298.15 K) in kJ/mol))
+JANAF_LOW_T = {
+    "HCN(g)": ("C-052", ((200.0, 31.719, 188.377, -3.318), (298.15, 35.857, 201.828, 0.0))),
+    "CH2O(g)": ("C-061", ((200.0, 33.502, 205.292, -3.363), (250.0, 34.194, 212.831, -1.673), (298.15, 35.402, 218.950, 0.0))),
+    "CH4(g)": ("C-067", ((200.0, 33.473, 172.577, -3.368), (250.0, 34.216, 180.113, -1.679), (298.15, 35.639, 186.251, 0.0))),
+    "CO(g)": ("C-093", ((200.0, 29.108, 186.025, -2.858), (298.15, 29.142, 197.653, 0.0))),
+    "CO2(g)": ("C-095", ((200.0, 32.359, 199.975, -3.414), (298.15, 37.129, 213.795, 0.0))),
+    "C2H2(g)": ("C-127", ((200.0, 35.585, 185.097, -3.925), (298.15, 44.095, 200.958, 0.0))),
+    "C2H4(g)": ("C-128", ((200.0, 35.359, 203.955, -3.804), (250.0, 38.645, 212.172, -1.960), (298.15, 42.886, 219.330, 0.0))),
+    "HCl(g)": ("Cl-026", ((200.0, 29.124, 175.270, -2.859), (250.0, 29.130, 181.770, -1.403), (298.15, 29.136, 186.901, 0.0))),
+    "H2(g)": ("H-050", ((200.0, 27.447, 119.412, -2.774), (250.0, 28.344, 125.640, -1.378), (298.15, 28.836, 130.680, 0.0))),
+    "H2O(g)": ("H-064", ((200.0, 33.349, 175.485, -3.282), (298.15, 33.590, 188.834, 0.0))),
+    "H2S(g)": ("H-080", ((200.0, 33.380, 192.038, -3.310), (298.15, 34.192, 205.757, 0.0))),
+    "NH3(g)": ("H-083", ((200.0, 33.757, 178.990, -3.394), (298.15, 35.652, 192.774, 0.0))),
+    "NO(g)": ("N-005", ((200.0, 30.420, 198.747, -2.951), (250.0, 30.025, 205.488, -1.441), (298.15, 29.845, 210.758, 0.0))),
+    "NO2(g)": ("N-007", ((200.0, 34.385, 225.852, -3.495), (250.0, 35.593, 233.649, -1.746), (298.15, 36.974, 240.034, 0.0))),
+    "N2(g)": ("N-023", ((200.0, 29.107, 179.985, -2.857), (250.0, 29.111, 186.481, -1.402), (298.15, 29.124, 191.609, 0.0))),
+    "N2O(g)": ("N-026", ((200.0, 33.610, 205.571, -3.553), (250.0, 36.290, 213.362, -1.805), (298.15, 38.617, 219.957, 0.0))),
+    "N2O4(g)": ("N-032", ((200.0, 63.206, 276.398, -6.923), (250.0, 70.825, 291.339, -3.568), (298.15, 77.256, 304.376, 0.0))),
+    "O2(g)": ("O-029", ((200.0, 29.126, 193.485, -2.868), (250.0, 29.201, 199.990, -1.410), (298.15, 29.376, 205.147, 0.0))),
+    "SO2(g)": ("O-034", ((200.0, 36.372, 233.033, -3.736), (298.15, 39.878, 248.212, 0.0))),
+    "SO3(g)": ("O-058", ((200.0, 42.336, 238.259, -4.577), (250.0, 46.784, 248.192, -2.348), (298.15, 50.661, 256.769, 0.0))),
+    "Cl2(g)": ("Cl-073", ((200.0, 31.720, 209.964, -3.231), (250.0, 32.988, 217.183, -1.613), (298.15, 33.949, 223.079, 0.0))),
+    # solids
+    "C(s)": ("C-002", ((200.0, 5.006, 3.082, -0.665), (250.0, 6.816, 4.394, -0.369), (298.15, 8.517, 5.740, 0.0))),
+    "CaO(s)": ("Ca-027", ((200.0, 33.677, 23.041, -3.757), (298.15, 42.120, 38.212, 0.0))),
+    "Ca(OH)2(s)": ("Ca-020", ((200.0, 68.576, 52.183, -7.736), (298.15, 87.487, 83.387, 0.0))),
+    "Fe(s)": ("Fe-003", ((200.0, 21.588, 17.949, -2.315), (298.15, 25.094, 27.321, 0.0))),
+    "Fe2O3(s)": ("Fe-030", ((200.0, 76.567, 51.279, -8.970), (298.15, 103.763, 87.400, 0.0))),
+    "Fe3O4(s)": ("Fe-032", ((200.0, 116.945, 92.367, -13.101), (298.15, 147.235, 145.266, 0.0))),
+}
+
+# NIST Chemistry WebBook (webbook.nist.gov), "Constant pressure heat capacity
+# of gas", the recommended ideal-gas values at 1 bar, read on 22 November 2026.
+# id: (WebBook species ID, reference named by NIST, three rows of (T in K, Cp in J/(mol K)))
+WEBBOOK_LOW_T = {
+    "CH3OH(g)": ("C67561", "Thermodynamics Research Center (1997)", ((200.0, 39.71), (273.15, 42.59), (298.15, 44.06))),
+    "C2H5OH(g)": ("C64175", "Thermodynamics Research Center (1997)", ((200.0, 52.02), (273.15, 61.46), (298.15, 65.21))),
+    "CH3CHO(g)": ("C75070", "Thermodynamics Research Center (1997)", ((200.0, 46.47), (273.15, 52.80), (298.15, 55.32))),
+    "(CH2)2O(g)": ("C75218", "Dorofeeva (1992)", ((200.0, 36.19), (273.15, 43.71), (298.15, 47.0))),
+    "CH3COOH(g)": ("C64197", "Chao (1986)", ((200.0, 48.34), (273.15, 59.38), (298.15, 63.44))),
+    # NIST lists no value for ethane between 200 K and 298.15 K, so its 100 K
+    # value is the third point. See ETHANE_MEASURED_CP below.
+    "C2H6(g)": ("C74840", "Gurvich, Veyts et al. (1989)", ((100.0, 35.70), (200.0, 42.30), (298.15, 52.49))),
+    "C3H8(g)": ("C74986", "Chao (1973)", ((200.0, 56.07), (273.15, 68.74), (298.15, 73.60))),
+    "n-C4H10(g)": ("C106978", "Chen (1975)", ((200.0, 76.44), (273.15, 92.30), (298.15, 98.49))),
+    "n-C5H12(g)": ("C109660", "Scott (1974)", ((200.0, 93.55), (273.15, 112.55), (298.15, 120.0))),
+    "n-C6H14(g)": ("C110543", "Scott (1974)", ((200.0, 110.58), (273.15, 133.55), (298.15, 142.6))),
+    "n-C7H16(g)": ("C142825", "Scott (1974)", ((200.0, 127.65), (273.15, 154.64), (298.15, 165.2))),
+    "n-C8H18(g)": ("C111659", "Scott (1974)", ((200.0, 144.77), (273.15, 175.69), (298.15, 187.8))),
+    "C3H6(g)": ("C115071", "Thermodynamics Research Center (1997)", ((200.0, 50.24), (273.15, 60.47), (298.15, 64.32))),
+    "C4H8(g)": ("C106989", "Thermodynamics Research Center (1997)", ((200.0, 65.19), (273.15, 80.03), (298.15, 85.56))),
+    "C4H6(g)": ("C106990", "Thermodynamics Research Center (1997)", ((200.0, 57.14), (273.15, 73.70), (298.15, 79.81))),
+    "C6H6(g)": ("C71432", "Thermodynamics Research Center (1997)", ((200.0, 53.17), (273.15, 74.55), (298.15, 82.44))),
+    "C6H12(g)": ("C110827", "Dorofeeva (1986)", ((200.0, 69.05), (273.15, 95.20), (298.15, 105.3))),
+    "C7H8(g)": ("C108883", "Draeger (1985)", ((200.0, 69.85), (273.15, 94.68), (298.15, 103.7))),
+    "C8H10(g)": ("C100414", "Thermodynamics Research Center (1997)", ((200.0, 88.54), (273.15, 116.88), (298.15, 127.40))),
+    "C8H8(g)": ("C100425", "Thermodynamics Research Center (1997)", ((200.0, 81.77), (273.15, 110.03), (298.15, 120.19))),
+}
+
+# Measured heat capacities of ethane gas listed on the same WebBook page
+# (Halford 1957 and the work cited with it): T (K), Cp (J/(mol K)). They are
+# not used for the fit; the test-suite compares the ethane curve with them.
+ETHANE_MEASURED_CP = [(209.30, 43.25), (229.65, 45.08), (249.90, 47.27), (272.07, 49.51), (292.00, 52.14)]
+
+# Species deliberately left without low-temperature data, with the reason.
+LOW_T_NOT_COVERED = {
+    "H2O2(g)": ("the NIST-JANAF table (H-070) is not consistent with itself between 200 K and 298.15 K: its "
+                "heat capacities give an entropy rise of about 16 J/(mol K) over that interval, its entropy "
+                "column gives 22.4"),
+    "CaCO3(s)": "not in the NIST-JANAF tables",
+    "CaC2(s)": "not in the NIST-JANAF tables",
+}
+
+# The NIST-JANAF entropy of H2S at 200 K (192.038) is 0.26 J/(mol K) away from
+# what the table's own heat capacities give from its 298.15 K entropy. The
+# enthalpy column agrees with the heat capacities to 1 J/mol, and only Cp and
+# the enthalpy are used, so the species is kept; the entropy check skips it.
+LOW_T_ENTROPY_EXCEPTIONS = {"H2S(g)": "tabulated S(200 K) is 0.26 J/(mol K) off the table's own heat capacities"}
 
 # ---------------------------------------------------------------------------
 # Table C.2 + Table C.4: solids
@@ -368,4 +479,8 @@ SOURCES = {
     "nist_acetic_gas": ("NIST Chemistry WebBook, acetic acid gas: enthalpy of formation from Lebedeva (1964) and Konicek & Wadso (1970), "
                         "entropy from Weltner (1955), heat capacity table of Chao (1986) fitted by least squares"),
     "nist_acetic_liquid": "NIST Chemistry WebBook, acetic acid liquid: heat capacity at 298.15 K of Martin & Andon (1982), taken as constant",
+    "low_T_janaf": ("Heat capacities from 200 K to 298.15 K: NIST-JANAF Thermochemical Tables, 4th edition "
+                    "(Chase 1998), janaf.nist.gov"),
+    "low_T_webbook": ("Heat capacities from 200 K to 298.15 K: NIST Chemistry WebBook, recommended ideal-gas "
+                      "heat capacities (webbook.nist.gov)"),
 }

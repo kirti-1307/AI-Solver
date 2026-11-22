@@ -30,6 +30,16 @@
     if (drive) lines.push(drive);
 
     lines.push(`ΔG° = ΔH° − TΔS° = ${kJ(e.dG)} kJ/mol, so K = ${fmtK(e.lnK)}. ${esc(e.favourability.text)}`);
+    if (e.dG > 0) {
+      lines.push(`A positive ΔG° does not take anything away from ΔH°. ΔH° is the enthalpy of the products minus that of the ` +
+        `reactants, so it exists for any balanced reaction. K &lt; 1 means less product than reactant at equilibrium, not none, ` +
+        `and every mole that does react ${e.dH < 0 ? "releases" : "absorbs"} ${kJ(Math.abs(e.dH))} kJ. ` +
+        `The reverse reaction has the same ΔH° with the opposite sign.`);
+    }
+    if (e.low_T_species && e.low_T_species.length) {
+      lines.push(`The standard state fixes the pressure at 1 bar, not the temperature, so ΔH°, ΔS° and ΔG° are defined at ${fix(T, 2)} K as well. ` +
+        `SVN's heat-capacity tables start at 298 K; below that the solver uses tabulated values from NIST (200 to 298.15 K).`);
+    }
 
     if (r.crossover && r.crossover.length) {
       const Tx = r.crossover[0];
@@ -63,7 +73,7 @@
       <td>${s.nu > 0 ? "+" : "−"}${coeff(s.nu)}</td>
       <td>${int(s.dHf)}</td><td>${int(s.dGf)}</td>
       <td>${fix(s.cp_T, 2)}</td><td>${int(s.sensible_dH)}</td><td>${int(s.nu_sensible_dH)}</td>
-      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}</td>
+      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}${s.cp_from_low_T_table ? ' <span class="badge neutral" title="Below 298.15 K the heat capacity is from NIST tables">NIST</span>' : ""}</td>
     </tr>`).join("");
     const total = r.species.reduce((a, s) => a + (s.nu_sensible_dH || 0), 0);
     return `<div class="table-scroll"><table><thead><tr>
@@ -136,7 +146,7 @@
     TS.plot("rx-plot-K", [
       { x: s.T, y: s.log10K, name: "log₁₀ K", mode: "lines", line: { width: 2.5, color: "#7c3aed" } },
       { x: [r.T], y: [e.log10K], mode: "markers", marker: { size: 9, color: "#7c3aed", line: { width: 1.5, color: "#fff" } }, showlegend: false },
-    ], TS.layout("Equilibrium constant: favourable above the dotted line", "Temperature (K)", "log₁₀ K",
+    ], TS.layout("Equilibrium constant: products favoured above the dotted line", "Temperature (K)", "log₁₀ K",
       { shapes: kShapes, annotations, showlegend: false }));
 
     const sp = r.species.filter((x) => x.nu_sensible_dH !== null);
@@ -165,8 +175,8 @@
       <div class="verdict">
         <div class="v-item ${exo}"><div class="v-big">${e.dH < 0 ? "Gives out heat" : "Takes in heat"}</div>
           <div class="v-sub">${esc(e.thermicity)} at ${fix(r.T, 0)} K: ΔH° = ${kJ(e.dH)} kJ/mol</div></div>
-        <div class="v-item ${fav.spontaneous_standard ? "good" : "bad"}"><div class="v-big">${fav.spontaneous_standard ? "Favourable" : "Not favourable"}</div>
-          <div class="v-sub">${esc(fav.label)} at 1 bar: ΔG° = ${signed(e.dG / 1000, 2)} kJ/mol, K = ${fmtK(e.lnK)}</div></div>
+        <div class="v-item ${fav.spontaneous_standard ? "good" : "bad"}"><div class="v-big">${fav.spontaneous_standard ? "Products favoured" : "Reactants favoured"}</div>
+          <div class="v-sub">K = ${fmtK(e.lnK)} at ${fix(r.T, 0)} K and 1 bar: ΔG° = ${signed(e.dG / 1000, 2)} kJ/mol${fav.spontaneous_standard ? "" : ". Some product still forms"}</div></div>
         <div class="v-item neutral"><div class="v-big">Balanced</div>
           <div class="v-sub">every element checked; gas moles change by ${signed(e.delta_n_gas, 2).replace(".00", "")}</div></div>
       </div>`;
@@ -189,7 +199,9 @@
         <div id="rx-plot-sensible" class="plot"></div><div id="rx-plot-cp" class="plot"></div></div>
         <p class="hint" style="margin:8px 0 0">Shaded bands mark temperatures outside the validity range of at least one
           heat-capacity correlation (valid ${r.valid_range ? `${fix(r.valid_range[0], 0)} to ${fix(r.valid_range[1], 0)} K` : "at 298.15 K only"} for this reaction).
-          The dotted vertical line is the selected temperature.</p></div>`;
+          The dotted vertical line is the selected temperature.${r.valid_range && r.valid_range[0] < 298 ? ` Below 298.15 K the heat capacities
+          come from NIST tables and above it from SVN. The two do not give exactly the same C<sub>p</sub> at 298.15 K, which is the small step in the
+          ΔC<sub>p</sub> plot; ΔH°, ΔG° and K stay continuous.` : ""}</p></div>`;
     } else {
       html += `<div class="panel">${TS.message("info", "SVN gives no heat capacity for at least one species of this reaction, so only the 298.15 K values are available and no temperature plot is drawn.")}</div>`;
     }
