@@ -128,3 +128,11 @@ Extra feature 2 was rebuilt on course material only: an energy balance on a reac
 | A hidden checkbox stayed visible | `.form label { display: flex }` overrode the `hidden` attribute | `[hidden] { display: none !important }` |
 | "Coke risk: yes" with a carbon activity of 10⁷ when methane is switched off at 523 K | Correct thermodynamics for a gas held away from full equilibrium, but alarming without context | The card now reads "can form", and the explanation says why the value is so large and that carbon, like methane, is a product a selective catalyst has to avoid |
 
+### 18. The consistency audit raised false alarms at extreme settings
+
+- **Found by:** 12,000 random and hostile inputs on the two new endpoints. No crash and no internal error, but 24 results carried a failed audit line.
+- **Actual:** two kinds. With an outlet temperature of 1 K, "analytical integral = Simpson quadrature" differed by 0.006 %. With a million moles of inert in the feed, "two routes to the heat duty" differed by 0.0001 J on a duty of 200 kJ.
+- **Root cause:** in both cases the audit was wrong, not the balance. Near absolute zero the D/T² term makes the integrand too steep for a fixed-step quadrature. And the heat duty is a small difference of enthalpies of order 10¹¹ J, so a tolerance scaled to the duty was a thousand times tighter than double precision allows.
+- **Fix:** the numerical cross-check stops at 50 K, and the tolerances scale with the size of the enthalpies that are added. A deliberately wrong balance is still caught.
+- **Prevention:** `test_audit_does_not_cry_wolf_at_extreme_but_legal_settings`.
+

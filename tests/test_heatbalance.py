@@ -79,6 +79,20 @@ class TestEnergyBalance(unittest.TestCase):
             self.assertAlmostEqual(back["T_out"], 360.0, places=6, msg=row[0])
             self.assertTrue(all(c["passed"] for c in back["audit"]), row[0])
 
+    def test_audit_does_not_cry_wolf_at_extreme_but_legal_settings(self):
+        # Found by fuzzing: an outlet of 1 K made the fixed-step quadrature of the audit
+        # inaccurate, and a million moles of inert made the round-off exceed a tolerance
+        # that was scaled to the (small) heat duty instead of to the (huge) enthalpies.
+        rxn = Reaction.parse("CO + 2 H2 -> CH3OH(g)")
+        cold = hb.solve(hb.build_case(rxn, conversion=0.3, excess=1.25), 1500.0, "duty", T_out=1.0)
+        self.assertTrue(all(c["passed"] for c in cold["audit"]), cold["audit"])
+        big = hb.build_case(Reaction.parse("N2 + 3 H2 -> 2 NH3"), conversion=0.2, extra={"CO2(g)": 1e6})
+        for res in (hb.solve(big, 600.0), hb.solve(big, 600.0, Q=-2e5), hb.solve(big, 600.0, "duty", T_out=900.0)):
+            self.assertTrue(all(c["passed"] for c in res["audit"]), res["audit"])
+        # ... while a genuinely wrong balance is still caught
+        wrong = hb.audit(hb.build_case(rxn), 400.0, 500.0, Q=0.0)
+        self.assertFalse(all(c["passed"] for c in wrong))
+
     def test_isothermal_duty_is_the_heat_of_reaction_at_that_temperature(self):
         # Stoichiometric feed, complete conversion, T_in = T_out = T: Q = dH(T)
         for eq, T in (("CO + 2 H2 -> CH3OH(g)", 1073.15), ("N2 + 3 H2 -> 2 NH3", 723.15),
@@ -101,6 +115,12 @@ class TestEnergyBalance(unittest.TestCase):
 
     def test_oxygen_enrichment_gives_a_hotter_flame(self):
         self.assertGreater(flame(excess=0.2)["T_out"], flame(excess=0.2, air=True)["T_out"] + 1000.0)
+
+    def test_only_species_outside_every_reaction_are_called_inert(self):
+        self.assertEqual(flame(excess=0.2, air=True)["inert"], ["N2(g)"])
+        self.assertEqual(flame(excess=0.2, air=True, conversion=0.0)["inert"], ["N2(g)"])   # unreacted is not inert
+        self.assertEqual(flame(excess=0.2)["inert"], [])
+        self.assertEqual(flame(excess=0.2, extra={"H2O(g)": 1.0, "CO(g)": 0.5})["inert"], ["CO(g)"])
 
     def test_inert_only_changes_the_sensible_heat(self):
         dry = flame(excess=0.2, air=True)
@@ -362,6 +382,7 @@ class TestApi(unittest.TestCase):
                         {"mode": "predict", "fuel": "C2H5OH(l)", "C_cal": 12800},           # no mass
                         {"mode": "identify", "mass": 1.0, "C_cal": 12800},                  # no rise
                         {"mode": "spin", "mass": 1.0, "C_cal": 12800},
+                        {"mode": "identify", "mass": 1.0, "dT": 2.0, "C_cal": 12800, "include_gases": "yes"},
                         {"mode": "predict", "fuel": "C2H5OH(l)", "mass": 1.0, "calibration": {"mass": 1}}):
             out = call("calorimeter", payload)
             self.assertFalse(out["ok"], payload)

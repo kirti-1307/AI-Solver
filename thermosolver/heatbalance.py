@@ -345,15 +345,23 @@ def audit(case: dict, T_in: float, T_out: float, Q: float) -> List[dict]:
     # Route 1: the three-step path of SVN. Route 2: species by species on the formation scale.
     path = (feed.sensible(T_in, T0) + sum(xi * rxn.dH0 for rxn, xi in case["reactions"])
             + outlet.sensible(T0, T_out))
-    direct = (sum(n * SPECIES[s].H(T_out) for s, n in case["outlet"].items() if n > _TINY)
-              - sum(n * SPECIES[s].H(T_in) for s, n in case["feed"].items() if n > _TINY))
+    h_out = [n * SPECIES[s].H(T_out) for s, n in case["outlet"].items() if n > _TINY]
+    h_in = [n * SPECIES[s].H(T_in) for s, n in case["feed"].items() if n > _TINY]
+    direct = sum(h_out) - sum(h_in)
+    # The heat duty is a small difference of large enthalpies when the streams
+    # are large (for example a great excess of inert), so the round-off that
+    # can be expected scales with the terms that are added, not with their sum.
+    slack = 1e-11 * (sum(abs(h) for h in h_out) + sum(abs(h) for h in h_in))
     checks.append(_check("Two routes to the heat duty",
                          "dH_R + dH298 + dH_P = sum n_out H_i(T_out) - sum n_in H_i(T_in)",
-                         path, direct, 1e-10, 1e-6))
+                         path, direct, 1e-10, 1e-6 + slack))
+    # ... plus, for a solved outlet temperature, the tolerance of the root (1e-9 K)
     checks.append(_check("Energy balance closes", "H_out(T_out) - H_in(T_in) = Q",
-                         direct, Q, 1e-9, 1e-5))
+                         direct, Q, 1e-9, 1e-5 + 10.0 * slack + 1e-9 * abs(outlet.cp(T_out))))
 
-    if abs(T_out - T0) > 1e-9:
+    # Near absolute zero the D/T^2 term makes the integrand too steep for a
+    # fixed-step quadrature, so the numerical cross-check stops at 50 K.
+    if abs(T_out - T0) > 1e-9 and T_out >= 50.0:
         numeric = R * simpson(lambda t: cp_over_r(outlet.coeffs, t), T0, T_out)
         checks.append(_check("Sensible heat of the products",
                              "analytical integral of sum n_i Cp_i dT = Simpson quadrature",
