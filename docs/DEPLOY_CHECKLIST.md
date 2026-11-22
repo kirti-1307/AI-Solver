@@ -81,9 +81,11 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.4 (tab 2: ideal gas against real gas, no fugacity):**
 
-- [ ] v1.4: tab 2, ammonia at 723.15 K and 200 bar shows "Ideal gas: −106.50 kJ/mol", "Real gas: −111.66 kJ/mol", "Difference: −5.16 kJ/mol" and the three-step path
-- [ ] v1.4: the overview lists six reactions, CO₂ hydrogenation to methanol first (10.6 %), and a click on it loads the case
-- [ ] v1.4: the words "fugacity" and "φ" do not appear anywhere on tab 2
+- [x] v1.4: tab 2, ammonia at 723.15 K and 200 bar shows "Ideal gas: −106.50 kJ/mol", "Real gas: −111.66 kJ/mol", "Difference: −5.16 kJ/mol" and the three-step path
+- [x] v1.4: the overview lists six reactions, CO₂ hydrogenation to methanol first (10.6 %), and a click on it loads the case
+- [x] v1.4: the words "fugacity" and "φ" do not appear anywhere on tab 2
+
+**v1.4 checked on the live page, 22 November 2026, commit `8588e64`, version tag 1.4.0:** both workflows green. Tab 2, ammonia at 723.15 K and 200 bar: "Ideal gas: −106.50 kJ/mol", "Real gas: −111.66 kJ/mol", "Difference: −5.16 kJ/mol, 4.84 %", the three steps (−0.76, −106.50, −4.40 kJ), four plots, 9 of 9 identities. The overview lists six reactions; a click on the first loads CO₂ hydrogenation to methanol at 50 bar (−57.94 against −64.06 kJ/mol, 10.56 %). No "fugacity" or "φ" on the tab or in the guide. Tab 7: 57 of 57. No console errors.
 
 ## Before the classroom demonstration
 
