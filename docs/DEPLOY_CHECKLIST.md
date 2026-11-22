@@ -61,6 +61,8 @@ Boxes are ticked only for what has actually been verified.
 
 The test was run in one browser (Chromium) in a background tab. There the animated calorimeter readout stayed at 0.00 although the result below it was right, because a background tab gets no animation frames. This was fixed (a timer now sets the final value) and the files were given version tags; see [DEBUG_LOG.md](DEBUG_LOG.md), items 17 to 19.
 
+**Checked again after the review fixes, 22 November 2026, commit `b4a988a`, version tag 1.1.2:** both workflows green; on the live page the same values as in the table above (−48.97 kJ/mol, −5.158 kJ/mol, 25.2 %, 2,066 K, +328.0 kJ, 2.31 °C, 51 of 51), the temperature-limit card shows 97 % excess air for 1,500 K, and a hydrogen flame calculated right after a single-reactant reaction shows 2,252 K with the 20 % excess air that the page displays (review finding R2). No console errors, no failed downloads.
+
 ## Before the classroom demonstration
 
 - [ ] Open the live page once on the presentation laptop while on a good connection, so the Python runtime (about 10 MB) is already cached
