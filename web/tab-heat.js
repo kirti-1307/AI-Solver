@@ -377,11 +377,18 @@
     if (!curve || !readout) return;
     const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     const length = curve.getTotalLength ? curve.getTotalLength() : 0;
-    if (still || !length) { readout.textContent = fix(dT, 2); return; }
+    // A hidden tab gets no animation frames, so it is shown the final state at once.
+    if (still || !length || document.hidden) { readout.textContent = fix(dT, 2); return; }
     curve.style.strokeDasharray = `${length}`;
     curve.style.strokeDashoffset = `${length}`;
     const duration = 2400;
     const begin = performance.now();
+    // Safety net: whatever happens to the animation, the final value is shown.
+    setTimeout(() => {
+      if (!document.body.contains(curve)) return;
+      curve.style.strokeDashoffset = "0";
+      readout.textContent = fix(dT, 2);
+    }, duration + 500);
     const frame = (now) => {
       if (!document.body.contains(curve)) return;
       const t = Math.min(1, (now - begin) / duration);
