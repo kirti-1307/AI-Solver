@@ -259,3 +259,23 @@ These were not found by a test. They were raised as questions about the page and
 
 - 1,855 calculations through the API (every reaction at eleven temperatures and two pressures, six gas models, every example of tabs 3 to 5 with variations, every species) with checks on the audits, on Le Chatelier's principle, on continuity at the joins and on the warnings: no problem found. The same in the browser for every menu entry of every tab.
 
+## Round 12: "can't anything be done about the phase change?" (v1.7)
+
+### 36. No phase change was applied
+
+- **Actual:** every species stayed in the phase that was typed. Liquid water stayed a liquid at 500 K (with an extrapolation warning), and a flue gas cooled to 25 °C gave up 802.6 kJ per mole of methane, as if none of its water condensed. The report listed this as a limitation.
+- **Why it could be fixed without new data:** seven compounds are in the database as a liquid and as a gas. The stable phase is the one with the lower Gibbs energy, so the data already fix the boiling point. It comes out within 1.1 K of SVN Table B.1 for water, methanol, ethanol, benzene and cyclohexane, and within 4.6 K for toluene. The table values are not used, so this is also a new check of the data.
+- **Fix:** module `phase.py`. Tab 1 has a box "Pick the stable phase"; the ΔH° plot then has a step of ν·ΔH_vap at each boiling point and ΔG° has none. In tab 5 the water of the outlet condenses below its dew point (55.5 °C for the methane burner), and the latent heat is a fourth step of the path.
+- **What changed in the numbers:** nothing unless the box of tab 1 is ticked or the outlet of tab 5 is below its dew point. The methane flue gas cooled to 25 °C now gives 875.6 kJ instead of 802.6 kJ.
+- **Left out on purpose:** acetic acid. Its data put the boiling point at 434 K against 391.1 K, so it is never switched and the page says why.
+
+### 37. Found while building it: the conversion jumped at the boiling point
+
+- **Actual:** with the stable phase chosen, CO₂ + 3 H₂ → CH₃OH + H₂O at 1 bar showed 0.15 % conversion just below 373.2 K and 7.0 % just above.
+- **Root cause:** below its boiling point the standard state of water is the liquid, and the first version put liquid water with activity 1 into the equilibrium. But in a gas mixture water stays a vapour until its partial pressure reaches its vapour pressure (0.019 bar against 0.96 bar here). The standard state and the phase in the mixture are two different things.
+- **Fix:** the reaction is solved with the species as a vapour first. Only a vapour above saturation is turned into a liquid, and its vapour then stays in the gas at the vapour pressure (`phase.equilibrium`). The conversion is continuous at every boiling point and where condensation starts; tests hold both.
+
+### 38. The same jump at high pressure
+
+- **Actual:** at 50 bar the conversion fell from 88.4 % to 66.2 % at 373.2 K, because the first fix looked for condensation only below the boiling point at 1 bar.
+- **Fix:** a species can condense while P_sat(T) < P and T is below its critical temperature. Above 373 K this uses the liquid data beyond their range, so the result is marked as approximate on the page. At 523 K and 50 bar nothing condenses, and the 21.3 % of the report is unchanged.

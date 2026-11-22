@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Callable, List
 
 from .constants import R, T0
-from . import heatbalance
+from . import heatbalance, phase
 from .equilibrium import gibbs_minimize
 from .heatcap import icph
 from .reaction import Reaction
@@ -226,6 +226,31 @@ def build() -> List[dict]:
     add("Physical sanity", "Water: heat of vaporisation at 100 C",
         40660.0, lambda: vap.dH(373.15), "J/mol", 1e-2,
         "Steam tables: 2257 kJ/kg x 18.015 g/mol")
+
+    # --- Phase change at 1 bar ---------------------------------------------------
+    # The boiling point is where the liquid and the gas of the database have the
+    # same Gibbs energy. Nothing is fitted: the normal boiling points of SVN
+    # Table B.1 are not used anywhere in that calculation, so they are an
+    # independent check of the formation data and heat capacities of both phases.
+    for name, table, tol in (("Water", 373.2, 5e-4), ("Methanol", 337.9, 3e-3), ("Ethanol", 351.4, 5e-4),
+                             ("Benzene", 353.2, 3.5e-3), ("Cyclohexane", 353.9, 2.5e-3), ("Toluene", 383.8, 1.3e-2)):
+        add("Phase change at 1 bar", f"{name}: boiling point from G(liquid) = G(gas)",
+            table, lambda n=name: phase.TRANSITIONS[n].T_boil, "K", tol,
+            "SVN Table B.1, normal boiling point (not used in the calculation)")
+    water = phase.TRANSITIONS["Water"]
+    add("Phase change at 1 bar", "Water: vapour pressure at 25 C from the Gibbs energies",
+        0.031699, lambda: phase.vapour_pressure(water, 298.15), "bar", 2e-3,
+        "NIST Chemistry WebBook, saturation properties of water")
+    add("Phase change at 1 bar", "Water: vapour pressure at 60 C from the Gibbs energies",
+        0.19946, lambda: phase.vapour_pressure(water, 333.15), "bar", 6e-3,
+        "NIST Chemistry WebBook, saturation properties of water")
+    add("Phase change at 1 bar", "Water: latent heat at 25 C",
+        43987.5, lambda: phase.latent_heat(water, 298.15), "J/mol", 2e-3,
+        "NIST Chemistry WebBook, saturation properties of water: 45.876 - 1.8885 kJ/mol")
+    add("Phase change at 1 bar", "Methane burned with 20 % excess air: dew point of the flue gas "
+        "(water vapour at 0.16092 bar)",
+        328.58, lambda: heatbalance.WaterSplit(flame_case()["outlet"]).T_dew, "K", 5e-4,
+        "NIST Chemistry WebBook, saturation temperature of water at 0.16092 bar")
     return rows
 
 

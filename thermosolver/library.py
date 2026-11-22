@@ -281,6 +281,16 @@ HEAT_EXAMPLES = [
         "note": "Drag the excess air: every extra mole of air has to be heated too, so the flame cools.",
     },
     {
+        "id": "condensing_boiler",
+        "name": "Condensing boiler: flue gas of a methane burner cooled to 40 C",
+        "equation": "CH4 + 2 O2 -> CO2 + 2 H2O(g)",
+        "mode": "duty", "T_in": 298.15, "T_out": 313.15, "conversion": 1.0,
+        "excess_species": "O2(g)", "excess": 0.2, "air": True, "side": [], "condense": True,
+        "note": "The flue gas is cooled below its dew point of 55.5 C, so part of the water condenses and gives up "
+                "its latent heat. Drag the outlet temperature across 329 K: the heat duty bends there. "
+                "Untick the water box to see the answer with all the water kept as vapour.",
+    },
+    {
         "id": "reformer_duty",
         "name": "Steam reformer: heat that the furnace must supply",
         "equation": "CH4 + H2O(g) -> CO + 3 H2",

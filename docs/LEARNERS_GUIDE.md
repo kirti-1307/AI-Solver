@@ -108,6 +108,33 @@ The textbook's Cp formula for the gases of a flame (N₂, O₂, CO₂, H₂O) en
 
 So above the textbook limit, up to 6000 K, the solver uses NIST equations for eight flame gases (N₂, O₂, CO₂, H₂O, CO, H₂, SO₂, NO). Inside the textbook range nothing changes. For every other substance the textbook limit stays, and the solver warns beyond it.
 
+### Liquid or vapour: where a substance boils
+
+Seven substances are in the database twice, once as a liquid and once as a gas: water, methanol, ethanol, benzene, cyclohexane, toluene and acetic acid. Which form is right depends on the temperature.
+
+The rule is short. At 1 bar the stable form is the one with the lower Gibbs energy. At the boiling point the two are equal. So the solver can find the boiling point itself, from data it already has:
+
+| Substance | Boiling point the solver finds | Textbook value |
+|---|---|---|
+| Water | 373.2 K | 373.2 K |
+| Methanol | 337.1 K | 337.9 K |
+| Ethanol | 351.3 K | 351.4 K |
+| Benzene | 354.2 K | 353.2 K |
+| Cyclohexane | 354.5 K | 353.9 K |
+| Toluene | 388.4 K | 383.8 K |
+
+Nothing was fitted to get these. The textbook boiling points are not used in the calculation, so the agreement is a check on the data of both forms.
+
+Acetic acid is the exception. Its data put the boiling point at 434 K, which is 43 K too high. Its liquid has only one Cp value, valid from 290 to 320 K, and its real vapour is partly made of double molecules, which the data leave out. So the solver never changes the phase of acetic acid by itself, and says why.
+
+Three things happen at a boiling point:
+
+- **ΔH° jumps.** A reaction that makes 1 mol of water releases 40.86 kJ less once that water is vapour. The jump is the latent heat.
+- **ΔS° jumps too**, by the latent heat divided by the boiling point.
+- **ΔG° does not jump.** The two jumps cancel exactly, because liquid and vapour have the same Gibbs energy there. So K has no jump either.
+
+The same data give the **vapour pressure**: the pressure at which a liquid and its vapour are in balance at a given temperature. For water the solver finds 0.0317 bar at 25 °C and 0.199 bar at 60 °C. The steam table says 0.0317 and 0.199 bar.
+
 ### Not favourable does not mean no ΔH
 
 ΔH is the enthalpy of the products minus the enthalpy of the reactants. Both are properties of the substances, so ΔH exists for any balanced reaction, whether it goes by itself or not.
@@ -137,6 +164,12 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 - The step-by-step calculation, if you want to follow the arithmetic.
 
 **Favourable at which pressure?** K only depends on temperature. But how far a reaction goes also depends on pressure. Example: CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K converts 0.6 % at 1 bar and 21.3 % at 50 bar. Four gas molecules become two, so squeezing the gas helps.
+
+**The "Pick the stable phase" box.** Normally the solver uses the phase you type. H2O(l) stays a liquid at any temperature, even at 500 K, where it only gets a warning. Tick the box and the solver chooses for you: liquid below the boiling point, vapour above it. The plots then run across the boiling point. The orange ΔH° line has a step there (the latent heat), and the blue ΔG° line only bends. Try `H2 + 1/2 O2 -> H2O(l)`: ΔH° is −283.4 kJ/mol just below 373.2 K and −242.6 kJ/mol just above it.
+
+The box is off at the start, because a textbook often wants the other form on purpose. The heat of burning methane to H2O(g) at 25 °C is the lower heating value, although water is not a vapour at 25 °C and 1 bar.
+
+One more point. Below its boiling point a product is not automatically a liquid. In a gas mixture it stays a vapour as long as its partial pressure is below its vapour pressure. The "equilibrium conversion" card works this way: a product leaves as liquid only once the gas is saturated with it, and the card says when that happens.
 
 **The five graphs of tab 1.** Each has a line under it that says how to read it. In short:
 
@@ -237,6 +270,19 @@ Examples:
 - To stay below 1500 K you need 97 % excess air.
 - A steam reformer fed at 600 K with products at 1300 K needs 328 kJ per mole of methane (−34.4 + 200.5 + 161.9 kJ for the three steps).
 
+**When the outlet is cool, the water condenses.** A gas can carry water vapour only up to the vapour pressure. The flue gas of the methane burner is 16 % water, and it starts to drop liquid water at 55.5 °C. That temperature is its dew point. Below it the path gets a fourth step:
+
+4. Part of the water condenses at the outlet temperature and gives up its latent heat.
+
+Examples (methane with 20 % excess air, feed at 25 °C):
+
+- Cooled to 40 °C: 1.17 of the 2 mol of water condense, and 847.7 kJ must be removed. With all the water kept as vapour it would be 796.9 kJ.
+- Cooled to 25 °C: 1.66 mol condense and 875.6 kJ comes out. This lies between the LHV (802.6 kJ) and the HHV (890.6 kJ). It does not reach the HHV, because the gas leaves saturated and still carries 0.34 mol of water vapour.
+
+This is how a condensing boiler gets more heat out of the same fuel. The box "Let the water change phase" is on at the start. Untick it to keep every substance in the phase that is written, as the textbook examples do. Above the dew point the box changes nothing, so the flame temperature and the reformer example stay as they are.
+
+Only water can change phase in this tab, and the liquid is taken as pure water.
+
 **Bomb calorimeter** is the lab experiment on screen. A sample burns in a closed steel vessel. The vessel cannot change its volume, so the heat released is ΔU, not ΔH. The two are linked by:
 
     ΔH = ΔU + Δn·R·T
@@ -258,7 +304,7 @@ The full table of the 57 substances, with the source of every number. There is a
 
 This is the proof that the numbers are right. It has three parts:
 
-- **57 reference values** from textbook examples, course slides, the lab handout and the NIST tables. The solver recalculates each one while you watch. All 57 pass.
+- **67 reference values** from textbook examples, course slides, the lab handout and the NIST tables. The solver recalculates each one while you watch. All 67 pass. Ten of them are about phase change: six boiling points, the vapour pressure and latent heat of water, and the dew point of a flue gas.
 - **Five stress tests** from the assignment (see section 6).
 - **Comparison with published research** values.
 
@@ -288,12 +334,13 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | Tab 2 showed a red error for CO₂ hydrogenation | The pressure was still 200 bar from the ammonia example. Water is a liquid there, so there is no gas value | The example opens at its own conditions (50 bar), and a blue box offers a pressure that works |
 | The two burner examples showed an "extrapolated" warning | The flame is hotter than the 2000 K limit of the textbook Cp formula | NIST data are used above the limit. The answer moves from 2066 K to 2069 K, and a note shows both |
 | After tab 2 was narrowed down to the heat of reaction, no tab said how pressure changes favourability | The assignment asks for favourability at a given pressure and temperature | Tab 1 has a pressure box and shows the equilibrium conversion at that pressure |
+| Every substance stayed in the phase that was typed | Liquid water stayed liquid at 500 K, and a flue gas cooled to 25 °C never gave up the latent heat of its water | The solver finds the boiling point from its own data. Tab 1 can pick the stable phase, and in tab 5 the water condenses below the dew point |
 
 The five stress tests of the assignment:
 
 1. **Unbalanced reaction.** CH₄ + O₂ → CO₂ + H₂O is rejected, and CH₄ + 2 O₂ → CO₂ + 2 H₂O is offered.
 2. **Shortcut on Cp.** For steam reforming at 1000 K, the proper Cp gives ΔH = 225.3 kJ/mol. A constant Cp gives 238.8, and ignoring Cp gives 205.8. K changes from 25.8 to 50.3 or 2.8.
-3. **Liquid or vapour water.** Burning methane gives −890.65 kJ/mol with liquid water and −802.63 with vapour. The gap is the heat needed to boil 2 moles of water.
+3. **Liquid or vapour water.** Burning methane gives −890.65 kJ/mol with liquid water and −802.63 with vapour. The gap is the heat needed to boil 2 moles of water. With the "Pick the stable phase" box the solver chooses liquid water at 25 °C by itself.
 4. **Formula out of range.** The solver warns you.
 5. **Published values.** The solver agrees with research papers within 0.5 kJ/mol.
 
@@ -328,6 +375,9 @@ This is why the first visit takes about ten seconds: the browser downloads Pytho
 | Gibbs minimisation | Finding the mixture with the lowest total Gibbs energy |
 | Carbon activity | Above 1 means solid carbon (coke) can form |
 | HHV / LHV | Heating value with liquid water / with water vapour |
+| Latent heat | Heat needed to turn a liquid into vapour without changing its temperature |
+| Vapour pressure | The pressure at which a liquid and its vapour are in balance at a given temperature |
+| Dew point | The temperature at which a gas starts to drop liquid when it is cooled |
 | ΔU | Heat released at constant volume, as in a bomb calorimeter |
 
 ## 9. Check yourself
@@ -351,6 +401,9 @@ Try to answer before you read the answer.
 15. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 17.3 %; now its switch matters.
 16. **Why is the methane flame 2069 K on the page and 2066 K in the textbook?** The textbook stretches its Cp formula 66 K beyond its 2000 K limit. The solver uses NIST data above 2000 K. Stretched, the formula gives a Cp that is a little too high, so the textbook's flame comes out 3 K cooler.
 17. **A reaction is favoured at 50 bar but not at 1 bar. Did K change?** No. K depends on temperature only. Pressure changes how far the reaction goes when the number of gas molecules changes.
+18. **Why does ΔH° jump at a boiling point while ΔG° does not?** Liquid and vapour have different enthalpies; the difference is the latent heat. But at the boiling point they have the same Gibbs energy, so ΔG° and K pass through without a jump.
+19. **A flue gas is cooled to 25 °C. Why does less than the HHV come out?** The gas leaves saturated with water. Of the 2 mol of water from one mole of methane, 0.34 mol stay vapour and keep their latent heat.
+20. **Water is in a gas mixture at 80 °C and 1 bar. Is it a liquid?** Only if its partial pressure reaches its vapour pressure, which is 0.47 bar at 80 °C. Below that it stays a vapour, although 80 °C is below the boiling point.
 
 ## 10. A five-minute tour
 
@@ -358,6 +411,6 @@ Try to answer before you read the answer.
 2. Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.
 3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.66 kJ/mol at 200 bar. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
 4. Click "What actually forms?" Press the three "Try this" buttons: everything allowed, methane off, methane and CO off. Point at the faded switches and say why they are faded. Then drag the temperature slider.
-5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool.
+5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool. Then pick the "Condensing boiler" example and drag the outlet temperature across 329 K: the heat duty bends at the dew point.
 6. Click "Bomb calorimeter" and press Ignite.
-7. Finish on **Validation**: 57 of 57 reference values reproduced.
+7. Finish on **Validation**: 67 of 67 reference values reproduced.

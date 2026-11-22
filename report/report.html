@@ -37,19 +37,19 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><td>Combining reactions</td><td>&Delta;H = &Sigma;m<sub>j</sub>&Delta;H<sub>j</sub> and &Delta;G = &Sigma;m<sub>j</sub>&Delta;G<sub>j</sub> (Hess's law)</td></tr>
 <tr><td>Energy balance on a reactor</td><td>Q = &Delta;H<sub>R</sub> + &Delta;H&deg;<sub>298</sub> + &Delta;H<sub>P</sub>; &nbsp; Q = 0 gives the flame temperature</td></tr>
 </table>
-<p>All equations are from the course textbook [1]. Every result is also calculated a second time by an independent route, and the solver reproduces 57 of 57 reference values from the textbook, the course material and NIST.</p>
+<p>All equations are from the course textbook [1]. Every result is also calculated a second time by an independent route, and the solver reproduces 67 of 67 reference values from the textbook, the course material and NIST.</p>
 
 <h2>3. Important findings</h2>
 <ul>
 <li><b>Temperature decides which side is favoured.</b> CO<sub>2</sub> + 3H<sub>2</sub> &rarr; CH<sub>3</sub>OH + H<sub>2</sub>O gives out heat (&Delta;H&deg; = &minus;57.9 kJ/mol at 523 K). But it loses two moles of gas, so &Delta;S&deg; is negative and &Delta;G&deg; is +46.6 kJ/mol. The reaction is thus favoured only at low temperature. Steam reforming is the opposite case and becomes favourable above 893 K.</li>
 <li><b>Pressure changes the heat of reaction of a real gas.</b> For ammonia synthesis at 723 K and 200 bar, the residual enthalpy makes the heat of reaction 4.8 % larger than the ideal-gas value. The effect is large for cold, polar gases (10.6 % for methanol from CO<sub>2</sub> at 50 bar) and negligible for hot, light gases (0.2 % for steam reforming).</li>
-<li><b>Pressure also changes how far a reaction goes.</b> At 523 K only 0.6 % of the CO<sub>2</sub> converts to methanol at 1 bar, but 21.3 % converts at 50 bar.</li>
+<li><b>Pressure also changes the conversion:</b> at 523 K, 0.6 % of the CO<sub>2</sub> converts at 1 bar, but 21.3 % at 50 bar.</li>
 <li><b>Hess's law holds numerically.</b> Adding the reverse water-gas shift and methanol synthesis from CO gives the CO<sub>2</sub> route, and the summed values agree with the direct calculation.</li>
 </ul>
 
 <h2>4. Two additional features</h2>
 <p><b>Product slate.</b> In a real reactor several reactions compete for the same atoms. Here the user only chooses which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. A product can also be switched off, which imitates a selective catalyst. For CO<sub>2</sub> + 3H<sub>2</sub> at 523 K and 50 bar, methane takes 74.8 % of the carbon if it is allowed. If it is switched off, 25.2 % of the CO<sub>2</sub> converts, mostly to methanol (Fig. a). Thermodynamics thus favours methane, and it is the catalyst that makes methanol possible.</p>
-<p><b>Heat lab.</b> The heat of reaction alone does not tell how hot a reactor gets. This tab applies an energy balance around the reactor and returns either the outlet temperature or the heat duty. For methane burned with 20 % excess air it gives a flame temperature of 2069 K, and it shows that extra air cools the flame (Fig. b). A second view repeats our bomb calorimeter lab on screen. For 1 g of ethanol it predicts a temperature rise of 2.31 &deg;C.</p>
+<p><b>Heat lab.</b> The heat of reaction alone does not tell how hot a reactor gets. This tab applies an energy balance around the reactor and returns the outlet temperature or the heat duty. For methane burned with 20 % excess air the flame is at 2069 K, and extra air cools it (Fig. b). If the flue gas is cooled below its dew point of 55.5 &deg;C, part of its water condenses and the latent heat is also recovered. A second view repeats our bomb calorimeter lab, where 1 g of ethanol gives a temperature rise of 2.31 &deg;C.</p>
 <p style="text-align:center; margin:4pt 0 0 0"><img src="figure.png" width="672" height="202"></p>
 <p class="cap"><b>Figure.</b> (a) Where the carbon goes for CO<sub>2</sub> + 3H<sub>2</sub> at 50 bar. (b) Flame temperature of methane in air against the excess air.</p>
 
@@ -59,7 +59,7 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><th style="width:27%">Stress test</th><th>What the solver does</th></tr>
 <tr><td>1. Stoichiometry</td><td>CH<sub>4</sub> + O<sub>2</sub> &rarr; CO<sub>2</sub> + H<sub>2</sub>O is rejected before any calculation, and the balanced form is offered.</td></tr>
 <tr><td>2. C<sub>p</sub> assumption at 1000 K</td><td>For steam reforming, &Delta;H&deg; is 225.3 kJ/mol with C<sub>p</sub>(T), 238.8 with a constant &Delta;C<sub>p</sub> and 205.8 if &Delta;C<sub>p</sub> is ignored. K changes by a factor of two or more.</td></tr>
-<tr><td>3. Physical state</td><td>Methane combustion gives &minus;890.7 kJ/mol with H<sub>2</sub>O(l) and &minus;802.6 kJ/mol with H<sub>2</sub>O(g). The gap is the heat needed to vaporise two moles of water.</td></tr>
+<tr><td>3. Physical state</td><td>Methane combustion gives &minus;890.7 kJ/mol with H<sub>2</sub>O(l) and &minus;802.6 kJ/mol with H<sub>2</sub>O(g). The gap is the heat needed to vaporise two moles of water. The solver can also choose the phase itself, since it finds the boiling point of water (373.2 K) from its own data.</td></tr>
 <tr><td>4. Correlation validity</td><td>Each species has its own temperature range. Outside it, the result is shown with a warning.</td></tr>
 <tr><td>5. Published work</td><td>&Delta;H&deg;<sub>298</sub> of eight reactions agrees with values from research papers within 0.5 kJ/mol [4].</td></tr>
 </table>
@@ -73,11 +73,12 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><td>Misleading result</td><td>The calorimeter named ethylene oxide gas as the unknown sample, ahead of liquid ethanol.</td><td>Only liquids and solids are compared, since a gas cannot be weighed into a crucible.</td></tr>
 <tr><td>Wrong concept</td><td>The standard state was described as 298.15 K and 1 bar, although it fixes only the pressure.</td><td>The wording is corrected in the app and in the guide.</td></tr>
 <tr><td>Formula out of range</td><td>Below 298 K and above 2000 K the C<sub>p</sub> formula of the textbook was used outside its range (29 % too low for CO<sub>2</sub> at 200 K).</td><td>Data from NIST are used in these two ranges [2, 3].</td></tr>
+<tr><td>Missing physics</td><td>Every species stayed in the phase that was typed. A flue gas cooled to 25 &deg;C thus gave only the lower heating value (802.6 kJ/mol for methane).</td><td>Water now condenses below the dew point, and 875.6 kJ/mol is released.</td></tr>
 </table>
-<p>Two independent reviews of the code then found further issues, which I also fixed. All of them are listed in the repository, where 325 automated tests run on every change.</p>
+<p>Two independent reviews of the code then found further issues, which I also fixed. All of them are listed in the repository, where 390 automated tests run on every change.</p>
 
 <h2>6. Limitations</h2>
-<p>The pressure tab treats each gas as a pure species, and no phase change is applied automatically. Moreover, the heat lab ignores dissociation, so flame temperatures above about 2000 K are somewhat too high. Equilibrium results say where a reaction can end up, not how fast it gets there.</p>
+<p>Phase change is handled on the reaction tab and in the heat lab only. On the pressure tab and in the product slate, a species that would condense is flagged but not condensed, and each gas is treated as a pure species. Moreover, the heat lab ignores dissociation, so flame temperatures above about 2000 K are somewhat too high. Equilibrium results say where a reaction can end up, not how fast it gets there.</p>
 
 <h2>References</h2>
 <p class="ref">[1] J. M. Smith, H. C. Van Ness and M. M. Abbott, <i>Introduction to Chemical Engineering Thermodynamics</i>, 8th edition, McGraw-Hill. Equations of Chapters 4, 6 and 14; property data of Tables B.1 and C.1 to C.4.</p>

@@ -60,7 +60,7 @@ Boxes are ticked only for what has actually been verified.
 | Tab 5, methane, 20 % excess air | 2,069 K since v1.6 (2,066 K before, and still the value named in the note as the textbook's) |
 | Tab 5, steam reformer | +328.0 kJ per mol CH₄ |
 | Tab 5, bomb calorimeter, 1 g ethanol | rise 2.31 °C, calorific value 29.62 MJ/kg |
-| Tab 7 | "57 of 57 reference values reproduced" (51 of 51 before v1.3), no "FAIL" |
+| Tab 7 | "67 of 67 reference values reproduced" since v1.7 (57 of 57 before, 51 of 51 before v1.3), no "FAIL" |
 | Theme switch | page background changed to dark and back |
 | Phone width (375 px) | page does not scroll sideways; the tab bar and the tables scroll inside their own boxes |
 
@@ -123,6 +123,13 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 - [x] Put the live URL in the report
 - [ ] Put the live URL in the repository's "About" box
 - [ ] Tag the release: `git tag v1.1 && git push --tags`
+
+**v1.7 (phase change: stable phase on tab 1, condensing water on tab 5):**
+
+- [ ] v1.7: tab 1 opens with the box "Pick the stable phase" unticked and the same numbers as before
+- [ ] v1.7: tab 1, `H2 + 1/2 O2 -> H2O(l)` at 500 K shows the blue hint with the button; after a click the reaction reads H2O(g), ΔH° = -243.81 kJ/mol, and the note names the jump of +40.86 kJ/mol at 373.2 K
+- [ ] v1.7: tab 5, methane burner still 2,069 K with the water box ticked; the "Condensing boiler" example shows a dew point of 328.7 K, a fourth step and -847.7 kJ, and -796.9 kJ with a warning when the box is unticked
+- [ ] v1.7: tab 7 reports 67 of 67, the ten phase-change rows among them
 
 ## Rollback
 

@@ -14,7 +14,7 @@ import json
 import math
 from typing import Any, Callable, Dict, List, Optional
 
-from . import benchmarks, heatbalance, library
+from . import benchmarks, heatbalance, library, phase
 from .audit import audit_reaction, audit_residuals
 from .combine import combine_reactions, formation_decomposition, formation_reaction
 from .constants import P0, R, T0
@@ -111,6 +111,16 @@ def _model(payload: dict, default: str = "pr") -> str:
     return model
 
 
+def _flag(payload: dict, key: str, label: str) -> bool:
+    """A yes/no setting; anything other than true or false is refused."""
+    value = payload.get(key, False)
+    if value is None or value == "":
+        return False
+    if not isinstance(value, bool):
+        raise InputError(f"{label} must be true or false.")
+    return value
+
+
 def _points(payload: dict, default: int) -> int:
     """Number of points of a sweep, always a whole number between 2 and 401."""
     return int(_num(payload, "n_points", default, 2, 401, "Number of plot points"))
@@ -156,8 +166,26 @@ def _join_points(lo: float, hi: float, breakpoints: List[float]) -> set:
     return points
 
 
-def _sweep_range(rxn: Reaction, payload: dict):
-    rng = rxn.plot_range()
+def _hull(pieces, limits) -> Optional[tuple]:
+    """The temperature range covered by the pieces of a reaction that changes
+    phase: for each piece its own range (``limits`` picks which one), cut to
+    the temperatures where that piece applies, and then the lowest and the
+    highest of those."""
+    spans = []
+    for a, b, variant in pieces:
+        rng = limits(variant)
+        if rng is None:
+            continue
+        lo, hi = max(rng[0], a), min(rng[1], b)
+        if lo < hi:
+            spans.append((lo, hi))
+    if not spans:
+        return None
+    return min(s[0] for s in spans), max(s[1] for s in spans)
+
+
+def _sweep_range(rxn: Reaction, payload: dict, pieces=None):
+    rng = rxn.plot_range() if pieces is None else _hull(pieces, lambda v: v.plot_range())
     if rng is None:
         return None
     lo = _num(payload, "T_min", None, 1.0, T_ABS_MAX, "Minimum temperature")
@@ -321,14 +349,24 @@ def _derivation(rxn: Reaction, ev: dict) -> List[dict]:
     return steps
 
 
-def _T_sweep(rxn: Reaction, lo: float, hi: float, n: int) -> dict:
-    Ts = sorted(set(_grid(lo, hi, n)) | _join_points(lo, hi, rxn.breakpoints()))
-    rng = rxn.valid_range()
+def _T_sweep(rxn: Reaction, lo: float, hi: float, n: int, pieces=None) -> dict:
+    """Property changes against temperature. ``pieces`` (from phase.segments)
+    makes every species take the phase that is stable at each temperature;
+    two points are then placed right at each boiling point, so that the plot
+    shows the jump of dH there as a jump."""
+    pieces = pieces or [(0.0, math.inf, rxn)]
+    points = set(_grid(lo, hi, n))
+    for a, b, variant in pieces:
+        points |= {t for t in _join_points(lo, hi, variant.breakpoints()) if a <= t < b}
+        if lo < a < hi:
+            points |= {a - 1e-6, a}
     out: Dict[str, list] = {k: [] for k in (
         "T", "dH", "dS", "dG", "TdS", "lnK", "log10K", "dCp",
         "dH_const_cp", "dG_const_cp", "dG_no_cp", "in_range")}
-    for T in Ts:
-        dH, dS = rxn.dH(T), rxn.dS(T)
+    for T in sorted(points):
+        variant = next(v for a, b, v in pieces if a <= T < b)
+        rng = variant.valid_range()
+        dH, dS = variant.dH(T), variant.dS(T)
         dG = dH - T * dS
         lnK = -dG / (R * T)
         out["T"].append(T)
@@ -338,21 +376,62 @@ def _T_sweep(rxn: Reaction, lo: float, hi: float, n: int) -> dict:
         out["TdS"].append(T * dS)
         out["lnK"].append(lnK)
         out["log10K"].append(lnK / math.log(10.0))
-        out["dCp"].append(rxn.dCp(T))
-        out["dH_const_cp"].append(rxn.dH_constant_cp(T))
-        out["dG_const_cp"].append(rxn.dG_constant_cp(T))
-        out["dG_no_cp"].append(rxn.dG_no_cp(T))
+        out["dCp"].append(variant.dCp(T))
+        out["dH_const_cp"].append(variant.dH_constant_cp(T))
+        out["dG_const_cp"].append(variant.dG_constant_cp(T))
+        out["dG_no_cp"].append(variant.dG_no_cp(T))
         out["in_range"].append(bool(rng and rng[0] - 1e-9 <= T <= rng[1] + 1e-9))
     return out
 
 
+def _phase_choice(typed: Reaction, T: float, auto: bool) -> dict:
+    """What the choice of phase does for one reaction at T: which species can
+    change phase, where they boil, what is swapped (or would be), and the
+    reaction to calculate with."""
+    used, skipped = phase.choices(typed)
+    stable, swaps = phase.at_temperature(typed, T, used)
+    info = {
+        "auto": auto,
+        "equation_typed": typed.equation,
+        "transitions": phase.jumps(typed, used),
+        "skipped": skipped,
+        "swaps": swaps,                       # typed phase -> stable phase at T (applied only when auto)
+        "equation_stable": stable.equation,
+        "pieces": None,
+        "audit": phase.audit(used) if auto else [],
+    }
+    return {"info": info, "used": used, "reaction": stable if auto else typed,
+            "pieces": phase.segments(typed, used) if auto and used else None}
+
+
 def analyze(payload: dict) -> dict:
     """Standard heat of reaction, entropy and Gibbs energy at T, with the
-    temperature sweep, warnings, written-out steps and consistency audit."""
-    rxn = _reaction(payload)
+    temperature sweep, warnings, written-out steps and consistency audit.
+
+    With "auto_phase" every species that the database holds as a liquid and
+    as a gas is put into the phase that is stable at T and 1 bar (see the
+    module ``phase``), at the chosen temperature and along the plots.
+    """
+    typed = _reaction(payload)
     T = _temperature(payload)
     P = _pressure(payload)          # only for the equilibrium conversion; the standard values are at 1 bar
+    choice = _phase_choice(typed, T, _flag(payload, "auto_phase", "'auto_phase'"))
+    rxn, pieces = choice["reaction"], choice["pieces"]
     ev = rxn.evaluate(T)
+    warnings = rxn.range_warnings(T)
+    if pieces is not None:
+        # The solver has chosen the phase itself, so the hint to check the
+        # phase is replaced by the account of the choice (result["phase"]).
+        handled = {sid for t in choice["used"] for sid in (t.liquid, t.gas)}
+        warnings = [w for w in warnings if not (w.get("kind") == "phase" and w.get("species") in handled)]
+        crossover = sorted(x for a, b, v in pieces
+                           for x in v.crossover_temperatures(a if a > 0.0 else None, b if math.isfinite(b) else None))
+        valid_range = _hull(pieces, lambda v: v.valid_range())
+        choice["info"]["pieces"] = [{"T_from": a if a > 0.0 else None, "T_to": b if math.isfinite(b) else None,
+                                     "equation": v.equation, "valid_range": v.valid_range()} for a, b, v in pieces]
+    else:
+        crossover = rxn.crossover_temperatures()
+        valid_range = rxn.valid_range()
     result = {
         "equation": rxn.equation,
         "name": rxn.name,
@@ -362,25 +441,46 @@ def analyze(payload: dict) -> dict:
         "P": P,
         "at_T": ev,
         "species": rxn.species_table(T),
-        "warnings": rxn.range_warnings(T),
-        "valid_range": rxn.valid_range(),
-        "crossover": rxn.crossover_temperatures(),
-        "audit": audit_reaction(rxn, T),
+        "warnings": warnings,
+        "valid_range": valid_range,
+        "crossover": crossover,
+        "audit": audit_reaction(rxn, T) + choice["info"]["audit"],
         "formation": formation_decomposition(rxn),
         "steps": _derivation(rxn, ev),
         "has_cp": rxn.has_cp,
+        "phase": choice["info"],
         "sweep": None,
         "equilibrium": None,
     }
-    rng = _sweep_range(rxn, payload)
+    rng = _sweep_range(rxn, payload, pieces)
     if rng:
-        result["sweep"] = _T_sweep(rxn, rng[0], rng[1], _points(payload, 81))
+        result["sweep"] = _T_sweep(rxn, rng[0], rng[1], _points(payload, 81), pieces)
+        if pieces is not None:
+            # Stretches of the plot where a heat capacity is used outside its
+            # range. Each piece has its own range, so the page cannot work
+            # them out from one pair of limits.
+            bands = []
+            for a, b, variant in pieces:
+                lo, hi = max(a, rng[0]), min(b, rng[1])
+                valid = variant.valid_range()
+                if lo >= hi or valid is None:
+                    continue
+                if lo < valid[0]:
+                    bands.append([lo, min(hi, valid[0])])
+                if hi > valid[1]:
+                    bands.append([max(lo, valid[1]), hi])
+            result["sweep"]["out_of_range"] = [band for band in bands if band[1] - band[0] > 0.1]
     # How far the reaction goes with a stoichiometric feed treated as an
     # ideal-gas mixture: at 1 bar, and at the pressure the user chose. K
     # depends on temperature only; the pressure enters through the mole
     # fractions, K = prod(y_i^nu_i) * (P/P0)^(sum of nu of the gases).
+    # A species that can condense is not simply taken in its standard-state
+    # phase here: in a gas mixture it stays a vapour until its partial
+    # pressure reaches its vapour pressure (phase.equilibrium).
     def conversion(t: float, p: float) -> Optional[dict]:
         try:
+            if pieces is not None:
+                return phase.equilibrium(typed, choice["used"], t, p)
             return reaction_equilibrium(rxn, t, p, model="ideal")
         except SolverError as exc:
             return {"error": exc.message, "conversion": None, "limiting_reactant": None}
@@ -922,9 +1022,12 @@ def heat_balance(payload: dict) -> dict:
 
     mode "adiabatic": the outlet temperature for a given heat input Q (0 by default).
     mode "duty":      the heat duty for a given outlet temperature.
+    "condense":       the water of the outlet takes the phase its temperature gives it
+                      (vapour, liquid or both) instead of the phase that is written.
     """
     rxn = _reaction(payload)
     settings = _heat_settings(payload, rxn)
+    condense = _flag(payload, "condense", "'condense'")
     T_in = _temperature(payload, "T_in", T0)
     mode = payload.get("mode") or "adiabatic"
     if mode not in ("adiabatic", "duty"):
@@ -934,16 +1037,19 @@ def heat_balance(payload: dict) -> dict:
 
     def run(T_in_: float, T_out_: Optional[float], **change):
         case_ = heatbalance.build_case(rxn, **{**settings, **change})
-        return case_, heatbalance.solve(case_, T_in_, mode, T_out_, Q)
+        return case_, heatbalance.solve(case_, T_in_, mode, T_out_, Q, condense)
 
     case, point = run(T_in, T_out)
-    feed, outlet = heatbalance.Stream(case["feed"]), heatbalance.Stream(case["outlet"])
+    feed, outlet = heatbalance.Stream(case["feed"]), heatbalance.outlet_model(case, condense)
 
     # Enthalpy-temperature lines of the feed and of the outlet mixture
     lo = min(T0, T_in, point["T_out"])
     hi = max(T0, T_in, point["T_out"])
     pad = max(25.0, 0.06 * (hi - lo))
     Ts = _grid(max(1.0, lo - pad), min(T_ABS_MAX, hi + pad), 61)
+    water = point["water"]
+    if water and water["applied"] and water["T_dew"] and Ts[0] < water["T_dew"] < Ts[-1]:
+        Ts = sorted(set(Ts) | {water["T_dew"]})      # the enthalpy line of the products bends at the dew point
     curves = {"T": Ts, "H_feed": [feed.H(t) for t in Ts], "H_out": [outlet.H(t) for t in Ts]}
 
     # Sweep of one setting
@@ -961,7 +1067,8 @@ def heat_balance(payload: dict) -> dict:
         elif variable == "conversion":
             limits = (0.0, 1.0, 0.0, 1.0)
         elif variable == "T_out" and mode == "duty":
-            limits = (T0, max(2000.0, point["T_out"]), T_ABS_MIN, T_ABS_MAX)
+            # a cool outlet gets a short axis, so that the bend at the dew point can be seen
+            limits = (T0, max(2000.0, point["T_out"]) if point["T_out"] >= 600.0 else 600.0, T_ABS_MIN, T_ABS_MAX)
         else:
             raise InputError("The sweep variable must be 'excess', 'T_in', 'conversion', "
                              "'T_out' (heat-duty mode only) or 'none'.")
@@ -970,7 +1077,7 @@ def heat_balance(payload: dict) -> dict:
         if x_hi <= x_lo:
             raise InputError("The end of the plot must be above its start.")
         xs = _grid(x_lo, x_hi, _points(payload, 41))
-        sweep = {"variable": variable, "x": xs, "T_out": [], "Q": []}
+        sweep = {"variable": variable, "x": xs, "T_out": [], "Q": [], "water_liquid": []}
         for x in xs:
             try:
                 if variable == "T_in":
@@ -981,15 +1088,17 @@ def heat_balance(payload: dict) -> dict:
                     _, r = run(T_in, T_out, **{variable: x})
                 sweep["T_out"].append(r["T_out"])
                 sweep["Q"].append(r["Q"])
+                sweep["water_liquid"].append(r["water"]["n_liquid"] if r["water"] and r["water"]["applied"] else None)
             except SolverError:
                 sweep["T_out"].append(None)
                 sweep["Q"].append(None)
+                sweep["water_liquid"].append(None)
 
     # Goal seek: the excess that holds the adiabatic outlet at a chosen temperature
     target = None
     if mode == "adiabatic" and payload.get("target_T") not in (None, "") and case["excess_species"]:
         target = heatbalance.excess_for_outlet_temperature(
-            rxn, _temperature(payload, "target_T"), T_in, Q=Q,
+            rxn, _temperature(payload, "target_T"), T_in, Q=Q, condense=condense,
             **{k: v for k, v in settings.items() if k != "excess"})
 
     return _safe({
@@ -997,10 +1106,10 @@ def heat_balance(payload: dict) -> dict:
         "reactants": rxn.reactant_ids, "key": case["key"], "excess_species": case["excess_species"],
         "has_o2": "O2(g)" in case["feed"],
         "settings": {"conversion": settings["conversion"], "excess": settings["excess"], "air": settings["air"],
-                     "extra": settings["extra"],
+                     "extra": settings["extra"], "condense": condense,
                      "side": [{"equation": r.equation, "extent": xi} for r, xi in settings["side"]]},
         "dH0": rxn.dH0, "mode": mode, "point": point,
-        "work": heatbalance.work_potential(case, point["T_out"]),
+        "work": heatbalance.work_potential(case, point["T_out"], condense=condense),
         "fuel": heatbalance.fuel_facts(rxn, case["key"]),
         "curves": curves, "sweep": sweep, "target": target,
     })

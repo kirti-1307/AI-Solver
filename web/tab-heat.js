@@ -57,6 +57,7 @@
       // and the answer always states the settings it was calculated with.
       excess: Number($("#hb-excess").value) / 100,
       air: $("#hb-air").checked,
+      condense: $("#hb-condense").checked,
       key: same ? ($("#hb-key").value || null) : null,
       excess_species: same ? ($("#hb-excess-species").value || null) : null,
       sweep: same ? ($("#hb-sweep").value || null) : null,
@@ -135,9 +136,13 @@
       lines.push(`The feed (${feedMoles} mol per mol of ${key}) enters at 298.15 K, so the first step of the path is zero.`);
     }
     const several = r.settings.side.length > 0;
+    const w = p.water;
+    const split = w && w.applied;
     if (Math.abs(p.path.dH_298) > 0.5) {
       lines.push(`At 298.15 K the reaction${several ? "s" : ""} ${p.path.dH_298 < 0 ? "release" : "absorb"}${several ? "" : "s"} ` +
-        `${kJ(Math.abs(p.path.dH_298))} kJ (extent × ΔH°<sub>298</sub>).`);
+        `${kJ(Math.abs(p.path.dH_298))} kJ (extent × ΔH°<sub>298</sub>` +
+        (split && w.n_written_liquid > 0 ? `, with the ${sig(w.n_written_liquid, 3)} mol of water that is written as liquid taken as vapour: ` +
+          `${kJ(w.dH_vap_298)} kJ/mol to evaporate it` : "") + ").");
     } else {
       lines.push("Nothing reacts at these settings, so the second step of the path is zero.");
     }
@@ -150,9 +155,31 @@
         `${fix(p.mean_cp_products, 1)} J/K, which puts the outlet at <strong>${fix(p.T_out, 0)} K (${fix(p.T_out - T_FREEZE, 0)} °C)</strong>.`);
     } else {
       lines.push(`Taking the ${outMoles} mol of products from 298.15 K to ${kelvin(p.T_out)} K ` +
-        `${p.path.dH_P >= 0 ? "needs" : "gives up"} ${kJ(Math.abs(p.path.dH_P))} kJ. ` +
-        `The sum of the three steps is the heat duty: <strong>${signed(p.Q / 1000, 2)} kJ per mol of ${key}</strong>, ` +
+        `${p.path.dH_P >= 0 ? "needs" : "gives up"} ${kJ(Math.abs(p.path.dH_P))} kJ` +
+        (split && w.n_liquid > 0 ? " (with all the water still as vapour)" : "") + ". " +
+        `The sum of the ${split && w.n_liquid > 0 ? "four" : "three"} steps is the heat duty: <strong>${signed(p.Q / 1000, 2)} kJ per mol of ${key}</strong>, ` +
         `${p.Q > 0 ? "which the furnace must supply" : "which must be removed by cooling"}.`);
+    }
+    // What the water of the outlet does. All numbers are the solver's.
+    if (split && w.n_liquid > 0) {
+      const dew = w.n_other_gas > 0 ? `its dew point of ${fix(w.T_dew, 1)} K (${fix(w.T_dew - T_FREEZE, 1)} °C)` : `the boiling point of water (${fix(w.T_boil, 1)} K)`;
+      let text = `Step 4, the water: the outlet is ${w.n_other_gas > 0 ? "below" : "at or below"} ${dew}. A gas can hold water vapour only up to the vapour pressure ` +
+        `(${sig(w.P_sat, 3)} bar at ${kelvin(p.T_out)} K), so <strong>${sig(w.n_liquid, 3)} of the ${sig(w.n_total, 3)} mol of water condense</strong> ` +
+        `and give up ${kJ(-p.path.dH_phase)} kJ of latent heat (${kJ(w.dH_vap)} kJ/mol).`;
+      if (w.as_written) {
+        text += r.mode === "adiabatic"
+          ? ` With every species kept in the phase written, the outlet would be at ${kelvin(w.as_written.T_out)} K.`
+          : ` With every species kept in the phase written, the heat duty would be ${signed(w.as_written.Q / 1000, 2)} kJ.`;
+      }
+      lines.push(text);
+      if (r.fuel && Math.abs(r.settings.conversion - 1) < 1e-9) {
+        lines.push(`Link to the heating values: the lower heating value (${kJ(r.fuel.LHV)} kJ/mol) counts all the water as vapour and the higher one ` +
+          `(${kJ(r.fuel.HHV)} kJ/mol) all of it as liquid. A real flue gas lies in between, because it leaves saturated and carries ` +
+          `${sig(w.n_vapour, 3)} mol of water vapour away.`);
+      }
+    } else if (split && w.T_dew !== null && w.n_other_gas > 0) {
+      lines.push(`The water: the outlet is above its dew point of ${fix(w.T_dew, 1)} K (${fix(w.T_dew - T_FREEZE, 1)} °C), so all ${sig(w.n_total, 3)} mol ` +
+        `of water leave as vapour. Cooled below that temperature, part of it would condense and give up its latent heat.`);
     }
     // R3: what an inert does depends on the mode and on whether the reactor heats up or cools down
     const inert = p.inert;
@@ -175,14 +202,19 @@
         : `Temperature limit of ${fix(r.target.target_T, 0)} K: ${esc(r.target.reason)}`);
     }
     if (r.work) {
-      lines.push(`Second-law view: cooled reversibly to 298.15 K, the hot products could deliver at most ${kJ(-r.work.W_ideal)} kJ of work ` +
+      lines.push(`Second-law view: cooled reversibly to 298.15 K` +
+        (r.work.water_condensed > 0 ? ` (${sig(r.work.water_condensed, 3)} mol of water condense on the way)` : "") +
+        `, the hot products could deliver at most ${kJ(-r.work.W_ideal)} kJ of work ` +
         `(W<sub>ideal</sub> = ΔH − T<sub>σ</sub>ΔS), ${pct(r.work.fraction, 1)} of their heat. A Carnot engine supplied at a constant ` +
         `${fix(p.T_out, 0)} K would convert ${pct(r.work.carnot_at_T_out, 1)}; the stream does less because its temperature falls as it gives up heat.`);
     }
     if (r.mode === "adiabatic" && p.T_out > 1800) {
       lines.push("The reaction is taken to go to the stated conversion; the energy balance does not ask whether equilibrium would allow it.");
     }
-    lines.push("Assumptions: every species stays in the phase written, the gases are ideal, and nothing limits the conversion you set.");
+    lines.push(split
+      ? "Assumptions: the water of the outlet takes the phase its temperature gives it at 1 bar (pure liquid water, nothing dissolved in it); " +
+        "every other species stays in the phase written, the gases are ideal, and nothing limits the conversion you set."
+      : "Assumptions: every species stays in the phase written, the gases are ideal, and nothing limits the conversion you set.");
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 
@@ -206,7 +238,10 @@
       <td>${sig(s.n_in, 5)}</td><td>${sig(s.n_out, 5)}</td><td>${s.y_out === null ? "–" : sig(s.y_out, 4)}</td>
       <td>${TS.int(s.sensible_in)}</td><td>${TS.int(s.sensible_out)}</td>
       <td>${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}</td></tr>`).join("");
+    const liquidOut = p.water && p.water.applied && p.water.n_liquid > 0;
     return `<details><summary>Stream table and sensible heat of each species</summary>
+      ${liquidOut ? `<p class="hint">y out is the mole fraction in the gas that leaves. The sensible heat of the water is listed on the vapour row for all of it,
+        as the path heats it as vapour; the part that condenses is step 4.</p>` : ""}
       <div class="table-scroll"><table><thead><tr><th class="l">Species</th><th class="l">Name</th><th>In (mol)</th><th>Out (mol)</th>
         <th>y out</th><th>n·∫C<sub>p</sub>dT, T<sub>in</sub>→298 (J)</th><th>n·∫C<sub>p</sub>dT, 298→T<sub>out</sub> (J)</th><th>C<sub>p</sub> valid (K)</th></tr></thead>
       <tbody>${rows}<tr class="sum"><td class="l" colspan="2">Total</td><td>${sig(p.feed_total, 5)}</td><td>${sig(p.outlet_total, 5)}</td><td>1</td>
@@ -241,6 +276,13 @@
       cards += `<div class="card good"><div class="k">Excess for ${fix(r.target.target_T, 0)} K</div><div class="v">${pct(r.target.excess, 0)}</div>
         <div class="s">to hold the temperature limit</div></div>`;
     }
+    const w = p.water;
+    if (w && w.T_dew !== null && (w.applied || w.n_vapour_possible < w.n_vapour)) {
+      const wet = w.applied && w.n_liquid > 0;
+      cards += `<div class="card ${wet ? "good" : ""}"><div class="k">${w.n_other_gas > 0 ? "Dew point of the outlet" : "Boiling point of the water"}</div>
+        <div class="v">${fix(w.T_dew, 1)} <span class="u">K</span></div>
+        <div class="s">${fix(w.T_dew - T_FREEZE, 1)} °C; ${wet ? `${sig(w.n_liquid, 3)} of ${sig(w.n_total, 3)} mol of water condensed` : (w.applied ? "all water leaves as vapour" : "water kept as written")}</div></div>`;
+    }
     if (r.fuel) {
       cards += `<div class="card"><div class="k">Heating value of ${chem(bare(r.fuel.fuel))}</div><div class="v">${fix(r.fuel.LHV_mass, 1)} <span class="u">MJ/kg</span></div>
         <div class="s">lower; higher is ${fix(r.fuel.HHV_mass, 1)} MJ/kg</div></div>`;
@@ -251,6 +293,7 @@
       leg("Step 1", `feed, ${kelvin(p.T_in)} K → 298.15 K`, p.path.dH_R) +
       leg("Step 2", "reaction at 298.15 K", p.path.dH_298) +
       leg("Step 3", `products, 298.15 K → ${adiabatic ? fix(p.T_out, 0) : kelvin(p.T_out)} K`, p.path.dH_P) +
+      (w && w.applied && w.n_liquid > 0 ? leg("Step 4", `${sig(w.n_liquid, 3)} mol of water condense at ${kelvin(p.T_out)} K`, p.path.dH_phase) : "") +
       leg("Sum", adiabatic && Math.abs(p.Q) < 0.5 ? "Q = 0, adiabatic" : "Q, heat added", p.path.total, "sum");
     $("#hb-explain").innerHTML = explainReactor(r);
     $("#hb-more").innerHTML = fuelBlock(r.fuel) + streamTable(r) + TS.auditTable(p.audit);
@@ -259,16 +302,21 @@
     const c = r.curves;
     const k = (arr) => arr.map((v) => (v === null ? null : v / 1000));
     const T0 = TS.database.constants.T0;
+    // The enthalpy line of the products bends at the dew point; mark it when it is in view and not crowded by the 298.15 K line.
+    const dewOnPlot = !!(w && w.applied && w.T_dew !== null && w.T_dew > c.T[0] && w.T_dew < c.T[c.T.length - 1] &&
+      (c.T[c.T.length - 1] - c.T[0]) < 12 * Math.abs(w.T_dew - T0));
     TS.plot("hb-plot-H", [
       { x: c.T, y: k(c.H_feed), name: "Feed mixture", mode: "lines", line: { width: 2.5, color: "#0b5cad" } },
       { x: c.T, y: k(c.H_out), name: "Product mixture", mode: "lines", line: { width: 2.5, color: "#c2410c" } },
       { x: [p.T_in], y: [p.H_in / 1000], name: "Feed in", mode: "markers", marker: { size: 11, color: "#0b5cad", line: { width: 2, color: TS.css("--panel") } } },
       { x: [p.T_out], y: [p.H_out / 1000], name: "Products out", mode: "markers", marker: { size: 11, color: "#c2410c", line: { width: 2, color: TS.css("--panel") } } },
     ], TS.layout("Enthalpy of the feed and of the products", "Temperature (K)", "H relative to the elements at 298.15 K (kJ)", {
-      shapes: [TS.vline(T0)], hovermode: "closest",
+      shapes: [TS.vline(T0)].concat(dewOnPlot ? [TS.vline(w.T_dew, "#c2410c")] : []), hovermode: "closest",
       annotations: [{ x: p.T_out, y: p.H_out / 1000, ax: p.T_in, ay: p.H_in / 1000, xref: "x", yref: "y", axref: "x", ayref: "y",
         showarrow: true, arrowhead: 3, arrowsize: 1.1, arrowwidth: 2, arrowcolor: TS.css("--muted"), standoff: 8, startstandoff: 8, text: "" },
-      { x: T0, y: 1, yref: "paper", text: "298.15 K", showarrow: false, yanchor: "bottom", font: { size: 11 } }],
+      { x: T0, y: 1, yref: "paper", text: "298.15 K", showarrow: false, yanchor: "bottom", font: { size: 11 } }]
+        .concat(dewOnPlot ? [{ x: w.T_dew, y: 0.93, yref: "paper", xanchor: "left", text: " dew point: the line bends", showarrow: false,
+          font: { size: 10.5, color: "#c2410c" } }] : []),
     }));
 
     const s = r.sweep;
@@ -341,6 +389,7 @@
     TS.setSlider("hb-excess", Number((100 * ex.excess).toPrecision(6)), [0, 400, 1]);
     if (ex.T_out) TS.setSlider("hb-Tout", ex.T_out, [300, 2500, 1]);
     $("#hb-air").checked = !!ex.air;
+    if (ex.condense !== undefined) $("#hb-condense").checked = !!ex.condense;
     $("#hb-excess-box").hidden = false;
     $("#hb-air-box").hidden = false;
     const side = (ex.side || [])[0];
@@ -546,6 +595,7 @@
         TS.bindSlider(id, () => calculate(true), () => calculate(false));
       }
       $("#hb-air").addEventListener("change", () => calculate());
+      $("#hb-condense").addEventListener("change", () => calculate());
       $("#hb-key").addEventListener("change", () => { $("#hb-excess-species").innerHTML = ""; calculate(); });
       for (const id of ["hb-excess-species", "hb-sweep", "hb-extra-species"]) {
         $("#" + id).addEventListener("change", () => calculate());

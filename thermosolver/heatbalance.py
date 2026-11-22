@@ -30,13 +30,25 @@ Assumptions, the same as in the SVN examples: every species stays in the
 phase that is written, the streams are ideal mixtures at low pressure, the
 reactions go to the stated extents (no equilibrium limit, no dissociation),
 and air is 21 mol-% O2 and 79 mol-% N2.
+
+One phase change can be switched on: the water of the outlet (class
+WaterSplit). Below its dew point the outlet cannot carry all of its water as
+vapour, and the part that condenses gives up its latent heat. The energy
+balance then has a fourth step,
+
+        Q = dH_R + dH298 + dH_P + dH_phase,   dH_phase = -n_liquid * dH_vap(T_out)
+
+with dH_P taken for the products with all their water as vapour.
 """
 
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from .constants import R, T0
+import math
+
+from . import phase
+from .constants import P0, R, T0
 from .errors import DataUnavailableError, InputError
 from .data import HIGH_T_MAX
 from .heatcap import combine, cp_over_r, icph, icps, simpson
@@ -195,6 +207,107 @@ class SvnStream(Stream):
         return self._sets[key]
 
 
+class WaterSplit:
+    """The outlet with its water divided between vapour and liquid.
+
+    A gas can carry water vapour only up to its vapour pressure: the partial
+    pressure y_w * P cannot exceed P_sat(T). With n_w moles of water and
+    n_other moles of other gases at the total pressure P (1 bar), the gas
+    holds at most n_other * P_sat / (P - P_sat) moles of vapour. The rest is
+    liquid. The temperature at which the first drop forms is the dew point,
+    where P_sat(T_dew) = y_w * P with all the water as vapour.
+
+    P_sat comes from the solver's own data for liquid water and steam (module
+    ``phase``). The liquid is taken as pure water, and the other gases do not
+    dissolve in it.
+
+    The enthalpy of the outlet at T is that of the same stream with all its
+    water as vapour, minus the latent heat of the part that is liquid:
+
+        H(T) = H_all_vapour(T) - n_liquid(T) * dH_vap(T)
+    """
+
+    def __init__(self, moles: Dict[str, float], P: float = P0):
+        self.water = phase.TRANSITIONS["Water"]
+        gas, liquid = self.water.gas, self.water.liquid
+        written = {s: float(n) for s, n in moles.items() if n > _TINY}
+        self.P = P
+        self.n_written_liquid = written.get(liquid, 0.0)
+        self.n_water = written.get(gas, 0.0) + self.n_written_liquid
+        self.dry = {s: n for s, n in written.items() if s not in (gas, liquid)}
+        self.n_other_gas = sum(n for s, n in self.dry.items() if SPECIES[s].phase == "g")
+        self.all_vapour = Stream({**self.dry, gas: self.n_water})
+        self.total = self.all_vapour.total
+        # mole fraction of water in the gas if none of it were liquid
+        self.y_all_vapour = self.n_water / (self.n_water + self.n_other_gas)
+        self.T_dew = phase.dew_point(self.water, self.y_all_vapour, P)
+
+    def vapour(self, T: float) -> float:
+        """Moles of water that are vapour at T."""
+        if T >= self.water.T_boil:
+            # At or above the boiling point at 1 bar nothing is liquid. (The
+            # data for liquid water end at 373.15 K and are not used beyond.)
+            return self.n_water
+        return phase.vapour_moles(self.n_water, self.n_other_gas, phase.vapour_pressure(self.water, T), self.P)
+
+    def moles_at(self, n_vapour: float) -> Dict[str, float]:
+        """The outlet as {species: moles} with the given amount of water vapour."""
+        out = dict(self.dry)
+        if n_vapour > _TINY:
+            out[self.water.gas] = n_vapour
+        if self.n_water - n_vapour > _TINY:
+            out[self.water.liquid] = self.n_water - n_vapour
+        return out
+
+    def latent(self, T: float) -> float:
+        """dH_vap of water at T, J/mol."""
+        return phase.latent_heat(self.water, T)
+
+    def H(self, T: float, n_vapour: Optional[float] = None) -> float:
+        """Enthalpy of the outlet at T on the formation scale, in J."""
+        n_vapour = self.vapour(T) if n_vapour is None else n_vapour
+        n_liquid = self.n_water - n_vapour
+        H = self.all_vapour.H(T)
+        if n_liquid > _TINY:
+            H -= n_liquid * self.latent(T)
+        return H
+
+    def S(self, T: float, n_vapour: Optional[float] = None) -> float:
+        """Entropy of the outlet at T and 1 bar on the formation scale, in J/K:
+        every gas as part of an ideal-gas mixture (S_i - R ln y_i), the liquid
+        water and any other condensed species as pure phases."""
+        n_vapour = self.vapour(T) if n_vapour is None else n_vapour
+        moles = self.moles_at(n_vapour)
+        n_gas = sum(n for s, n in moles.items() if SPECIES[s].phase == "g")
+        total = 0.0
+        for sid, n in moles.items():
+            sp = SPECIES[sid]
+            total += n * sp.S(T)
+            if sp.phase == "g":
+                total -= n * R * math.log(n / n_gas * self.P / P0)
+        return total
+
+    def window(self) -> Tuple[float, float]:
+        return self.all_vapour.window()
+
+    def require(self, T: float, what: str) -> None:
+        self.all_vapour.require(T, what)
+
+
+def has_water(moles: Dict[str, float]) -> bool:
+    """True when a stream contains water, as vapour or as liquid."""
+    water = phase.TRANSITIONS["Water"]
+    return moles.get(water.gas, 0.0) + moles.get(water.liquid, 0.0) > _TINY
+
+
+def outlet_model(case: dict, condense: bool = False):
+    """The object that gives the enthalpy of the outlet at any temperature:
+    a WaterSplit when the water may change phase, a plain Stream otherwise."""
+    if condense and has_water(case["outlet"]):
+        return WaterSplit(case["outlet"])
+    return Stream(case["outlet"])
+
+
 # Above this temperature the products of a flame dissociate noticeably, which
 # the energy balance does not include.
 T_DISSOCIATION = 2000.0
@@ -339,41 +452,119 @@ def outlet_temperature(feed: Stream, outlet: Stream, T_in: float, Q: float = 0.0
     return T
 
 
+def outlet_temperature_split(feed: Stream, split: WaterSplit, T_in: float, Q: float = 0.0) -> Tuple[float, float]:
+    """T_out and the moles of water vapour from H_out(T_out) = H_in(T_in) + Q
+    when the water of the outlet may condense.
+
+    The enthalpy still rises with temperature (evaporating water takes up
+    heat), so the root is found by bisection. If the outlet holds no other
+    gas, the water boils at one temperature and the enthalpy jumps there; a
+    target inside the jump means the outlet is at the boiling point, partly
+    liquid, and the split follows from the energy balance (lever rule).
+    """
+    target = feed.H(T_in) + Q
+    lo, hi = split.window()
+    if split.H(lo) - target > 0.0:
+        raise InputError(
+            f"The energy balance puts the outlet below {lo:.0f} K, where the heat-capacity "
+            f"correlations no longer apply. Remove less heat, convert less or preheat the feed.",
+            {"limit": "below"})
+    if split.H(hi) - target < 0.0:
+        raise InputError(
+            f"The energy balance has no solution below {hi:.0f} K. Complete reaction of this feed would be "
+            f"hotter than the heat-capacity correlations can describe (real products dissociate long before). "
+            f"Add excess air or an inert, lower the conversion or remove heat.", {"limit": "above"})
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if split.H(mid) - target > 0.0:
+            hi = mid
+        else:
+            lo = mid
+        if hi - lo < 1e-11:
+            break
+    T = 0.5 * (lo + hi)
+    n_vapour = split.vapour(T)
+    T_boil = split.water.T_boil
+    if split.n_other_gas <= _TINY and abs(T - T_boil) < 1e-6:
+        H_vapour = split.H(T_boil, split.n_water)
+        H_liquid = split.H(T_boil, 0.0)
+        if H_vapour > H_liquid:
+            fraction = min(1.0, max(0.0, (target - H_liquid) / (H_vapour - H_liquid)))
+            T, n_vapour = T_boil, fraction * split.n_water
+    return T, n_vapour
+
+
 def solve(case: dict, T_in: float, mode: str = "adiabatic", T_out: Optional[float] = None,
-          Q: float = 0.0) -> dict:
+          Q: float = 0.0, condense: bool = False) -> dict:
     """One energy balance.
 
     mode "adiabatic": Q is given (0 for an adiabatic reactor), T_out is found.
     mode "duty":      T_out is given, the heat duty Q is found.
+    condense:         the water of the outlet takes the phase that T_out gives
+                      it (class WaterSplit) instead of the phase that is written.
     All extensive results are per mole of key reactant fed.
     """
     feed, outlet = Stream(case["feed"]), Stream(case["outlet"])
     if mode not in ("adiabatic", "duty"):
         raise InputError("The mode must be 'adiabatic' or 'duty'.")
     feed.require(T_in, "inlet")
-    if mode == "adiabatic":
-        T_out = outlet_temperature(feed, outlet, T_in, Q)
-    else:
+    split = WaterSplit(case["outlet"]) if has_water(case["outlet"]) else None
+    use_split = condense and split is not None
+    if mode == "duty":
         if T_out is None:
             raise InputError("Give the outlet temperature.")
         outlet.require(T_out, "outlet")
-        Q = outlet.H(T_out) - feed.H(T_in)
+    if use_split:
+        if mode == "adiabatic":
+            T_out, n_vapour = outlet_temperature_split(feed, split, T_in, Q)
+        else:
+            n_vapour = split.vapour(T_out)
+            Q = split.H(T_out, n_vapour) - feed.H(T_in)
+        n_liquid = split.n_water - n_vapour
+        out_moles = split.moles_at(n_vapour)
+        # The path is walked with all the water as vapour; the phase change
+        # comes last, at the outlet temperature. Water that the reaction is
+        # written with as liquid is evaporated at 298.15 K, inside step 2.
+        products = split.all_vapour
+        dH_298 = (sum(xi * rxn.dH0 for rxn, xi in case["reactions"])
+                  + split.n_written_liquid * split.latent(T0))
+        dH_phase = -n_liquid * split.latent(T_out) if n_liquid > _TINY else 0.0
+        H_out = split.H(T_out, n_vapour)
+    else:
+        if mode == "adiabatic":
+            T_out = outlet_temperature(feed, outlet, T_in, Q)
+        else:
+            Q = outlet.H(T_out) - feed.H(T_in)
+        out_moles = dict(case["outlet"])
+        products = outlet
+        dH_298 = sum(xi * rxn.dH0 for rxn, xi in case["reactions"])
+        dH_phase = 0.0
+        H_out = outlet.H(T_out)
+    case_out = {**case, "outlet": out_moles}
 
     dH_R = feed.sensible(T_in, T0)
-    dH_298 = sum(xi * rxn.dH0 for rxn, xi in case["reactions"])
-    dH_P = outlet.sensible(T0, T_out)
-    mean_cp = dH_P / (T_out - T0) if abs(T_out - T0) > 1e-9 else outlet.cp(T0)
+    dH_P = products.sensible(T0, T_out)
+    mean_cp = dH_P / (T_out - T0) if abs(T_out - T0) > 1e-9 else products.cp(T0)
 
+    n_gas_out = sum(n for s, n in out_moles.items() if SPECIES[s].phase == "g")
     rows = []
-    for sid in list(case["feed"]) + [s for s in case["outlet"] if s not in case["feed"]]:
+    for sid in list(case["feed"]) + [s for s in out_moles if s not in case["feed"]]:
         sp = SPECIES[sid]
         n_in = case["feed"].get(sid, 0.0)
-        n_out = case["outlet"].get(sid, 0.0)
+        n_out = out_moles.get(sid, 0.0)
+        if use_split:
+            # mole fraction in the gas phase; the sensible heat follows the
+            # path, in which all the water is heated as vapour
+            y_out = (n_out / n_gas_out if n_gas_out > 0 else None) if sp.phase == "g" else None
+            n_path = products.moles.get(sid, 0.0)
+        else:
+            y_out = n_out / outlet.total if outlet.total > 0 else None
+            n_path = n_out
         rows.append({
             "id": sid, "name": sp.name, "n_in": n_in, "n_out": n_out,
-            "y_out": n_out / outlet.total if outlet.total > 0 else None,
+            "y_out": y_out,
             "sensible_in": n_in * sp.sensible_dH(T_in, T0) if n_in > _TINY else 0.0,
-            "sensible_out": n_out * sp.sensible_dH(T0, T_out) if n_out > _TINY else 0.0,
+            "sensible_out": n_path * sp.sensible_dH(T0, T_out) if n_path > _TINY else 0.0,
             "cp_Tmin": sp.cp_Tmin, "cp_Tmax": sp.cp_Tmax,
         })
 
@@ -383,13 +574,13 @@ def solve(case: dict, T_in: float, mode: str = "adiabatic", T_out: Optional[floa
     # Species whose heat capacity comes from the NIST equations because the
     # stream is hotter than the SVN range, and the answer the SVN formulas
     # alone would give if they were extrapolated (as the textbook example does).
-    high = [sid for moles, T in ((case["feed"], T_in), (case["outlet"], T_out)) for sid, n in moles.items()
+    high = [sid for moles, T in ((case["feed"], T_in), (out_moles, T_out)) for sid, n in moles.items()
             if n > _TINY and SPECIES[sid].cp_high is not None and T > SPECIES[sid].cp_main_Tmax]
     high = sorted(set(high), key=high.index)
     svn_only = None
     if high:
         try:
-            feed_svn, outlet_svn = SvnStream(case["feed"]), SvnStream(case["outlet"])
+            feed_svn, outlet_svn = SvnStream(case["feed"]), SvnStream(out_moles)
             if mode == "adiabatic":
                 svn_only = {"T_out": outlet_temperature(feed_svn, outlet_svn, T_in, Q), "Q": Q}
             else:
@@ -397,26 +588,135 @@ def solve(case: dict, T_in: float, mode: str = "adiabatic", T_out: Optional[floa
         except InputError:
             svn_only = None
 
+    water = water_report(case, split, use_split, mode, T_in, T_out, Q,
+                         n_vapour if use_split else None, dH_phase)
     return {
         "mode": mode, "key": case["key"], "T_in": T_in, "T_out": T_out, "Q": Q,
         "high_T_species": high, "svn_only": svn_only,
-        "notes": temperature_notes(high, svn_only, mode, T_in, T_out),
+        "notes": temperature_notes(high, svn_only, mode, T_in, T_out) + phase_notes(water, case_out, T_out),
         # fed species that take part in no reaction: they only carry sensible heat
         "inert": [s for s, n in case["feed"].items() if n > _TINY and s not in reacting],
         "Q_per_kg": Q / (key.molar_mass / 1000.0),
-        "feed": dict(case["feed"]), "outlet": dict(case["outlet"]),
+        "feed": dict(case["feed"]), "outlet": out_moles,
         "feed_total": feed.total, "outlet_total": outlet.total,
-        "path": {"dH_R": dH_R, "dH_298": dH_298, "dH_P": dH_P, "total": dH_R + dH_298 + dH_P},
-        "H_in": feed.H(T_in), "H_out": outlet.H(T_out),
+        "path": {"dH_R": dH_R, "dH_298": dH_298, "dH_P": dH_P, "dH_phase": dH_phase,
+                 "total": dH_R + dH_298 + dH_P + dH_phase},
+        "H_in": feed.H(T_in), "H_out": H_out,
         "mean_cp_products": mean_cp,
-        "cp_feed_T_in": feed.cp(T_in), "cp_products_T_out": outlet.cp(T_out),
-        "sum_coeffs_products": list(outlet.coeffs_at(T_out)),
+        "cp_feed_T_in": feed.cp(T_in), "cp_products_T_out": products.cp(T_out),
+        "sum_coeffs_products": list(products.coeffs_at(T_out)),
         "species": rows,
+        "water": water,
         "reactions": [{"equation": rxn.equation, "extent": xi, "dH0": rxn.dH0, "heat": xi * rxn.dH0}
                       for rxn, xi in case["reactions"]],
-        "warnings": range_warnings(case, T_in, T_out),
-        "audit": audit(case, T_in, T_out, Q),
+        "warnings": [w for w in range_warnings(case_out, T_in, T_out)
+                     # liquid water at its boiling point (373.19 K from the data) is not an
+                     # extrapolation worth a warning, although its Cp range is printed to 373.15 K
+                     if not (use_split and w["where"] == "outlet" and w["species"] == split.water.liquid
+                             and split.water.liquid in out_moles and 0.0 < T_out - w["cp_Tmax"] < 0.1)],
+        "audit": audit(case, T_in, T_out, Q, split if use_split else None, n_vapour if use_split else None),
     }
+
+
+def water_report(case: dict, split: Optional[WaterSplit], applied: bool, mode: str, T_in: float,
+                 T_out: float, Q: float, n_vapour: Optional[float], dH_phase: float) -> Optional[dict]:
+    """What the water of the outlet does: its dew point, how much is vapour
+    and how much liquid, the heat of the phase change, and the answer that
+    the phases as written would give. None when the outlet holds no water."""
+    if split is None:
+        return None
+    water = split.water
+    written_vapour = split.n_water - split.n_written_liquid
+    possible = split.vapour(T_out)                    # what the temperature allows
+    if n_vapour is None:
+        n_vapour = written_vapour                     # not applied: as written
+    below_boiling = T_out <= water.T_boil + 1e-9       # liquid water can exist at T_out
+    out = {
+        "applied": applied,
+        "n_total": split.n_water, "n_vapour": n_vapour, "n_liquid": split.n_water - n_vapour,
+        "n_written_liquid": split.n_written_liquid,
+        "n_vapour_possible": possible,
+        "n_other_gas": split.n_other_gas,
+        "y_all_vapour": split.y_all_vapour,
+        "T_dew": split.T_dew, "T_boil": water.T_boil, "P": split.P,
+        "P_sat": phase.vapour_pressure(water, T_out) if below_boiling else None,
+        "dH_vap": split.latent(T_out) if below_boiling else None,
+        "dH_vap_298": split.latent(T0),
+        "dH_phase": dH_phase,
+        "as_written": None,
+    }
+    if applied:
+        # the same balance with every species kept in the phase that is written
+        try:
+            feed, written = Stream(case["feed"]), Stream(case["outlet"])
+            if mode == "adiabatic":
+                out["as_written"] = {"T_out": outlet_temperature(feed, written, T_in, Q), "Q": Q}
+            else:
+                out["as_written"] = {"T_out": T_out, "Q": written.H(T_out) - feed.H(T_in)}
+        except InputError:
+            out["as_written"] = None
+    return out
+
+
+def _kelvin(T: float) -> str:
+    """A temperature for a sentence: 313.15, 310, 309.98."""
+    return f"{T:.2f}".rstrip("0").rstrip(".")
+
+
+def phase_notes(water: Optional[dict], case: dict, T_out: float) -> List[dict]:
+    """Plain-language notes about the phase of the water in the outlet, and
+    about other vapours that would condense there."""
+    notes: List[dict] = []
+    if water is None:
+        pass
+    elif water["applied"]:
+        T_dew, n_w = water["T_dew"], water["n_total"]
+        n_l, n_v = water["n_liquid"], water["n_vapour"]
+        if n_l > 1e-9:
+            dew = (f"is below its dew point of {T_dew:.1f} K ({T_dew - 273.15:.1f} °C)" if water["n_other_gas"] > _TINY
+                   else f"is at or below the boiling point of water ({water['T_boil']:.1f} K)")
+            text = (f"The outlet {dew}, so it cannot carry all of its water as vapour: {n_l:.3g} of the {n_w:.3g} mol "
+                    f"of water leave as liquid, and condensing gives up {-water['dH_phase'] / 1000.0:,.1f} kJ "
+                    f"(latent heat {water['dH_vap'] / 1000.0:.2f} kJ/mol at {_kelvin(T_out)} K).")
+            if n_v > 1e-9 and water["n_other_gas"] > _TINY:
+                text += (f" The gas stays saturated and keeps {n_v:.3g} mol of water vapour "
+                         f"(vapour pressure {water['P_sat']:.4f} bar, total pressure 1 bar).")
+            elif n_v > 1e-9:
+                text += (f" The outlet is at the boiling point, part liquid and part vapour: "
+                         f"{n_v:.3g} mol are still vapour.")
+            notes.append({"level": "info", "kind": "condensation", "message": text})
+            if T_out < 273.15:
+                notes.append({"level": "warning", "kind": "freezing", "message": (
+                    "Below 273.15 K water freezes. Ice is not in the database, so the liquid data are "
+                    "stretched below their range here.")})
+        elif water["n_written_liquid"] > 1e-9:
+            notes.append({"level": "info", "kind": "evaporation", "message": (
+                f"The reaction is written with liquid water, but at {T_out:,.0f} K the outlet carries all of its "
+                f"water as vapour. Evaporating the {water['n_written_liquid']:.3g} mol takes "
+                f"{water['n_written_liquid'] * water['dH_vap_298'] / 1000.0:,.1f} kJ, which is counted in step 2.")})
+    elif water["n_vapour"] - water["n_vapour_possible"] > 1e-9:
+        notes.append({"level": "warning", "kind": "would_condense", "message": (
+            f"At {_kelvin(T_out)} K the outlet is below its dew point of {water['T_dew']:.1f} K: "
+            f"{water['n_vapour'] - water['n_vapour_possible']:.3g} "
+            f"of the {water['n_total']:.3g} mol of water would condense and give up more heat. This is left out because the water is "
+            f"kept in the phase that is written. Tick \"Let the water change phase\" to include it.")})
+    elif water["n_written_liquid"] - (water["n_total"] - water["n_vapour_possible"]) > 1e-9:
+        notes.append({"level": "warning", "kind": "would_evaporate", "message": (
+            f"At {T_out:,.0f} K the liquid water that is written would be partly or fully vapour. This is left out "
+            f"because the water is kept in the phase that is written. Tick \"Let the water change phase\" to include it.")})
+    # other vapours that would condense: only water can change phase here
+    n_gas = sum(n for s, n in case["outlet"].items() if SPECIES[s].phase == "g")
+    for sid, n in case["outlet"].items():
+        t = phase.transition_of(sid)
+        if t is None or t is phase.TRANSITIONS["Water"] or not t.trusted or sid != t.gas or n <= _TINY:
+            continue
+        P_sat = phase.vapour_pressure(t, T_out)
+        if T_out < t.T_boil and n / n_gas * P0 > P_sat:
+            notes.append({"level": "warning", "kind": "other_condensable", "species": sid, "message": (
+                f"{sid} would partly condense at {_kelvin(T_out)} K: its partial pressure in the outlet would be "
+                f"{n / n_gas * P0:.3f} bar, above its vapour pressure of {P_sat:.3f} bar. In the heat lab only water "
+                f"can change phase, so {sid} is kept as a vapour and its latent heat is not counted.")})
+    return notes
 
 
 def temperature_notes(high: List[str], svn_only: Optional[dict], mode: str, T_in: float, T_out: float) -> List[dict]:
@@ -473,16 +773,20 @@ def range_warnings(case: dict, T_in: float, T_out: float) -> List[dict]:
     return out
 
 
-def audit(case: dict, T_in: float, T_out: float, Q: float) -> List[dict]:
-    """Independent checks of one energy balance."""
+def audit(case: dict, T_in: float, T_out: float, Q: float, split: Optional[WaterSplit] = None,
+          n_vapour: Optional[float] = None) -> List[dict]:
+    """Independent checks of one energy balance. With ``split`` the water of
+    the outlet is divided between vapour and liquid (n_vapour moles of vapour)."""
     from .audit import _check
 
-    feed, outlet = Stream(case["feed"]), Stream(case["outlet"])
+    feed = Stream(case["feed"])
+    out_moles = dict(case["outlet"]) if split is None else split.moles_at(n_vapour)
+    outlet = Stream(case["outlet"]) if split is None else split.all_vapour
     checks: List[dict] = []
 
     atoms_in: Dict[str, float] = {}
     atoms_out: Dict[str, float] = {}
-    for moles, atoms in ((case["feed"], atoms_in), (case["outlet"], atoms_out)):
+    for moles, atoms in ((case["feed"], atoms_in), (out_moles, atoms_out)):
         for sid, n in moles.items():
             for el, k in SPECIES[sid].elements.items():
                 atoms[el] = atoms.get(el, 0.0) + n * k
@@ -494,15 +798,21 @@ def audit(case: dict, T_in: float, T_out: float, Q: float) -> List[dict]:
     # Route 1: the three-step path of SVN. Route 2: species by species on the formation scale.
     path = (feed.sensible(T_in, T0) + sum(xi * rxn.dH0 for rxn, xi in case["reactions"])
             + outlet.sensible(T0, T_out))
-    h_out = [n * SPECIES[s].H(T_out) for s, n in case["outlet"].items() if n > _TINY]
+    relation = "dH_R + dH298 + dH_P = sum n_out H_i(T_out) - sum n_in H_i(T_in)"
+    if split is not None:
+        n_liquid = split.n_water - n_vapour
+        path += split.n_written_liquid * split.latent(T0)
+        if n_liquid > _TINY:
+            path -= n_liquid * split.latent(T_out)
+        relation = "dH_R + dH298 + dH_P + dH_phase = sum n_out H_i(T_out) - sum n_in H_i(T_in)"
+    h_out = [n * SPECIES[s].H(T_out) for s, n in out_moles.items() if n > _TINY]
     h_in = [n * SPECIES[s].H(T_in) for s, n in case["feed"].items() if n > _TINY]
     direct = sum(h_out) - sum(h_in)
     # The heat duty is a small difference of large enthalpies when the streams
     # are large (for example a great excess of inert), so the round-off that
     # can be expected scales with the terms that are added, not with their sum.
     slack = 1e-11 * (sum(abs(h) for h in h_out) + sum(abs(h) for h in h_in))
-    checks.append(_check("Two routes to the heat duty",
-                         "dH_R + dH298 + dH_P = sum n_out H_i(T_out) - sum n_in H_i(T_in)",
+    checks.append(_check("Two routes to the heat duty", relation,
                          path, direct, 1e-10, 1e-6 + slack))
     # ... plus, for a solved outlet temperature, the tolerance of the root (1e-9 K)
     checks.append(_check("Energy balance closes", "H_out(T_out) - H_in(T_in) = Q",
@@ -523,10 +833,33 @@ def audit(case: dict, T_in: float, T_out: float, Q: float) -> List[dict]:
         checks.append(_check("Sensible heat of the products",
                              "analytical integral of sum n_i Cp_i dT = Simpson quadrature",
                              outlet.sensible(T0, T_out), numeric, 1e-8, 1e-6))
+
+    if split is not None and split.n_water - n_vapour > 1e-9:
+        water = split.water
+        P_sat = phase.vapour_pressure(water, T_out)
+        if split.n_other_gas > _TINY and n_vapour > _TINY:
+            checks.append(_check("The gas is saturated with water",
+                                 "partial pressure of the water vapour = vapour pressure at T_out",
+                                 n_vapour / (n_vapour + split.n_other_gas) * split.P, P_sat, 1e-9, 1e-12))
+        h = 0.01
+        slope = (math.log(phase.vapour_pressure(water, T_out + h))
+                 - math.log(phase.vapour_pressure(water, T_out - h))) / (2 * h)
+        checks.append(_check("Clausius/Clapeyron equation for water",
+                             "d(ln P_sat)/dT = dH_vap / (R T^2)",
+                             slope, split.latent(T_out) / (R * T_out * T_out), 1e-6, 1e-10))
+        # While liquid is present on both sides of T_out, the stream moves
+        # along its saturation line at constant pressure, where dH = T dS.
+        if split.n_other_gas > _TINY and split.n_water - split.vapour(T_out + h) > 1e-9:
+            dH = split.H(T_out + h) - split.H(T_out - h)
+            dS = split.S(T_out + h) - split.S(T_out - h)
+            checks.append(_check("First and second law along the condensation",
+                                 "dH = T dS at constant pressure (enthalpy and entropy of the outlet)",
+                                 dH, T_out * dS, 1e-6, 1e-9))
     return checks
 
 
-def work_potential(case: dict, T_out: float, T_surroundings: float = T0) -> Optional[dict]:
+def work_potential(case: dict, T_out: float, T_surroundings: float = T0,
+                   condense: bool = False) -> Optional[dict]:
     """Ideal work of cooling the outlet stream to the temperature of the
     surroundings at constant pressure and composition (SVN Chapter 5):
 
@@ -540,12 +873,21 @@ def work_potential(case: dict, T_out: float, T_surroundings: float = T0) -> Opti
     """
     if T_out <= T_surroundings + 1e-6:
         return None
-    outlet = Stream(case["outlet"])
-    dH = outlet.sensible(T_out, T_surroundings)
-    dS = outlet.entropy_change(T_out, T_surroundings)
+    condensed = 0.0
+    if condense and has_water(case["outlet"]):
+        # with the water free to condense on the way down
+        split = WaterSplit(case["outlet"])
+        dH = split.H(T_surroundings) - split.H(T_out)
+        dS = split.S(T_surroundings) - split.S(T_out)
+        condensed = split.vapour(T_out) - split.vapour(T_surroundings)
+    else:
+        outlet = Stream(case["outlet"])
+        dH = outlet.sensible(T_out, T_surroundings)
+        dS = outlet.entropy_change(T_out, T_surroundings)
     W = dH - T_surroundings * dS
     return {"T_surroundings": T_surroundings, "dH": dH, "dS": dS, "W_ideal": W,
             "fraction": W / dH if dH else None,
+            "water_condensed": condensed,
             "carnot_at_T_out": 1.0 - T_surroundings / T_out}
 
 
@@ -570,10 +912,12 @@ def excess_for_outlet_temperature(rxn: Reaction, target_T: float, T_in: float, *
     settings = dict(settings)
     settings.pop("excess", None)
     Q = settings.pop("Q", 0.0)
+    condense = settings.pop("condense", False)
 
     def T_out(excess: float) -> Optional[float]:
         try:
-            return solve(build_case(rxn, excess=excess, **settings), T_in, "adiabatic", Q=Q)["T_out"]
+            return solve(build_case(rxn, excess=excess, **settings), T_in, "adiabatic", Q=Q,
+                         condense=condense)["T_out"]
         except InputError:
             return None
 

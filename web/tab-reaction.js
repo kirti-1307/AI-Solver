@@ -60,15 +60,56 @@
     if (eq && eq.conversion !== null && eq.conversion !== undefined && eq.limiting_reactant) {
       const what = (x) => (x.status === "complete" ? "goes to completion"
         : x.status === "no_forward_reaction" ? "does not proceed"
-        : `reaches ${pct(x.conversion)} conversion of ${chem(x.limiting_reactant)}`);
+        : `reaches ${pct(x.conversion)} conversion of ${chem(x.limiting_reactant)}`) + condensedNote(x);
       const eqP = r.equilibrium_P;
       const other = r.P !== 1 && eqP && eqP.conversion !== null && eqP.conversion !== undefined;
       lines.push(`Favourability at a given pressure: with a stoichiometric feed at ${fix(T, 0)} K (ideal-gas mixture), the reaction ` +
         `${what(eq)} at 1 bar` + (other ? `, and ${what(eqP)} at <strong>${fix(r.P, 1)} bar</strong>.` : ".") +
         (other ? "" : " Type another pressure in the form to see what it does."));
+      if (r.phase && r.phase.auto && r.phase.transitions.length) {
+        lines.push("Standard state and real mixture are two things. Below its boiling point the standard state of a species is the liquid, " +
+          "and ΔH°, ΔS°, ΔG° and K above use it. In the gas mixture the species still stays a vapour until its partial pressure reaches " +
+          "its vapour pressure. The conversion is calculated that way: a product leaves as liquid only once the gas is saturated with it.");
+      }
     }
     lines.push("Thermodynamics fixes where the equilibrium lies, not how fast it is reached. A favourable ΔG° can still need a catalyst.");
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
+  }
+
+  /* What the choice of phase did, or would do. Every number is the solver's. */
+  function phaseBlock(r) {
+    const ph = r.phase;
+    if (!ph) return "";
+    let html = "";
+    const boil = (t) => `${esc(t.compound.toLowerCase())} boils at ${fix(t.T_boil, 1)} K at 1 bar` +
+      (t.T_boil_table ? ` (SVN Table B.1: ${fix(t.T_boil_table, 1)} K)` : "");
+    if (ph.auto && ph.transitions.length) {
+      const swapped = ph.swaps.map((s) => `${chem(s.typed)} → ${chem(s.used)}`).join(", ");
+      const lines = ph.transitions.map((t) => `<li>${boil(t).replace(/^./, (c) => c.toUpperCase())}. Above that temperature ` +
+        `${chem(t.gas)} is used, below it ${chem(t.liquid)}. There ΔH° of this reaction jumps by ` +
+        `<strong>${signed(t.dH_jump / 1000, 2)} kJ/mol</strong> (ν × latent heat = ${signed(t.nu, 2).replace(".00", "")} × ${kJ(t.dH_vap)} kJ/mol) ` +
+        `and ΔS° by ${signed(t.dS_jump, 1)} J/(mol·K), while ΔG° does not jump.</li>`).join("");
+      html += TS.message("info", `<strong>Phase chosen by the solver.</strong> At ${fix(r.T, 2)} K and 1 bar ` +
+        (swapped ? `the stable phase is not the one typed, so the calculation uses ${swapped}.`
+          : "every species is already in its stable phase, so nothing is changed.") +
+        ` The stable phase is the one with the lower Gibbs energy; where the two are equal, the liquid boils.` +
+        `<ul class="explain" style="margin:8px 0 0">${lines}</ul>`);
+    } else if (!ph.auto && ph.swaps.length) {
+      const names = ph.swaps.map((s) => `${chem(s.typed)} (${boil(ph.transitions.find((t) => t.liquid === s.typed || t.gas === s.typed))})`).join("; ");
+      html += `<div class="msg info"><strong>Phase:</strong> at ${fix(r.T, 2)} K and 1 bar this is not the stable phase of ${names}. ` +
+        `The numbers below are for the phase that is typed. <button type="button" class="link" id="rx-use-stable">Pick the stable phase</button></div>`;
+    }
+    for (const s of ph.skipped) {
+      if (ph.auto || s.why === "data") html += TS.message("info", `<strong>Phase:</strong> ${chem(s.message)}`);
+    }
+    return html;
+  }
+
+  /* The sentence about a species that leaves the gas as a liquid at equilibrium. */
+  function condensedNote(x) {
+    if (!x || !x.condensed || !x.condensed.length) return "";
+    return ` (${x.condensed.map(chem).join(" and ")} ${x.condensed.length > 1 ? "leave" : "leaves"} as liquid` +
+      `${x.extrapolated ? "; approximate, because the data of the liquid are stretched beyond their range" : ""})`;
   }
 
   function speciesTable(r) {
@@ -133,7 +174,19 @@
     const e = r.at_T;
     if (!s) return;
     const k = (arr) => arr.map((v) => (v === null ? null : v / 1000));
-    const shapes = TS.rangeShapes(s.T, r.valid_range).concat([TS.vline(r.T)]);
+    // Grey bands where a heat capacity is outside its range. With the stable-phase
+    // choice each stretch between two boiling points has its own range, so the
+    // solver lists the bands; otherwise they follow from the one valid range.
+    const band = ([x0, x1]) => ({ type: "rect", xref: "x", yref: "paper", x0, x1, y0: 0, y1: 1,
+      fillcolor: "rgba(160,120,0,0.13)", line: { width: 0 }, layer: "below" });
+    const outside = s.out_of_range ? s.out_of_range.map(band) : TS.rangeShapes(s.T, r.valid_range);
+    // A line at each boiling point that the solver used
+    const first = s.T[0], last = s.T[s.T.length - 1];
+    const boiling = (r.phase && r.phase.auto ? r.phase.transitions : []).filter((t) => t.T_boil > first && t.T_boil < last);
+    const boilLines = boiling.map((t) => TS.vline(t.T_boil, "#c2410c"));
+    const boilNotes = boiling.map((t, i) => ({ x: t.T_boil, y: 1 - 0.07 * (i % 3), yref: "paper", xanchor: "left", yanchor: "top",
+      text: ` ${t.compound.toLowerCase()} boils`, showarrow: false, font: { size: 10.5, color: "#c2410c" } }));
+    const shapes = outside.concat(boilLines, [TS.vline(r.T)]);
     TS.plot("rx-plot-energy", [
       { x: s.T, y: k(s.dH), name: "ΔH°", mode: "lines", line: { width: 2.5, color: "#c2410c" } },
       { x: s.T, y: k(s.dG), name: "ΔG°", mode: "lines", line: { width: 2.5, color: "#0b5cad" } },
@@ -142,7 +195,7 @@
       { x: s.T, y: k(s.dG_no_cp), name: "ΔG°, ΔCp ignored", mode: "lines", line: { width: 1.3, dash: "dot", color: "#0b5cad" } },
       { x: [r.T, r.T], y: [e.dH / 1000, e.dG / 1000], name: `at ${fix(r.T, 0)} K`, mode: "markers",
         marker: { size: 9, color: ["#c2410c", "#0b5cad"], line: { width: 1.5, color: "#fff" } }, showlegend: false },
-    ], TS.layout("Energy changes versus temperature", "Temperature (K)", "kJ per mol of reaction", { shapes }));
+    ], TS.layout("Energy changes versus temperature", "Temperature (K)", "kJ per mol of reaction", { shapes, annotations: boilNotes }));
 
     // Equilibrium conversion against temperature, at 1 bar and at the chosen pressure.
     if (s.conversion_1bar && s.conversion_1bar.some((v) => v !== null)) {
@@ -150,10 +203,10 @@
       const traces = [{ x: s.T, y: percent(s.conversion_1bar), name: "1 bar", mode: "lines", line: { width: 2, dash: "dash", color: "#475569" } }];
       if (r.P !== 1) traces.push({ x: s.T, y: percent(s.conversion_P), name: `${fix(r.P, 1)} bar`, mode: "lines", line: { width: 2.5, color: "#0b5cad" } });
       TS.plot("rx-plot-X", traces, TS.layout("Equilibrium conversion (stoichiometric feed, ideal-gas mixture)", "Temperature (K)",
-        "Conversion of the limiting reactant (%)", { shapes: TS.rangeShapes(s.T, r.valid_range).concat([TS.vline(r.T)]), yaxis: { range: [0, 100] } }));
+        "Conversion of the limiting reactant (%)", { shapes: outside.concat([TS.vline(r.T)]), yaxis: { range: [0, 100] } }));
     }
 
-    const kShapes = TS.rangeShapes(s.T, r.valid_range).concat([TS.vline(r.T), TS.hline(0)]);
+    const kShapes = outside.concat(boilLines, [TS.vline(r.T), TS.hline(0)]);
     const annotations = (r.crossover || []).filter((x) => x >= s.T[0] && x <= s.T[s.T.length - 1]).map((x) => ({
       x, y: 0, text: `K = 1 at ${fix(x, 0)} K`, showarrow: true, arrowhead: 2, ax: 40, ay: -34, font: { size: 11 } }));
     TS.plot("rx-plot-K", [
@@ -174,7 +227,7 @@
       { x: s.T, y: s.dCp, name: "ΔCp°(T)", mode: "lines", line: { width: 2.5, color: "#0e7490" } },
       { x: [s.T[0], s.T[s.T.length - 1]], y: [e.dCp0, e.dCp0], name: "ΔCp° at 298.15 K (constant-Cp assumption)", mode: "lines",
         line: { width: 1.3, dash: "dash", color: "#0e7490" } },
-    ], TS.layout("Heat-capacity change of reaction", "Temperature (K)", "J/(mol·K)", { shapes: TS.rangeShapes(s.T, r.valid_range).concat([TS.hline(0)]) }));
+    ], TS.layout("Heat-capacity change of reaction", "Temperature (K)", "J/(mol·K)", { shapes: outside.concat(boilLines, [TS.hline(0)]) }));
   }
 
   function render(r) {
@@ -195,14 +248,17 @@
           <div class="v-sub">every element checked; gas moles change by ${signed(e.delta_n_gas, 2).replace(".00", "")}</div></div>
       </div>`;
     html += (r.notes || []).map((n) => TS.message("info", `<strong>Note:</strong> ${chem(n)}`)).join("");
-    html += TS.notes(r.warnings);
+    html += phaseBlock(r);
+    // With the hint and its button on the page, the plain hint about the same species would say it twice.
+    const hinted = r.phase && !r.phase.auto ? r.phase.swaps.map((s) => s.typed) : [];
+    html += TS.notes(r.warnings.filter((w) => !(w.kind === "phase" && hinted.includes(w.species))));
     html += `<div class="cards">
         <div class="card ${e.dH0 < 0 ? "exo" : "endo"}"><div class="k">ΔH°<sub>298</sub></div><div class="v">${kJ(e.dH0)} <span class="u">kJ/mol</span></div><div class="s">${esc(e.thermicity0)} at 298.15 K</div></div>
         <div class="card ${exo}"><div class="k">ΔH°(${fix(r.T, 0)} K)</div><div class="v">${kJ(e.dH)} <span class="u">kJ/mol</span></div><div class="s">${signed((e.dH - e.dH0) / 1000)} kJ from sensible heat</div></div>
         <div class="card"><div class="k">ΔS°(${fix(r.T, 0)} K)</div><div class="v">${fix(e.dS, 2)} <span class="u">J/(mol·K)</span></div><div class="s">${fix(e.dS0, 2)} at 298.15 K</div></div>
         <div class="card"><div class="k">ΔG°(${fix(r.T, 0)} K)</div><div class="v">${kJ(e.dG)} <span class="u">kJ/mol</span></div><div class="s">${kJ(e.dG0)} at 298.15 K</div></div>
         <div class="card"><div class="k">Equilibrium constant K</div><div class="v">${fmtK(e.lnK)}</div><div class="s">ln K = ${fix(e.lnK, 3)}</div></div>
-        <div class="card"><div class="k">Equilibrium conversion at ${fix(r.P, 1)} bar</div><div class="v">${eqP.conversion === null || eqP.conversion === undefined ? "–" : pct(eqP.conversion)}</div><div class="s">${eqP.limiting_reactant ? "of " + chem(eqP.limiting_reactant) + ", stoichiometric feed" : ""}${r.P !== 1 && eq.conversion !== null && eq.conversion !== undefined ? ` (${pct(eq.conversion)} at 1 bar)` : ""}</div></div>
+        <div class="card"><div class="k">Equilibrium conversion at ${fix(r.P, 1)} bar</div><div class="v">${eqP.conversion === null || eqP.conversion === undefined ? "–" : pct(eqP.conversion)}</div><div class="s">${eqP.limiting_reactant ? "of " + chem(eqP.limiting_reactant) + ", stoichiometric feed" : ""}${condensedNote(eqP)}${r.P !== 1 && eq.conversion !== null && eq.conversion !== undefined ? ` (${pct(eq.conversion)} at 1 bar)` : ""}</div></div>
       </div>
       <h3>What the numbers mean</h3>${explain(r)}
     </div>`;
@@ -217,7 +273,9 @@
         ${TS.fig("rx-plot-sensible", "one bar per species: the heat it takes up between 298.15 K and your temperature, times its stoichiometric number (blue for products, orange for reactants). Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.")}</div>
         <p class="hint" style="margin:8px 0 0">Shaded bands mark temperatures outside the validity range of at least one
           heat-capacity correlation (valid ${r.valid_range ? `${fix(r.valid_range[0], 0)} to ${fix(r.valid_range[1], 0)} K` : "at 298.15 K only"} for this reaction).
-          The dotted vertical line is the selected temperature.${r.valid_range && r.valid_range[0] < 298 ? ` Below 298.15 K the heat capacities
+          The dotted vertical line is the selected temperature.${r.phase && r.phase.auto && r.phase.transitions.length ? ` Each orange dotted line is a boiling point.
+          There the orange ΔH° line has a step, which is the latent heat, and the ΔC<sub>p</sub>° line has one too, because liquid and vapour have
+          different heat capacities. The blue ΔG° line and the K line only bend.` : ""}${r.valid_range && r.valid_range[0] < 298 ? ` Below 298.15 K the heat capacities
           come from NIST tables and above it from SVN. The two do not give exactly the same C<sub>p</sub> at 298.15 K, which is the small step in the
           ΔC<sub>p</sub> plot; ΔH°, ΔG° and K stay continuous.` : ""}</p></div>`;
     } else {
@@ -227,6 +285,8 @@
     html += `<div class="panel"><h3>Species data and individual sensible heats</h3>${speciesTable(r)}
       ${stepsBlock(r)}${comparisonBlock(r)}${formationBlock(r)}${TS.auditTable(r.audit)}</div>`;
     out.innerHTML = html;
+    const useStable = $("#rx-use-stable");
+    if (useStable) useStable.addEventListener("click", () => { $("#rx-auto-phase").checked = true; calculate(); });
     drawPlots(r);
   }
 
@@ -240,6 +300,7 @@
         P: TS.readNumber("rx-P"),
         T_min: TS.readNumber("rx-Tmin"),
         T_max: TS.readNumber("rx-Tmax"),
+        auto_phase: $("#rx-auto-phase").checked,
       });
       render(result);
     });
@@ -260,6 +321,7 @@
       });
       $("#rx-T").addEventListener("input", showCelsius);
       $("#rx-run").addEventListener("click", calculate);
+      $("#rx-auto-phase").addEventListener("change", calculate);
       for (const id of ["rx-equation", "rx-T", "rx-P", "rx-Tmin", "rx-Tmax"]) {
         $("#" + id).addEventListener("keydown", (ev) => { if (ev.key === "Enter") calculate(); });
       }

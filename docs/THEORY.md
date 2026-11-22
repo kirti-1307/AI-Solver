@@ -242,7 +242,7 @@ A setting that would leave a negative amount of any species is rejected.
 
 **Where the search is allowed to go.** A polynomial heat capacity can turn negative far outside the range it was fitted to (methane's does above about 4400 K, graphite's below about 210 K). The outlet-temperature search stays in the interval around 298.15 K where the summed heat capacity of the outlet stream is positive, so the enthalpy rises with temperature and the balance has one solution. If the balance has no solution there, the solver says so and suggests what to change. Inside that interval, a species used outside its own fitted range still raises the usual extrapolation warning.
 
-**Assumptions**, the same as in SVN's examples: every species stays in the phase written, the gases are ideal, and the reactions go to the stated extents. In particular no dissociation is considered, so above about 2000 K real flames are cooler than the calculated value.
+**Assumptions**, the same as in SVN's examples: every species stays in the phase written, the gases are ideal, and the reactions go to the stated extents. In particular no dissociation is considered, so above about 2000 K real flames are cooler than the calculated value. The one phase change that can be switched on is that of the water in the outlet (Section 10.5).
 
 ### 8.2 Work that the hot products could deliver (`heatbalance.work_potential`)
 
@@ -250,7 +250,7 @@ Cooling the outlet stream to the temperature of the surroundings T_σ at constan
 
     W_ideal = ΔH − T_σ ΔS          ΔH = Σ nᵢ ∫ Cp,i dT,   ΔS = Σ nᵢ ∫ Cp,i dT/T    from T_out to T_σ
 
-It is negative when the stream can deliver work. If the heat is simply discarded, all of it is lost work. For comparison the solver also gives 1 − T_σ/T_out, the Carnot efficiency of an engine supplied at the constant temperature T_out; the stream does less because its temperature falls while it gives up heat.
+It is negative when the stream can deliver work. If the heat is simply discarded, all of it is lost work. When the water of the outlet may condense on the way down, ΔH and ΔS are the differences of the enthalpy and entropy of the whole stream (Section 10.5), which include the phase change. For comparison the solver also gives 1 − T_σ/T_out, the Carnot efficiency of an engine supplied at the constant temperature T_out; the stream does less because its temperature falls while it gives up heat.
 
 ### 8.3 Fuel facts (`heatbalance.fuel_facts`, `heatbalance.heating_values`)
 
@@ -293,5 +293,64 @@ Every result is re-derived by an independent numerical route. A wrong formula, s
 | Atoms in the reactor | atoms in the feed = atoms in the outlet, every element |
 | Two routes to the heat duty | ΔH_R + ΔH°₂₉₈ + ΔH_P = Σ n_out Hᵢ(T_out) − Σ n_in Hᵢ(T_in) |
 | Energy balance closes | H_out(T_out) − H_in(T_in) = Q |
+| Boiling point | G of the liquid = G of the vapour at T_boil, species by species |
+| Entropy of vaporisation | S(vapour) − S(liquid) = ΔH_vap / T_boil |
+| Clausius/Clapeyron | d ln P_sat/dT = ΔH_vap/(R·T²) |
+| Saturated outlet | partial pressure of the water vapour = P_sat(T_out) when liquid is present |
+| Along the condensation | dH = T·dS for the outlet stream at constant pressure |
 
 Derivatives are central finite differences, so they share no code with the formulas they test.
+
+## 10. Phase change at 1 bar (`phase.py`; SVN Sec. 4.2 on latent heats and the treatment of two-phase systems in Ch. 6)
+
+No new data are used here. Seven compounds are in the database both as a liquid and as a gas, and the formation data and heat capacities of the two forms already fix where each one boils.
+
+### 10.1 Boiling point (`phase.TRANSITIONS`)
+
+Two results of the course: at a given T and P the stable phase of a pure species is the one with the lower Gibbs energy, and two phases in equilibrium have the same Gibbs energy. With the standard states of the solver (pure liquid at 1 bar, ideal gas at 1 bar), the vaporisation X(l) → X(g) has
+
+    ΔG_vap(T) = G_gas(T) − G_liquid(T) = ΔH_vap(T) − T·ΔS_vap(T)
+
+and the boiling point at 1 bar is the root of ΔG_vap(T) = 0, found by bisection. ΔG_vap falls as T rises, so there is one root.
+
+| Compound | T_boil from the data (K) | SVN Table B.1 (K) |
+|---|---|---|
+| Water | 373.19 | 373.2 |
+| Methanol | 337.10 | 337.9 |
+| Ethanol | 351.34 | 351.4 |
+| Benzene | 354.23 | 353.2 |
+| Cyclohexane | 354.51 | 353.9 |
+| Toluene | 388.40 | 383.8 |
+| Acetic acid | 434.19 | 391.1 |
+
+The Table B.1 values are not used in the calculation. A compound is switched automatically only if the two agree within 10 K (`BOILING_POINT_TOLERANCE`), which leaves acetic acid out: its liquid has a single Cp value valid from 290 to 320 K, and its vapour data are for the monomer.
+
+### 10.2 What happens to a reaction at a boiling point (`phase.jumps`, `phase.segments`)
+
+At T_boil the entropy of vaporisation is ΔS_vap = ΔH_vap/T_boil. For a reaction in which the species has the stoichiometric number ν:
+
+    ΔH° jumps by ν·ΔH_vap        ΔS° jumps by ν·ΔH_vap/T_boil        ΔG° and ln K do not jump
+
+With "auto_phase" the endpoint `analyze` cuts the temperature axis at the boiling points of the species of the reaction and uses, in each piece, the reaction written with the phases that are stable there. Two plot points are placed right at each boiling point so that the step in ΔH° is drawn as a step.
+
+### 10.3 Vapour pressure (`phase.vapour_pressure`)
+
+A liquid at T is in equilibrium with its vapour, taken as an ideal gas, at the pressure where G_gas(T) + R·T·ln(P/P°) = G_liquid(T):
+
+    P_sat(T) = P° · exp(−ΔG_vap(T) / (R·T))
+
+This is the Clausius/Clapeyron equation, d ln P_sat/dT = ΔH_vap/(R·T²), integrated with a latent heat that changes with temperature through the heat capacities. The effect of pressure on the Gibbs energy of the liquid is neglected. For water it gives 0.03168 bar at 25 °C (NIST: 0.031699) and 0.9987 bar at 100 °C (NIST: 1.0142).
+
+### 10.4 Equilibrium conversion when a product can condense (`phase.equilibrium`)
+
+The standard state below the boiling point is the liquid, but in a gas mixture a species stays a vapour as long as its partial pressure is below P_sat. So the reaction is first solved with every such species as a vapour (Section 6). If a partial pressure comes out above P_sat, part of that species is liquid. The liquid is a separate pure phase with activity 1, its vapour stays in the gas at exactly P_sat, and the other gases share P − P_sat. The reaction is then solved again at that pressure with the species as a liquid. At the point where condensation starts the two calculations coincide, so the conversion is continuous there. A species can condense while P_sat(T) < P and T is below its critical temperature; above the range of the liquid's heat capacity the result is marked as extrapolated. Two liquids are taken as separate pure phases, not as a solution.
+
+### 10.5 Water in the outlet of the heat lab (`heatbalance.WaterSplit`)
+
+With n_w mol of water and n_other mol of other gases at 1 bar, the gas can hold at most n_other·P_sat/(P − P_sat) mol of vapour, because y_w·P cannot exceed P_sat. The rest is liquid. The dew point is where P_sat(T_dew) = y_w·P with all the water as vapour. The enthalpy of the outlet is
+
+    H_out(T) = H_all vapour(T) − n_liquid(T)·ΔH_vap(T)
+
+so the energy balance gets a fourth step, ΔH_phase = −n_liquid·ΔH_vap(T_out), and Q = ΔH_R + ΔH°₂₉₈ + ΔH_P + ΔH_phase with ΔH_P taken for the products with all their water as vapour. Water that the reaction is written with as liquid is evaporated at 298.15 K inside step 2, so both ways of writing the reaction give the same answer. If the outlet holds nothing but water, it boils at one temperature and the split follows from the energy balance (lever rule). The entropy of the outlet, needed for the ideal work, is Σ nᵢ(Sᵢ − R ln yᵢ) over the gases plus n_liquid·S_liquid.
+
+For methane burned with 20 % excess air the dew point is 328.66 K (NIST: water boils at 328.58 K under its partial pressure of 0.16092 bar). Cooled to 298.15 K, 1.659 of the 2 mol of water condense and 875.6 kJ are removed, between the lower (802.6 kJ) and the higher (890.6 kJ) heating value.
