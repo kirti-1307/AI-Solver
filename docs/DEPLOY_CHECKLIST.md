@@ -43,9 +43,9 @@ Boxes are ticked only for what has actually been verified.
 - [x] Tab 5, bomb calorimeter: 1 g of ethanol with the handout calibration shows a rise of 2.31 °C
 - [x] Tab 7: every reference value reads "pass"
 - [x] The "start here" buttons open the right tabs, and the light/dark switch repaints the page
-- [ ] v1.2: the start page shows nine cards and each opens its tab with a result
-- [ ] v1.2: tab 1 shows the headline ("Gives out heat", "Not favourable", "Balanced") and the "i" buttons open an explanation
-- [ ] v1.2: `guide.html` opens from the header and from the start page, with ten sections
+- [x] v1.2: the start page shows nine cards and each opens its tab with a result
+- [x] v1.2: tab 1 shows the headline ("Gives out heat", "Not favourable", "Balanced") and the "i" buttons open an explanation
+- [x] v1.2: `guide.html` opens from the header and from the start page, with ten sections
 - [x] The page is usable on a phone-width screen (tabs scroll sideways, tables scroll inside their panels)
 
 **Result, 22 November 2026, on https://kirti-1307.github.io/AI-Solver/:** all eleven pass. What the live page showed:
@@ -67,6 +67,8 @@ Boxes are ticked only for what has actually been verified.
 The test was run in one browser (Chromium) in a background tab. There the animated calorimeter readout stayed at 0.00 although the result below it was right, because a background tab gets no animation frames. This was fixed (a timer now sets the final value) and the files were given version tags; see [DEBUG_LOG.md](DEBUG_LOG.md), items 17 to 19.
 
 **Checked again after the review fixes, 22 November 2026, commit `b4a988a`, version tag 1.1.2:** both workflows green; on the live page the same values as in the table above (−48.97 kJ/mol, −5.158 kJ/mol, 25.2 %, 2,066 K, +328.0 kJ, 2.31 °C, 51 of 51), the temperature-limit card shows 97 % excess air for 1,500 K, and a hydrogen flame calculated right after a single-reactant reaction shows 2,252 K with the 20 % excess air that the page displays (review finding R2). No console errors, no failed downloads.
+
+**v1.2 checked on the live page, 22 November 2026, commit `1e40f8e`, version tag 1.2.0:** both workflows green. The start page shows nine cards and the eight that run an example each produced a result (−57.94 kJ/mol headline, the rejected reaction, −5.158 kJ/mol, the Hess check, 25.2 %, 2,066 K, 2.31 °C, 51 of 51). Tab 1 shows six "i" buttons and the first opens "Heat of reaction at 298.15 K". `guide.html` loads with ten sections and the stylesheet of this release. No console errors, no failed downloads.
 
 ## Before the classroom demonstration
 
