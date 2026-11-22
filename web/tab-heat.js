@@ -45,15 +45,18 @@
   let builtFor = null;          // reaction text for which the key/excess selects were filled
   let modeSeg = null;
 
-  function reactorPayload() {
+  function reactorPayload(live) {
     const equation = $("#hb-equation").value;
     const same = builtFor !== null && builtFor === equation.trim();
     const body = {
       equation, mode,
       T_in: TS.readNumber("hb-Tin"),
       conversion: Number($("#hb-conv").value) / 100,
-      excess: $("#hb-excess-box").hidden ? 0 : Number($("#hb-excess").value) / 100,
-      air: !$("#hb-air-box").hidden && $("#hb-air").checked,
+      // The excess and the air box are always sent as they stand, also while they are
+      // hidden for the previous reaction. The solver ignores them where they cannot apply,
+      // and the answer always states the settings it was calculated with.
+      excess: Number($("#hb-excess").value) / 100,
+      air: $("#hb-air").checked,
       key: same ? ($("#hb-key").value || null) : null,
       excess_species: same ? ($("#hb-excess-species").value || null) : null,
       sweep: same ? ($("#hb-sweep").value || null) : null,
@@ -65,9 +68,10 @@
     } else {
       const q = TS.readNumber("hb-Q");
       body.Q = typeof q === "number" ? 1000 * q : q;
-      body.target_T = TS.readNumber("hb-target");
+      if (!live) body.target_T = TS.readNumber("hb-target");
       if (body.sweep === "T_out") body.sweep = null;
     }
+    if (live) body.sweep = "none";          // while a slider moves: the point only, plots on release
     const sideEq = $("#hb-side-eq").value.trim();
     if (sideEq) body.side = [{ equation: sideEq, extent: TS.readNumber("hb-side-extent") ?? 0 }];
     const extra = $("#hb-extra-species").value;
@@ -76,8 +80,8 @@
     return body;
   }
 
-  function fillSelects(r) {
-    builtFor = $("#hb-equation").value.trim();
+  function fillSelects(r, sent) {
+    builtFor = sent;                        // the text the answer belongs to, not what is in the box by now
     $("#hb-key").innerHTML = r.reactants.map((s) => `<option value="${esc(s)}"${s === r.key ? " selected" : ""}>${esc(s)}</option>`).join("");
     const others = r.reactants.filter((s) => s !== r.key);
     $("#hb-excess-species").innerHTML = others.length
@@ -93,7 +97,8 @@
     if (r.excess_species) options.push(["excess", usesAir ? "Excess air" : "Excess reactant"]);
     options.push(["T_in", "Inlet temperature"], ["conversion", "Conversion"]);
     if (r.mode === "duty") options.push(["T_out", "Outlet temperature"]);
-    const chosen = r.sweep ? r.sweep.variable : options[0][0];
+    const current = $("#hb-sweep").value;
+    const chosen = r.sweep ? r.sweep.variable : (options.some(([v]) => v === current) ? current : options[0][0]);
     $("#hb-sweep").innerHTML = options.map(([v, label]) => `<option value="${v}"${v === chosen ? " selected" : ""}>${label}</option>`).join("");
   }
 
@@ -129,21 +134,40 @@
     } else {
       lines.push(`The feed (${feedMoles} mol per mol of ${key}) enters at 298.15 K, so the first step of the path is zero.`);
     }
-    lines.push(`At 298.15 K the reaction${r.settings.side.length ? "s" : ""} ${p.path.dH_298 < 0 ? "release" : "absorb"}${r.settings.side.length ? "" : "s"} ` +
-      `${kJ(Math.abs(p.path.dH_298))} kJ (extent × ΔH°<sub>298</sub>).`);
+    const several = r.settings.side.length > 0;
+    if (Math.abs(p.path.dH_298) > 0.5) {
+      lines.push(`At 298.15 K the reaction${several ? "s" : ""} ${p.path.dH_298 < 0 ? "release" : "absorb"}${several ? "" : "s"} ` +
+        `${kJ(Math.abs(p.path.dH_298))} kJ (extent × ΔH°<sub>298</sub>).`);
+    } else {
+      lines.push("Nothing reacts at these settings, so the second step of the path is zero.");
+    }
     if (r.mode === "adiabatic") {
-      lines.push(`${Math.abs(p.Q) < 0.5 ? "No heat crosses the wall, so" : `With ${signed(p.Q / 1000, 1)} kJ exchanged,`} the remaining ` +
-        `${kJ(p.path.dH_P)} kJ ${p.path.dH_P >= 0 ? "heats" : "is taken from"} the ${outMoles} mol of products. Their mean heat capacity between 298.15 K and the outlet is ` +
+      const wall = Math.abs(p.Q) < 0.5 ? "No heat crosses the wall, so"
+        : `${kJ(Math.abs(p.Q))} kJ is ${p.Q > 0 ? "added" : "removed"} through the wall, so`;
+      const share = p.path.dH_P >= 0 ? `${kJ(p.path.dH_P)} kJ is left to heat the ${outMoles} mol of products`
+        : `${kJ(-p.path.dH_P)} kJ has to come out of the ${outMoles} mol of products`;
+      lines.push(`${wall} ${share}. Their mean heat capacity between 298.15 K and the outlet is ` +
         `${fix(p.mean_cp_products, 1)} J/K, which puts the outlet at <strong>${fix(p.T_out, 0)} K (${fix(p.T_out - T_FREEZE, 0)} °C)</strong>.`);
     } else {
-      lines.push(`Taking the ${outMoles} mol of products from 298.15 K to ${kelvin(p.T_out)} K needs ${signed(p.path.dH_P / 1000, 2)} kJ. ` +
+      lines.push(`Taking the ${outMoles} mol of products from 298.15 K to ${kelvin(p.T_out)} K ` +
+        `${p.path.dH_P >= 0 ? "needs" : "gives up"} ${kJ(Math.abs(p.path.dH_P))} kJ. ` +
         `The sum of the three steps is the heat duty: <strong>${signed(p.Q / 1000, 2)} kJ per mol of ${key}</strong>, ` +
         `${p.Q > 0 ? "which the furnace must supply" : "which must be removed by cooling"}.`);
     }
+    // R3: what an inert does depends on the mode and on whether the reactor heats up or cools down
     const inert = p.inert;
     if (inert.length) {
-      lines.push(`${inert.map(chem).join(", ")} pass${inert.length === 1 ? "es" : ""} through unchanged but still ${inert.length === 1 ? "has" : "have"} to be heated: ` +
-        `more of ${inert.length === 1 ? "it" : "them"} means a cooler outlet for the same heat of reaction.`);
+      const one = inert.length === 1;
+      const names = inert.map(chem).join(", ");
+      if (r.mode === "adiabatic") {
+        const effect = p.T_out > p.T_in + 0.05 ? ", which here means a cooler outlet"
+          : (p.T_out < p.T_in - 0.05 ? ", which here means a warmer outlet" : "");
+        lines.push(`${names} ${one ? "takes" : "take"} no part in the reaction and only ${one ? "carries" : "carry"} sensible heat. ` +
+          `More of ${one ? "it" : "them"} pulls the outlet temperature towards the inlet temperature${effect}.`);
+      } else {
+        lines.push(`${names} ${one ? "takes" : "take"} no part in the reaction. Bringing ${one ? "it" : "them"} from the inlet ` +
+          `to the outlet temperature is part of the heat duty.`);
+      }
     }
     if (r.target) {
       lines.push(r.target.excess !== null
@@ -168,7 +192,7 @@
       <div class="table-scroll"><table><thead><tr><th class="l">Quantity</th><th>per mol of fuel</th><th>per kg of fuel</th><th class="l">How</th></tr></thead><tbody>
       <tr><td class="l">Lower heating value (water as vapour)</td><td>${kJ(f.LHV)} kJ</td><td>${fix(f.LHV_mass, 2)} MJ</td><td class="l mono">${chem(f.equation_lhv)}</td></tr>
       <tr><td class="l">Higher heating value (water as liquid)</td><td>${kJ(f.HHV)} kJ</td><td>${fix(f.HHV_mass, 2)} MJ</td><td class="l mono">${chem(f.equation_hhv)}</td></tr>
-      <tr><td class="l">What a bomb calorimeter reads, −ΔU</td><td>${kJ(-f.dU_bomb)} kJ</td><td>${fix(-f.dU_bomb / f.molar_mass / 1000, 2)} MJ</td>
+      <tr><td class="l">What a bomb calorimeter reads, −ΔU</td><td>${kJ(-f.dU_bomb)} kJ</td><td>${fix(f.bomb_value_mass, 2)} MJ</td>
         <td class="l">ΔU = ΔH − Δn<sub>gas</sub>RT, Δn<sub>gas</sub> = ${signed(f.dn_gas_bomb, 2)}</td></tr>
       <tr><td class="l">Oxygen needed</td><td>${fix(f.o2_stoich, 3)} mol</td><td></td><td class="l">from the balanced reaction</td></tr>
       <tr><td class="l">Air needed (21 % O<sub>2</sub>)</td><td>${fix(f.air_stoich, 3)} mol</td><td>${fix(f.air_fuel_mass, 2)} kg</td><td class="l">stoichiometric air</td></tr>
@@ -189,9 +213,9 @@
         <td>${TS.int(p.path.dH_R)}</td><td>${TS.int(p.path.dH_P)}</td><td></td></tr></tbody></table></div></details>`;
   }
 
-  function renderReactor(r) {
+  function renderReactor(r, sent) {
     ensureReactor();
-    fillSelects(r);
+    fillSelects(r, sent);
     const p = r.point;
     const key = chem(bare(r.key));
     const adiabatic = r.mode === "adiabatic";
@@ -200,15 +224,16 @@
     $("#hb-notes").innerHTML = TS.notes(r.notes.map((m) => ({ level: "info", message: m }))) + rangeNotes(p.warnings);
     $("#hb-basis").innerHTML = key;
 
-    const exo = p.path.dH_298 < 0;
+    const thermicity = p.path.dH_298 < -0.5 ? "exo" : (p.path.dH_298 > 0.5 ? "endo" : "");
+    const thermicityText = { exo: "exothermic", endo: "endothermic", "": "nothing reacts" }[thermicity];
     let cards = adiabatic
       ? `<div class="card hero"><div class="k">Outlet temperature${Math.abs(p.Q) < 0.5 ? " (adiabatic)" : ""}</div>
            <div class="v">${fix(p.T_out, 0)} <span class="u">K</span></div><div class="s">${fix(p.T_out - T_FREEZE, 0)} °C, from ${kelvin(p.T_in)} K at the inlet</div></div>`
       : `<div class="card hero"><div class="k">Heat duty</div>
            <div class="v">${signed(p.Q / 1000, 1)} <span class="u">kJ per mol ${key}</span></div>
            <div class="s">${p.Q > 0 ? "heat must be supplied" : "heat must be removed"}, ${signed(p.Q_per_kg / 1e6, 2)} MJ per kg</div></div>`;
-    cards += `<div class="card ${exo ? "exo" : "endo"}"><div class="k">Heat of reaction at 298.15 K</div>
-        <div class="v">${signed(p.path.dH_298 / 1000, 1)} <span class="u">kJ</span></div><div class="s">${exo ? "exothermic" : "endothermic"}, extent × ΔH°<sub>298</sub></div></div>
+    cards += `<div class="card ${thermicity}"><div class="k">Heat of reaction at 298.15 K</div>
+        <div class="v">${signed(p.path.dH_298 / 1000, 1)} <span class="u">kJ</span></div><div class="s">${thermicityText}, extent × ΔH°<sub>298</sub></div></div>
       <div class="card"><div class="k">Mean C<sub>p</sub> of the products</div><div class="v">${fix(p.mean_cp_products, 1)} <span class="u">J/K</span></div>
         <div class="s">${sig(p.outlet_total, 4)} mol, 298.15 K to outlet</div></div>`;
     if (r.target && r.target.excess !== null) {
@@ -246,6 +271,7 @@
     }));
 
     const s = r.sweep;
+    $("#hb-plot-sweep").style.opacity = s ? "1" : "0.4";
     if (s) {
       const percent = s.variable === "excess" || s.variable === "conversion";
       const xs = percent ? s.x.map((v) => 100 * v) : s.x;
@@ -269,6 +295,9 @@
   function showReactorError(err) {
     const out = $("#hb-out");
     out.innerHTML = `<div class="panel">${TS.errorBox(err)}<div id="hb-fix"></div></div>`;
+    $("#hb-excess-box").hidden = false;
+    $("#hb-air-box").hidden = false;
+    builtFor = null;
     const fixText = err.details && err.details.suggestion;
     if (fixText) {
       const box = $("#hb-fix");
@@ -282,9 +311,10 @@
     }
   }
 
-  const calculate = TS.latest(async () => {
+  const calculate = TS.latest(async (live) => {
+    const sent = $("#hb-equation").value.trim();
     try {
-      renderReactor(await TS.engine.call("heat_balance", reactorPayload()));
+      renderReactor(await TS.engine.call("heat_balance", reactorPayload(live === true)), sent);
     } catch (err) {
       showReactorError(err);
     }
@@ -406,7 +436,7 @@
     const found = r.identify;
     const dT = found ? found.dT : run.dT;
     const cv = found ? found.measured_calorific_value : run.calorific_value;      // J/g
-    const heat = found ? found.C_cal * found.dT : run.heat_released;
+    const heat = found ? found.heat_measured : run.heat_released;
 
     let html = `<div class="panel">${TS.notes(r.warnings)}<div class="calo">
       <div class="thermo">
@@ -511,9 +541,12 @@
       $("#hb-equation").addEventListener("keydown", (ev) => { if (ev.key === "Enter") calculate(); });
       $("#hb-run").addEventListener("click", () => calculate());
       modeSeg = TS.bindSeg("hb-mode", "mode", (m) => { setMode(m); calculate(); });
-      for (const id of ["hb-Tin", "hb-conv", "hb-excess", "hb-Tout"]) TS.bindSlider(id, calculate, calculate);
+      for (const id of ["hb-Tin", "hb-conv", "hb-excess", "hb-Tout"]) {
+        TS.bindSlider(id, () => calculate(true), () => calculate(false));
+      }
       $("#hb-air").addEventListener("change", () => calculate());
-      for (const id of ["hb-key", "hb-excess-species", "hb-sweep", "hb-extra-species"]) {
+      $("#hb-key").addEventListener("change", () => { $("#hb-excess-species").innerHTML = ""; calculate(); });
+      for (const id of ["hb-excess-species", "hb-sweep", "hb-extra-species"]) {
         $("#" + id).addEventListener("change", () => calculate());
       }
       for (const id of ["hb-target", "hb-Q", "hb-side-eq", "hb-side-extent", "hb-extra-n"]) {

@@ -12,7 +12,7 @@ Boxes are ticked only for what has actually been verified.
 
 - [x] All tests pass locally: `python -m unittest discover -s tests -t .`
 - [x] Reference values all reproduced: `python -m thermosolver --validate`
-- [ ] Independent code review of the new code done and findings addressed (see [CODE_REVIEW.md](CODE_REVIEW.md))
+- [x] Independent code review of the new code done and findings addressed (see [CODE_REVIEW.md](CODE_REVIEW.md), second review)
 - [x] No known critical bug in the release (see [DEBUG_LOG.md](DEBUG_LOG.md))
 - [x] Site works from a local static server (`python serve.py`): engine loads, all seven tabs render, no console errors
 - [x] `.nojekyll` is present at the repository root. Without it GitHub Pages silently refuses to serve `thermosolver/__init__.py` and `__main__.py` (files starting with an underscore), and the solver cannot load.

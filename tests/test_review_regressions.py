@@ -171,7 +171,8 @@ class TestStructuredFuzz(unittest.TestCase):
               {"N2": 1, "H2": 3}, {"N2": "x"}, {"N2": -1}, [{"equation": "CO + H2O(g) -> CO2 + H2", "multiplier": 1}] * 2,
               "adiabatic", "duty", "predict", "identify", "excess", "conversion", "T_in", "T_out", "none", 0.2, 2.5, 12800,
               "CH4 + 2 O2 -> CO2 + 2 H2O(g)", "O2(g)", "C2H5OH(l)", {"mass": 1.2, "dT": 2.5, "calorific_value": 26440},
-              {"mass": "x"}, [{"equation": "CO + H2O(g) -> CO2 + H2", "extent": 0.1}], [{"equation": 3}], {"N2(g)": 4}]
+              {"mass": "x"}, [{"equation": "CO + H2O(g) -> CO2 + H2", "extent": 0.1}], [{"equation": 3}], {"N2(g)": 4},
+              10 ** 400, -(10 ** 400), {"N2": 10 ** 400}, {"mass": 10 ** 400, "dT": 2, "calorific_value": 26000}]
     KEYS = ["equation", "T", "P", "model", "n_points", "T_min", "T_max", "P_min", "P_max", "species", "feed",
             "steps", "sweep", "T1", "T2", "moles", "key_element", "name",
             "T_in", "T_out", "mode", "conversion", "excess", "excess_species", "key", "air", "extra", "side", "Q",

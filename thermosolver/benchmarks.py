@@ -182,7 +182,7 @@ def build() -> List[dict]:
         3059.33, lambda: heatbalance.calorimeter_constant(1.1942, 2.48, 6319.0 * cal, 41.0 * cal) / cal,
         "cal/K", 1e-5, "Course bomb-calorimeter handout")
     add("Bomb calorimeter", "Benzoic acid: ΔH from ΔU = −3228.7 kJ/mol with Δn(gas) = −0.5 at 303.15 K",
-        -3230.0, lambda: -3228.7 + (-0.5) * R * 303.15 / 1000.0, "kJ/mol", 3e-5,
+        -3230.0, lambda: heatbalance.enthalpy_from_internal_energy(-3228.7e3, -0.5, 303.15) / 1000.0, "kJ/mol", 3e-5,
         "Course bomb-calorimeter handout (ΔH = ΔU + Δn·RT)")
 
     # --- Independent physical check -------------------------------------------

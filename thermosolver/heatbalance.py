@@ -111,14 +111,33 @@ class Stream:
         has one solution. A polynomial Cp can turn negative far outside the
         range it was fitted to; the outlet-temperature search never goes there."""
         if self._window is None:
-            step = 50.0
             lo = hi = T0
-            while lo - step >= T_SEARCH_MIN and self.cp(lo - step) > 0.0:
-                lo -= step
-            while hi + step <= T_SEARCH_MAX and self.cp(hi + step) > 0.0:
-                hi += step
+            while lo > T_SEARCH_MIN:
+                lower = max(T_SEARCH_MIN, lo - 25.0)
+                if self.cp(lower) <= 0.0:
+                    break
+                lo = lower
+            while hi < T_SEARCH_MAX:
+                higher = min(T_SEARCH_MAX, hi + 50.0)
+                if self.cp(higher) <= 0.0:
+                    break
+                hi = higher
             self._window = (lo, hi)
         return self._window
+
+    def require(self, T: float, what: str) -> None:
+        """Refuse a temperature outside the window. There the enthalpy of the
+        stream does not rise with temperature, and an energy balance would
+        return a second, meaningless root."""
+        if abs(T - T0) < 1e-9:
+            return
+        lo, hi = self.window()
+        if lo - 1e-9 <= T <= hi + 1e-9:
+            return
+        hint = " The solver works in kelvin: add 273.15 to degrees Celsius." if T < lo else ""
+        raise InputError(
+            f"The {what} temperature of {T:g} K is outside the range in which the heat capacities of this "
+            f"stream can be used ({lo:.0f} to {hi:.0f} K).{hint}", {"limit": "below" if T < lo else "above"})
 
 
 # ---------------------------------------------------------------------------
@@ -178,12 +197,25 @@ def build_case(rxn: Reaction, key: Optional[str] = None, conversion: float = 1.0
         feed[excess_species] *= 1.0 + excess
 
     if air and feed.get("O2(g)", 0.0) > 0.0:
-        feed["N2(g)"] = feed.get("N2(g)", 0.0) + AIR_N2_PER_O2 * feed["O2(g)"]
-        notes.append(f"Air is taken as 21 mol-% O2 and 79 mol-% N2: {AIR_N2_PER_O2:.3f} mol N2 "
-                     f"enter with every mol O2.")
+        nitrogen = AIR_N2_PER_O2 * feed["O2(g)"]
+        if key == "N2(g)":
+            raise InputError("With air as the oxygen source the nitrogen enters with the oxygen (79 to 21), "
+                             "so N2 cannot be the basis of the calculation. Choose O2 as the basis, or untick air.")
+        if "N2(g)" in reactants:
+            # nitrogen is itself a reactant: the air is its only source
+            feed["N2(g)"] = nitrogen
+            notes.append(f"Air is taken as 21 mol-% O2 and 79 mol-% N2. The nitrogen that reacts is the nitrogen "
+                         f"of the air: {AIR_N2_PER_O2:.3f} mol N2 enter with every mol O2.")
+        else:
+            feed["N2(g)"] = feed.get("N2(g)", 0.0) + nitrogen
+            notes.append(f"Air is taken as 21 mol-% O2 and 79 mol-% N2: {AIR_N2_PER_O2:.3f} mol N2 "
+                         f"enter with every mol O2.")
     for sid, n in (extra or {}).items():
         if n < 0.0:
             raise InputError(f"The amount of {sid} in the feed cannot be negative.")
+        if n > 0.0 and sid == key:
+            raise InputError(f"{key} is the basis of the calculation, so its feed is fixed at 1 mol. "
+                             f"Give the extra feed for another species.")
         if n > 0.0:
             feed[sid] = feed.get(sid, 0.0) + n
 
@@ -220,12 +252,13 @@ def outlet_temperature(feed: Stream, outlet: Stream, T_in: float, Q: float = 0.0
     if outlet.H(lo) - target > 0.0:
         raise InputError(
             f"The energy balance puts the outlet below {lo:.0f} K, where the heat-capacity "
-            f"correlations no longer apply. Remove less heat, convert less or preheat the feed.")
+            f"correlations no longer apply. Remove less heat, convert less or preheat the feed.",
+            {"limit": "below"})
     if outlet.H(hi) - target < 0.0:
         raise InputError(
             f"The energy balance has no solution below {hi:.0f} K. Complete reaction of this feed would be "
             f"hotter than the heat-capacity correlations can describe (real products dissociate long before). "
-            f"Add excess air or an inert, lower the conversion or remove heat.")
+            f"Add excess air or an inert, lower the conversion or remove heat.", {"limit": "above"})
     T = T0
     for _ in range(200):
         f = outlet.H(T) - target
@@ -254,14 +287,16 @@ def solve(case: dict, T_in: float, mode: str = "adiabatic", T_out: Optional[floa
     All extensive results are per mole of key reactant fed.
     """
     feed, outlet = Stream(case["feed"]), Stream(case["outlet"])
+    if mode not in ("adiabatic", "duty"):
+        raise InputError("The mode must be 'adiabatic' or 'duty'.")
+    feed.require(T_in, "inlet")
     if mode == "adiabatic":
         T_out = outlet_temperature(feed, outlet, T_in, Q)
-    elif mode == "duty":
+    else:
         if T_out is None:
             raise InputError("Give the outlet temperature.")
+        outlet.require(T_out, "outlet")
         Q = outlet.H(T_out) - feed.H(T_in)
-    else:
-        raise InputError("The mode must be 'adiabatic' or 'duty'.")
 
     dH_R = feed.sensible(T_in, T0)
     dH_298 = sum(xi * rxn.dH0 for rxn, xi in case["reactions"])
@@ -395,44 +430,66 @@ def work_potential(case: dict, T_out: float, T_surroundings: float = T0) -> Opti
 # ---------------------------------------------------------------------------
 # sweeps and goal seeking
 # ---------------------------------------------------------------------------
+_EXCESS_GRID = (0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0, 7.5,
+                10.0, 15.0, 20.0, 30.0, 50.0, 75.0, MAX_EXCESS)
+
+
 def excess_for_outlet_temperature(rxn: Reaction, target_T: float, T_in: float, **settings) -> dict:
-    """Excess of the chosen reactant at which the adiabatic outlet reaches
-    ``target_T`` (bisection: more excess means a cooler outlet)."""
+    """Excess of the chosen reactant at which the adiabatic outlet reaches ``target_T``.
+
+    More excess only adds material that enters at T_in, so the outlet moves
+    steadily from its value at the smallest feasible excess towards T_in. The
+    target can be met only if it lies between those two. The outlet is first
+    evaluated on a grid of excess values; a setting that cannot be calculated
+    (not enough of a reactant, outlet outside the usable range) is simply not
+    a candidate. The answer is found by bisection between two neighbouring
+    grid points that enclose the target, and is checked before it is returned.
+    """
     settings = dict(settings)
     settings.pop("excess", None)
     Q = settings.pop("Q", 0.0)
 
-    def T_out(excess: float) -> float:
-        return solve(build_case(rxn, excess=excess, **settings), T_in, "adiabatic", Q=Q)["T_out"]
-
-    try:
-        hot = T_out(0.0)
-    except InputError:
-        hot = float("inf")
-    if hot <= target_T:
-        return {"target_T": target_T, "excess": None,
-                "reason": f"Even with no excess the outlet is at {hot:,.0f} K, already at or below the target."}
-    lo, hi = 0.0, MAX_EXCESS
-    try:
-        cold = T_out(hi)
-    except InputError:
-        cold = float("-inf")
-    if cold > target_T:
-        return {"target_T": target_T, "excess": None,
-                "reason": "The target cannot be reached by adding excess reactant (the feed is hotter than the target)."}
-    for _ in range(80):
-        mid = 0.5 * (lo + hi)
+    def T_out(excess: float) -> Optional[float]:
         try:
-            value = T_out(mid)
+            return solve(build_case(rxn, excess=excess, **settings), T_in, "adiabatic", Q=Q)["T_out"]
         except InputError:
-            value = float("inf")
-        if value > target_T:
-            lo = mid
-        else:
-            hi = mid
-        if hi - lo < 1e-9:
-            break
-    return {"target_T": target_T, "excess": 0.5 * (lo + hi), "reason": None}
+            return None
+
+    def answer(excess: Optional[float], reason: Optional[str], found: Optional[float] = None) -> dict:
+        return {"target_T": target_T, "excess": excess, "T_out": found, "reason": reason}
+
+    points = [(e, T_out(e)) for e in _EXCESS_GRID]
+    solved = [(e, t) for e, t in points if t is not None]
+    if not solved:
+        return answer(None, "The energy balance has no solution for any excess between 0 and "
+                            f"{100 * MAX_EXCESS:,.0f} %.")
+
+    for (e1, t1), (e2, t2) in zip(points, points[1:]):
+        if t1 is None or t2 is None or (t1 - target_T) * (t2 - target_T) > 0.0:
+            continue
+        lo, hi, t_lo = e1, e2, t1
+        for _ in range(80):
+            mid = 0.5 * (lo + hi)
+            t_mid = T_out(mid)
+            if t_mid is None:
+                return answer(None, "The energy balance cannot be solved everywhere between "
+                                    f"{100 * e1:,.0f} and {100 * e2:,.0f} % excess, so no value is reported.")
+            if (t_lo - target_T) * (t_mid - target_T) <= 0.0:
+                hi = mid
+            else:
+                lo, t_lo = mid, t_mid
+            if hi - lo < 1e-10:
+                break
+        best = 0.5 * (lo + hi)
+        check = T_out(best)
+        if check is None or abs(check - target_T) > 1e-3:
+            return answer(None, "The search did not reproduce the target temperature, so no value is reported.")
+        return answer(best, None, check)
+
+    (e_first, t_first), (e_last, t_last) = solved[0], solved[-1]
+    return answer(None, f"Between {100 * e_first:,.0f} and {100 * e_last:,.0f} % excess the outlet goes from "
+                        f"{t_first:,.0f} K to {t_last:,.0f} K. More excess only moves it towards the feed "
+                        f"temperature of {T_in:,.0f} K, so {target_T:,.0f} K is not reached.")
 
 
 # ---------------------------------------------------------------------------
@@ -485,6 +542,7 @@ def fuel_facts(rxn: Reaction, key: Optional[str] = None) -> Optional[dict]:
         "co2_per_MJ": co2 * SPECIES["CO2(g)"].molar_mass / (lhv / 1e6) if lhv > 0 else None,  # g CO2 per MJ (LHV)
         "dn_gas_bomb": dn_gas,
         "dU_bomb": liquid.dH0 - dn_gas * R * T0,                 # J per mol of fuel, constant volume
+        "bomb_value_mass": -(liquid.dH0 - dn_gas * R * T0) / M / 1000.0,   # MJ per kg of fuel
     }
 
 
@@ -493,6 +551,13 @@ def fuel_facts(rxn: Reaction, key: Optional[str] = None) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 JOULE_PER_CAL = 4.184            # thermochemical calorie, as in the course lab handout
 _FUEL_ELEMENTS = {"C", "H", "O", "N", "S"}
+
+
+def enthalpy_from_internal_energy(dU: float, dn_gas: float, T: float) -> float:
+    """dH = dU + dn_gas * R * T: from the heat measured at constant volume to
+    the heat of reaction at constant pressure (gases ideal, condensed phases
+    neglected). Any energy unit per mole, as long as it is joules for R."""
+    return dU + dn_gas * R * T
 
 
 def combustion_reaction(fuel_id: str, water: str = "l") -> Reaction:
@@ -541,7 +606,7 @@ def heating_values(fuel_id: str, T: float = T0) -> dict:
     M = sp.molar_mass
     dn_gas = liquid.delta_n_gas
     dH = liquid.dH0
-    dU = dH - dn_gas * R * T
+    dU = dH - dn_gas * R * T                      # the inverse of enthalpy_from_internal_energy
     water = liquid.stoich.get("H2O(l)", 0.0)
     water_mass = water * SPECIES["H2O(l)"].molar_mass / M                 # g of water per g of fuel
     h_fg = (SPECIES["H2O(g)"].dHf - SPECIES["H2O(l)"].dHf) / SPECIES["H2O(l)"].molar_mass  # J/g at 298.15 K
@@ -613,5 +678,6 @@ def identify_fuel(mass: float, dT: float, C_cal: float, corrections: float = 0.0
                            "difference": values["calorific_value"] / measured - 1.0})
     candidates.sort(key=lambda c: abs(c["difference"]))
     return {"mass": mass, "dT": dT, "C_cal": C_cal, "corrections": corrections,
+            "heat_measured": C_cal * dT,                          # J taken up by the calorimeter
             "measured_calorific_value": measured, "include_gases": include_gases,
             "compared": len(candidates), "candidates": candidates[:limit]}

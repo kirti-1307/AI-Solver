@@ -290,6 +290,8 @@ def find_species(text: str) -> Tuple[Species, Optional[str]]:
     Returns ``(species, note)`` where ``note`` explains an assumption that was
     made (for example the phase when none was given) or is None.
     """
+    if len(text) > 200:
+        raise InputError("A species name is far too long to be a species.")
     raw = text.strip().translate(_SUBSCRIPTS)
     if not raw:
         raise InputError("A species name is missing in the reaction.")

@@ -49,6 +49,8 @@ def _num(payload: dict, key: str, default: Optional[float] = None, lo: Optional[
         value = float(value)
     except (TypeError, ValueError):
         raise InputError(f"{label} must be a number.")
+    except OverflowError:
+        raise InputError(f"{label} must be a finite number.")
     if not math.isfinite(value):
         raise InputError(f"{label} must be a finite number.")
     if lo is not None and value < lo:
@@ -68,6 +70,8 @@ def _temperature(payload: dict, key: str = "T", default: float = T0) -> float:
         T = float(value)
     except (TypeError, ValueError):
         raise InputError("Temperature must be a number in kelvin.")
+    except OverflowError:
+        raise InputError("Temperature must be a finite number.")
     if not math.isfinite(T):
         raise InputError("Temperature must be a finite number.")
     if T <= 0:
@@ -89,6 +93,8 @@ def _pressure(payload: dict, key: str = "P", default: float = P0) -> float:
         P = float(value)
     except (TypeError, ValueError):
         raise InputError("Pressure must be a number in bar.")
+    except OverflowError:
+        raise InputError("Pressure must be an absolute pressure above 0 bar.")
     if not math.isfinite(P) or P <= 0:
         raise InputError("Pressure must be an absolute pressure above 0 bar.")
     if P < P_ABS_MIN:
@@ -555,7 +561,13 @@ def _heat_settings(payload: dict, rxn: Reaction) -> dict:
     in_excess = payload.get("excess_species")
     in_excess = (heatbalance.default_excess_species(rxn, key) if in_excess in (None, "")
                  else _species_id(in_excess, "The reactant in excess"))
-    excess = _num(payload, "excess", 0.0, -0.99, heatbalance.MAX_EXCESS, "Excess")
+    excess = _num(payload, "excess", 0.0, None, None, "The excess")
+    if not -0.99 <= excess <= heatbalance.MAX_EXCESS:
+        raise InputError(f"The excess must be between -99 % and {100 * heatbalance.MAX_EXCESS:,.0f} % "
+                         f"(as a fraction: -0.99 to {heatbalance.MAX_EXCESS:g}).")
+    conversion = _num(payload, "conversion", 1.0, None, None, "The conversion")
+    if not 0.0 <= conversion <= 1.0:
+        raise InputError("The conversion must be between 0 and 100 % (as a fraction: 0 to 1).")
     if in_excess is None:
         excess = 0.0                      # a single reactant: nothing can be in excess
 
@@ -587,7 +599,7 @@ def _heat_settings(payload: dict, rxn: Reaction) -> dict:
     air = payload.get("air", False)
     if not isinstance(air, bool):
         raise InputError("'air' must be true or false.")
-    return {"key": key, "conversion": _num(payload, "conversion", 1.0, 0.0, 1.0, "Conversion"),
+    return {"key": key, "conversion": conversion,
             "excess_species": in_excess, "excess": excess, "air": air, "extra": extra, "side": side}
 
 
@@ -628,7 +640,8 @@ def heat_balance(payload: dict) -> dict:
         if variable == "excess":
             if case["excess_species"] is None:
                 raise InputError("This reaction has a single reactant, so there is no excess to vary.")
-            limits = (0.0, max(3.0, 2.0 * settings["excess"]), 0.0, heatbalance.MAX_EXCESS)
+            limits = (0.0, min(heatbalance.MAX_EXCESS, max(3.0, 2.0 * settings["excess"])),
+                      0.0, heatbalance.MAX_EXCESS)
         elif variable == "T_in":
             limits = (T0, max(1200.0, T_in), T_ABS_MIN, T_ABS_MAX)
         elif variable == "conversion":
@@ -899,19 +912,23 @@ ENDPOINTS: Dict[str, Callable[[dict], dict]] = {
 
 def call(endpoint: str, payload_json: str = "{}") -> str:
     """Entry point for the browser: JSON text in, JSON text out, never raises."""
+    not_json = json.dumps({"ok": False, "error": {"kind": "input_error",
+                                                    "message": "The request was not valid JSON.", "details": {}}})
+    try:
+        # Besides malformed text, Python refuses whole numbers of more than 4300
+        # digits (ValueError) and extremely deep nesting (RecursionError).
+        payload = json.loads(payload_json) if payload_json else {}
+    except (ValueError, RecursionError):
+        return not_json
     try:
         func = ENDPOINTS.get(endpoint)
         if func is None:
             raise InputError(f"Unknown endpoint '{endpoint}'.")
-        payload = json.loads(payload_json) if payload_json else {}
         if not isinstance(payload, dict):
             raise InputError("The request must be a JSON object.")
         return json.dumps({"ok": True, "result": func(payload)}, allow_nan=False)
     except SolverError as exc:
         return json.dumps({"ok": False, "error": _safe(exc.to_dict())})
-    except json.JSONDecodeError:
-        return json.dumps({"ok": False, "error": {"kind": "input_error",
-                                                   "message": "The request was not valid JSON.", "details": {}}})
     except Exception as exc:  # an unexpected bug: report it, never crash the page
         return json.dumps({"ok": False, "error": {
             "kind": "internal_error",

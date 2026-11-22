@@ -27,7 +27,7 @@ The same benchmarks can be printed as a table with `python -m thermosolver --val
 | 9. Review regressions | Do the bugs found in review stay fixed? | `tests/test_review_regressions.py`, `tests/test_heatbalance.py` | One test per finding of the independent code reviews, plus a structured fuzz: 6,000 random combinations of JSON types on every parameter of every endpoint |
 | 10. Browser | Does the hosted page work? | manual, see below | Pyodide runs the same Python files, so layers 1 to 9 already cover the numbers |
 
-In total: 200 tests in seven files, about 18 seconds. Four of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist, and no thermodynamic constant may appear in the JavaScript.
+In total: 214 tests in seven files, about 20 seconds. Four of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist, and no thermodynamic constant may appear in the JavaScript.
 
 ## What is deliberately not tested
 

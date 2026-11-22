@@ -143,3 +143,25 @@ Extra feature 2 was rebuilt on course material only: an energy balance on a reac
 - **Fix:** every local script and the stylesheet are linked with a version tag (`web/ui.js?v=1.1.1`), and the worker is started the same way. A new release raises the tag, so the browser asks for fresh files. The Python files were already fetched with `cache: "no-cache"`.
 - **Prevention:** `test_page_loads_every_script_it_needs` requires one and the same tag on every local file and on the worker.
 
+## Round 6: independent review of the heat lab
+
+The full list is in [CODE_REVIEW.md](CODE_REVIEW.md), second review. The three that mattered most:
+
+### 20. The temperature-limit search could report a wrong excess
+
+- **Actual:** for steam reforming fed at 1100 K with a limit of 1200 K the page said "Excess for 1,200 K: 134 %". No amount of excess can lift an endothermic reactor above its feed temperature.
+- **Root cause:** the bisection treated every calculation that failed (outlet too cold, not enough of a reactant) as "too hot", and never checked its result.
+- **Fix:** failed settings are not candidates, the search runs only where the target is enclosed, and the answer is solved again before it is shown. If the target cannot be met, the page says which outlet temperatures are reachable.
+
+### 21. The result could contradict the settings on the page
+
+- **Actual:** after a reaction with one reactant, the next flame was calculated with no excess and no air (4485 K), while the page showed 20 % excess air, for which the answer is 2252 K.
+- **Root cause:** hidden controls were sent as zero, and whether they were hidden depended on the previous reaction.
+- **Fix:** the page always sends what it shows.
+
+### 22. A temperature outside the usable range gave a second, meaningless root
+
+- **Actual:** with nothing reacting, methane and oxygen entering at 5900 K "left" at 4931 K, and an inlet typed as 25 (meaning °C) gave an outlet of 1891 K.
+- **Root cause:** item 14 protected only the unknown outlet temperature. The given temperatures were extrapolated wherever the user put them, into the range where the summed heat capacity is negative.
+- **Fix:** the inlet temperature, and a given outlet temperature, must lie in the range where the stream's heat capacity is positive, and not below 200 K. With this change the cracker of item 15 at 50 % conversion is no longer refused: its outlet of 235 K lies inside the range and is shown with a warning that every heat capacity is extrapolated.
+

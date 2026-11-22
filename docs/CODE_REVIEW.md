@@ -71,6 +71,66 @@ By its own derivation or by running its own code:
 
 Approved after the fixes above. All 166 tests passed at that point; the suite has since grown to 175 with the NIST species added after the review.
 
-## Change made after this review
+## Changes made after this review
 
-Hydrogen peroxide gas and acetic acid (vapour, and a heat capacity for the liquid) were added from the NIST Chemistry WebBook, which needed an optional T³ term in the heat-capacity functions and a separate electron-count rule for peroxide. This code was not part of the independent review. It is covered by its own tests (`TestOtherSources`, `test_reactions_with_nist_species`, `test_electron_count_with_hydrogen_peroxide`, `test_nist_species_through_the_api`) and by the existing consistency audit, which runs on every library reaction including the new ones.
+Hydrogen peroxide gas and acetic acid (vapour, and a heat capacity for the liquid) were added from the NIST Chemistry WebBook, which needed an optional T³ term in the heat-capacity functions. That code is covered by its own tests (`TestOtherSources`, `test_reactions_with_nist_species`, `test_nist_species_through_the_api`) and by the consistency audit, which runs on every library reaction.
+
+The electrochemical lens (findings S1, S4 and S5 above) was later removed and replaced by the heat lab. The heat lab and the live product slate were reviewed separately; see below.
+
+# Second review: the heat lab and the live product slate (v1.1)
+
+**Scope:** `thermosolver/heatbalance.py`, the endpoints `heat_balance` and `calorimeter`, the new library entries and benchmarks, `web/tab-heat.js`, `web/tab-network.js`, the new helpers in `web/ui.js`, and `tests/test_heatbalance.py`.
+**How:** again a separate AI agent that had not written the code. It re-derived the energy balance with its own quadrature and root finder, sharing only the tabulated data, ran about 27,000 fuzz calls, read the page code against the fields the solver returns, and planted 18 deliberate faults in a copy of the code to see which ones the tests would miss.
+
+## Summary
+
+The energy balance, the flame temperature, the fuel numbers and the calorimeter were confirmed by independent calculation. The problems were in the goal seek, in the state handling of the page, in a few sentences that were only true for an exothermic adiabatic case, and in the tests, which were too easy to satisfy. Every finding below is fixed, and each has a test in `tests/test_heatbalance.py` (`TestSecondReview`).
+
+## Critical (all fixed)
+
+| # | Where | Issue | Fix |
+|---|---|---|---|
+| R1 | `heatbalance.excess_for_outlet_temperature` | The search for the excess that holds a temperature limit treated every failed calculation as "too hot". For an endothermic reactor fed at 1100 K and a limit of 1200 K it reported "134 % excess", where the outlet is in fact far below 1100 K. With a side reaction that needs oxygen it reported the smallest feasible excess (5 %) as the answer. | The outlet is evaluated on a grid of excess values, a setting that cannot be calculated is not a candidate, bisection runs only between two neighbouring points that enclose the target, and the answer is solved once more and returned only if it reproduces the target. Otherwise the reason says which range of outlet temperatures can be reached. |
+| R2 | `web/tab-heat.js` | The excess and the air box were sent as "0" and "off" whenever they were hidden, and whether they were hidden depended on the previous reaction. After a single-reactant reaction, a hydrogen flame was calculated without air (4485 K) while the page showed 20 % excess air (2252 K). | The controls are always sent as they stand; the solver ignores what cannot apply. After an error every control is shown again. |
+| R3 | `web/tab-heat.js` | "More inert means a cooler outlet" was printed for every case. For an endothermic adiabatic reactor more inert gives a warmer outlet, and with a fixed outlet temperature the sentence means nothing. | The sentence now says that an inert pulls the outlet towards the inlet temperature, and states the direction for the case at hand. In heat-duty mode it says that the inert adds to the duty. |
+| R4 | `web/tab-heat.js` | With zero conversion the heat of reaction (0 kJ) was labelled "endothermic". | A third state, "nothing reacts". |
+
+## Should fix (all fixed)
+
+| # | Where | Issue | Fix |
+|---|---|---|---|
+| R5 | `web/tab-heat.js` | Choosing another basis always failed for a reaction with two reactants, because the old "reactant in excess" was sent along and was now the basis itself. | A new basis clears the reactant in excess, and the solver picks the default. |
+| R6 | `api.py` | A whole number with more than 308 digits in a numeric field, more than 4300 digits anywhere, or 100,000 nested brackets gave an internal error instead of an input error. | `OverflowError` is handled where numbers are read, and `ValueError` and `RecursionError` where the JSON is parsed. Species names are limited to 200 characters. |
+| R7 | `heatbalance.solve` | Only the search for the outlet temperature was kept inside the range where the summed heat capacity is positive. An inlet temperature, or a given outlet temperature, outside it was accepted, and the balance then returned a second root: with nothing reacting and pure oxygen at 5900 K the outlet came out at 4931 K. An inlet of "25" (meant as °C) gave 1891 K. | Both temperatures must lie inside the usable range of their stream (at least 200 K). The message reminds the user that the solver works in kelvin. |
+| R8 | `api.py` | Limits were reported as fractions ("must be at most 1") although the page shows percent, and an excess above 5000 % failed on the default plot range. | Messages in percent, and the default plot range is clamped. |
+| R9 | `heatbalance.build_case` | When the basis was also fed another way (nitrogen as the basis of N₂ + O₂ → 2 NO with air, or extra feed of the basis), "1 mol fed" and "100 % conversion" no longer meant what they said. | With air, nitrogen cannot be the basis; if nitrogen is another reactant, the air is its only source. Extra feed of the basis is refused. |
+
+## Minor (fixed)
+
+- Two values were computed in JavaScript (the heat taken up by the calorimeter and the bomb value per kilogram). Both now come from the solver.
+- Double negatives in two sentences ("the remaining −x kJ is taken from", "needs −x kJ").
+- Every slider step ran the 41-point plot and, with a temperature limit, the goal seek. While a slider moves only the point is calculated; the plot is greyed and redrawn on release.
+- The key and excess selections were attributed to the text in the box at the time of the answer, not to the text that had been sent.
+- The settings summary said "heat removed" for a field named "heat added".
+- On the product slate a reversed plot range silently cleared the plots; it now says why.
+
+## Tests
+
+The reviewer planted 18 faults that the suite did not notice, among them heating values off by a factor of 1000, the air-fuel ratio without nitrogen, a calorimeter that ignores the sample mass, the goal seek ignoring the heat removed, the two enthalpy lines swapped, and the reformer example with a wrong extent. Two tests were pure arithmetic with no solver code in them. `TestSecondReview` now holds a test for each of these, and the handout check calls the solver's own function.
+
+## What the reviewer verified as correct
+
+With its own Gauss-Legendre quadrature and bisection, sharing only the tabulated constants:
+
+- Flame temperature of methane with 20 % excess air: 2066.425 K, identical to the solver.
+- Four further cases, all identical: propane with 50 % excess air and a 500 K feed (1985.72 K), the SO₂ bed (1026.90 K), the ethane cracker (110,844 J) and the lime kiln (265,804 J). The reformer example gives 328,012 J.
+- Reactants with a coefficient other than 1 as the basis (hydrogen in ammonia synthesis, ammonia oxidation), side reactions, extra feed of a product, preheat and Q ≠ 0: the three steps of the path match and add up to Q.
+- 3,000 random streams with solids, liquids and hydrocarbons: every temperature returned was the correct root, and every refusal was justified.
+- Ideal work against its own integration of (1 − T_σ/T)·Cp.
+- Combustion stoichiometry, Δn_gas, ΔU, heating values, air-fuel ratio and CO₂ per MJ for eight fuels including NH₃, HCN, H₂S and graphite, and Δn_gas for all 36 fuels.
+- The calibration and the ΔU to ΔH conversion of the lab handout.
+- Units and scale factors of every value the two tabs display, and that all user text is escaped.
+
+## Verdict
+
+Approved after the fixes above. The suite has 214 tests.

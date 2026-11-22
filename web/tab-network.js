@@ -219,7 +219,11 @@
   function renderPlots(r) {
     const s = r.sweep;
     const out = $("#nw-out");
-    if (!s) { out.innerHTML = ""; lastSweep = null; return; }
+    if (!s) {
+      out.innerHTML = `<div class="panel">${TS.message("warning", "<strong>No plots:</strong> the plot range is empty. \"To\" must be above \"From\".")}</div>`;
+      lastSweep = null;
+      return;
+    }
     const el = r.key_element;
     const sk = s.skipped || [];
     const unit = s.variable === "T" ? "K" : "bar";

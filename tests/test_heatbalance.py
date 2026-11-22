@@ -84,7 +84,7 @@ class TestEnergyBalance(unittest.TestCase):
         # inaccurate, and a million moles of inert made the round-off exceed a tolerance
         # that was scaled to the (small) heat duty instead of to the (huge) enthalpies.
         rxn = Reaction.parse("CO + 2 H2 -> CH3OH(g)")
-        cold = hb.solve(hb.build_case(rxn, conversion=0.3, excess=1.25), 1500.0, "duty", T_out=1.0)
+        cold = hb.solve(hb.build_case(rxn, conversion=0.3, excess=1.25), 1500.0, "duty", T_out=200.0)
         self.assertTrue(all(c["passed"] for c in cold["audit"]), cold["audit"])
         big = hb.build_case(Reaction.parse("N2 + 3 H2 -> 2 NH3"), conversion=0.2, extra={"CO2(g)": 1e6})
         for res in (hb.solve(big, 600.0), hb.solve(big, 600.0, Q=-2e5), hb.solve(big, 600.0, "duty", T_out=900.0)):
@@ -258,10 +258,6 @@ class TestBombCalorimeter(unittest.TestCase):
         with self.assertRaises(InputError):
             hb.calorimeter_constant(1.0, 0.0, 26000.0)
 
-    def test_handout_relation_between_dU_and_dH(self):
-        # benzoic acid in the handout: dU = -3228.7 kJ/mol, dn(gas) = -0.5, T = 303.15 K -> dH = -3230.0
-        self.assertAlmostEqual(-3228.7 + (-0.5) * R * 303.15 / 1000.0, -3230.0, delta=0.05)
-
     def test_combustion_reaction_is_built_from_the_formula(self):
         self.assertEqual(hb.combustion_reaction("C2H5OH(l)").equation,
                          "C2H5OH(l) + 3 O2(g) → 2 CO2(g) + 3 H2O(l)")
@@ -311,6 +307,230 @@ class TestBombCalorimeter(unittest.TestCase):
                 hb.identify_fuel(**bad)
 
 
+class TestSecondReview(unittest.TestCase):
+    """One test per finding of the independent review of the heat lab
+    (docs/CODE_REVIEW.md, second review). Labels R1, R2 ... are the review's."""
+
+    SMR = "CH4 + H2O(g) -> CO + 3 H2"
+
+    def goal(self, equation, target, T_in, **settings):
+        return hb.excess_for_outlet_temperature(Reaction.parse(equation), target, T_in, **settings)
+
+    def test_R1_goal_seek_never_reports_an_excess_that_misses_the_target(self):
+        # An endothermic reactor fed at 1100 K can never have an outlet at 1200 K
+        res = self.goal(self.SMR, 1200.0, 1100.0, conversion=0.6, excess_species="H2O(g)")
+        self.assertIsNone(res["excess"])
+        self.assertIn("not reached", res["reason"])
+        # With NO formation as a side reaction a small excess is infeasible; the first feasible
+        # point is already below the target, which used to be reported as the answer (5 %)
+        side = [(Reaction.parse("N2 + O2 -> 2 NO"), 0.1)]
+        res = self.goal(METHANE, 2300.0, T0, air=True, side=side)
+        self.assertIsNone(res["excess"])
+        # Heat removal that puts every outlet below the usable range
+        res = self.goal(METHANE, 296.0, T0, air=True, Q=-9e5)
+        self.assertIsNone(res["excess"])
+        # A target above the feed and below every outlet is met at some large excess, not refused
+        res = self.goal(METHANE, 320.0, T0, air=True)
+        if res["excess"] is None:
+            self.assertNotIn("hotter than the target", res["reason"])
+        # Whenever an excess is reported, solving with it gives the target
+        cases = [(METHANE, 1500.0, T0, dict(air=True)), (METHANE, 1800.0, 600.0, dict(air=True)),
+                 (METHANE, 1500.0, T0, dict(air=True, Q=-1e5)), (METHANE, 2100.0, T0, dict(air=True, side=side)),
+                 ("H2 + 1/2 O2 -> H2O(g)", 1400.0, T0, dict(air=True)),
+                 (self.SMR, 900.0, 1100.0, dict(conversion=0.3, excess_species="H2O(g)")),
+                 ("SO2 + 1/2 O2 -> SO3(g)", 900.0, 693.15, dict(air=True, conversion=0.7))]
+        found = 0
+        for equation, target, T_in, settings in cases:
+            res = self.goal(equation, target, T_in, **settings)
+            if res["excess"] is None:
+                self.assertTrue(res["reason"], equation)
+                continue
+            found += 1
+            Q = settings.pop("Q", 0.0)
+            back = hb.solve(hb.build_case(Reaction.parse(equation), excess=res["excess"], **settings), T_in, Q=Q)
+            self.assertAlmostEqual(back["T_out"], target, delta=1e-3, msg=equation)
+            self.assertAlmostEqual(res["T_out"], target, delta=1e-3)
+        self.assertGreaterEqual(found, 5)
+        # heat removal changes the answer, so Q is really used
+        plain = self.goal(METHANE, 1500.0, T0, air=True)["excess"]
+        cooled = self.goal(METHANE, 1500.0, T0, air=True, Q=-1e5)["excess"]
+        self.assertLess(cooled, plain - 0.05)
+
+    def test_R1_through_the_api(self):
+        res = ok("heat_balance", {"equation": self.SMR, "T_in": 1100, "conversion": 0.6, "excess": 3.0,
+                                  "target_T": 1200})
+        self.assertIsNone(res["target"]["excess"])
+        self.assertTrue(res["target"]["reason"])
+
+    def test_R6_numbers_no_float_can_hold_are_bad_input_not_internal_errors(self):
+        huge = 10 ** 400
+        for endpoint, payload in (("heat_balance", {"equation": METHANE, "T_in": huge}),
+                                  ("heat_balance", {"equation": METHANE, "excess": huge}),
+                                  ("heat_balance", {"equation": METHANE, "Q": huge}),
+                                  ("calorimeter", {"fuel": "CH4", "mass": huge, "C_cal": 12800}),
+                                  ("analyze", {"equation": METHANE, "T": huge}),
+                                  ("pressure", {"equation": METHANE, "T": 700, "P": huge}),
+                                  ("sensible", {"species": "CH4", "T1": 300, "T2": 500, "moles": huge})):
+            out = call(endpoint, payload)
+            self.assertFalse(out["ok"], endpoint)
+            self.assertEqual(out["error"]["kind"], "input_error", f"{endpoint}: {out['error']['message']}")
+        # text that json itself refuses
+        for text in ('{"equation": "N2 + 3 H2 -> 2 NH3", "T": ' + "9" * 5000 + "}", "[" * 100000 + "]" * 100000):
+            out = json.loads(api.call("analyze", text))
+            self.assertEqual(out["error"]["kind"], "input_error")
+            self.assertIn("valid JSON", out["error"]["message"])
+        out = call("calorimeter", {"fuel": "x" * 100000, "mass": 1, "C_cal": 12800})
+        self.assertEqual(out["error"]["kind"], "input_error")
+
+    def test_R7_temperatures_outside_the_usable_range_are_refused(self):
+        rxn = Reaction.parse(METHANE)
+        # Without reaction the outlet must equal the inlet; outside the window it did not.
+        # Methane with pure oxygen at 5900 K: the summed heat capacity is negative there
+        # (the review found an outlet of 4931 K for this feed with nothing reacting).
+        pure = hb.build_case(rxn, conversion=0.0)
+        self.assertLess(hb.Stream(pure["feed"]).window()[1], 5900.0)
+        with self.assertRaises(InputError) as ctx:
+            hb.solve(pure, 5900.0)
+        self.assertIn("outside the range", ctx.exception.message)
+        for T_in, fragment in ((1.0, "kelvin"), (25.0, "273.15")):      # 25 typed for 25 degrees Celsius
+            with self.assertRaises(InputError) as ctx:
+                hb.solve(hb.build_case(rxn, conversion=0.0, excess=0.2, air=True), T_in)
+            self.assertIn(fragment, ctx.exception.message)
+        with self.assertRaises(InputError):
+            hb.solve(hb.build_case(rxn), T0, "duty", T_out=5.0)
+        with self.assertRaises(InputError):
+            hb.solve(pure, T0, "duty", T_out=5900.0)
+        # inside the window "no reaction" really means "no change", from one end to the other
+        case = hb.build_case(rxn, conversion=0.0, excess=0.2, air=True)
+        lo, hi = hb.Stream(case["feed"]).window()
+        self.assertEqual(lo, 200.0)
+        for T_in in (lo, 250.0, 1000.0, 3000.0, hi):
+            self.assertAlmostEqual(hb.solve(case, T_in)["T_out"], T_in, places=6)
+
+    def test_R8_limits_are_worded_in_percent_and_the_default_plot_stays_legal(self):
+        out = call("heat_balance", {"equation": METHANE, "conversion": 1.5})
+        self.assertIn("100 %", out["error"]["message"])
+        out = call("heat_balance", {"equation": METHANE, "excess": 200.0})
+        self.assertIn("10,000 %", out["error"]["message"])
+        res = ok("heat_balance", {"equation": METHANE, "excess": 80.0, "air": True})        # 8,000 % excess
+        self.assertEqual(res["sweep"]["x"][-1], hb.MAX_EXCESS)
+
+    def test_R9_the_basis_is_fed_in_one_way_only(self):
+        no = Reaction.parse("N2 + O2 -> 2 NO")
+        with self.assertRaises(InputError) as ctx:
+            hb.build_case(no, air=True)                               # N2 is the default basis
+        self.assertIn("basis", ctx.exception.message)
+        case = hb.build_case(no, key="O2(g)", excess_species="N2(g)", air=True, conversion=0.1)
+        self.assertAlmostEqual(case["feed"]["O2(g)"], 1.0)
+        self.assertAlmostEqual(case["feed"]["N2(g)"], 79 / 21)        # the air is the only nitrogen
+        self.assertAlmostEqual(case["outlet"]["NO(g)"], 0.2)
+        with self.assertRaises(InputError):
+            hb.build_case(Reaction.parse(METHANE), extra={"CH4(g)": 1.0})
+        hb.build_case(Reaction.parse(METHANE), extra={"CO2(g)": 1.0})   # a product may be fed
+
+    def test_R10_values_the_page_shows_come_from_the_solver(self):
+        facts = hb.fuel_facts(Reaction.parse(METHANE))
+        self.assertAlmostEqual(facts["bomb_value_mass"], 885.6914 / 16.043, delta=0.01)       # MJ/kg
+        found = hb.identify_fuel(0.5, 1.2, 12800.0)
+        self.assertAlmostEqual(found["heat_measured"], 12800.0 * 1.2)
+
+    # ---- behaviour that no earlier test would have caught if it broke (review, part D)
+    def test_fuel_numbers_per_kilogram(self):
+        f = hb.fuel_facts(Reaction.parse(METHANE))
+        self.assertAlmostEqual(f["LHV_mass"], 802.625 / 16.043, delta=0.01)        # 50.03 MJ/kg
+        self.assertAlmostEqual(f["HHV_mass"], 890.649 / 16.043, delta=0.01)        # 55.52 MJ/kg
+        # 2 mol O2 and 7.524 mol N2 per 16.043 g of methane
+        self.assertAlmostEqual(f["air_fuel_mass"], (2 * 31.999 + 2 * 79 / 21 * 28.014) / 16.043, delta=0.02)
+        self.assertAlmostEqual(f["air_fuel_mass"], 17.13, delta=0.02)
+        self.assertAlmostEqual(f["co2_per_mol"], 1.0)
+
+    def test_fuels_with_nitrogen_and_sulfur(self):
+        # NH3 + 3/4 O2 -> 3/2 H2O + 1/2 N2 and H2S + 3/2 O2 -> H2O + SO2, from Table C.4 by hand
+        nh3 = hb.heating_values("NH3(g)")
+        self.assertAlmostEqual(nh3["LHV"] * nh3["molar_mass"], 1.5 * 241818.0 - 46110.0, delta=1.0)
+        self.assertAlmostEqual(nh3["dH_c"], -(1.5 * 285830.0 - 46110.0), delta=1.0)
+        self.assertAlmostEqual(nh3["dn_gas"], 0.5 - 1.0 - 0.75)
+        h2s = hb.heating_values("H2S(g)")
+        self.assertAlmostEqual(h2s["LHV"] * h2s["molar_mass"], 241818.0 + 296830.0 - 20630.0, delta=1.0)
+        self.assertAlmostEqual(h2s["dn_gas"], 1.0 - 1.0 - 1.5)
+        self.assertAlmostEqual(h2s["dn_RT"], -1.5 * R * T0, places=6)
+        self.assertAlmostEqual(h2s["dU_c"], h2s["dH_c"] + 1.5 * R * T0, places=6)
+        self.assertAlmostEqual(hb.enthalpy_from_internal_energy(h2s["dU_c"], h2s["dn_gas"], T0), h2s["dH_c"], places=6)
+
+    def test_handout_conversion_from_dU_to_dH(self):
+        # benzoic acid in the lab handout: dU = -3228.7 kJ/mol, dn(gas) = -0.5, 303.15 K -> dH = -3230.0 kJ/mol
+        dH = hb.enthalpy_from_internal_energy(-3228.7e3, -0.5, 303.15)
+        self.assertAlmostEqual(dH / 1000.0, -3230.0, delta=0.05)
+
+    def test_calorimeter_scales_with_the_sample_mass(self):
+        C = 12800.0
+        one = hb.calorimeter_run("C2H5OH(l)", 1.0, C)
+        two = hb.calorimeter_run("C2H5OH(l)", 2.0, C)
+        self.assertAlmostEqual(two["dT"], 2.0 * one["dT"], places=10)
+        self.assertAlmostEqual(two["heat_released"], 2.0 * one["heat_released"], places=6)
+        self.assertAlmostEqual(two["moles"], 2.0 / one["molar_mass"], places=12)
+        with_wire = hb.calorimeter_run("C2H5OH(l)", 2.0, C, corrections=500.0)
+        self.assertAlmostEqual(with_wire["dT"] - two["dT"], 500.0 / C, places=10)
+        # the same rise from half the mass means twice the calorific value
+        a = hb.identify_fuel(1.0, 2.0, C)["measured_calorific_value"]
+        b = hb.identify_fuel(0.5, 2.0, C)["measured_calorific_value"]
+        self.assertAlmostEqual(b, 2.0 * a, places=6)
+        # the best match is the first candidate, and it is the one that is worked out below it
+        res = ok("calorimeter", {"mode": "identify", "mass": 1.0, "dT": one["dT"], "C_cal": C})
+        self.assertEqual(res["run"]["fuel"], res["identify"]["candidates"][0]["fuel"])
+        diffs = [abs(c["difference"]) for c in res["identify"]["candidates"]]
+        self.assertEqual(diffs, sorted(diffs))
+        cal = ok("calorimeter", {"mode": "predict", "fuel": "CH3OH(l)", "mass": 1.0,
+                                 "calibration": {"mass": 1.0, "dT": 2.0, "calorific_value": 26000.0, "corrections": 400.0}})
+        self.assertAlmostEqual(cal["calibration"]["heat"], 26400.0)
+        self.assertAlmostEqual(cal["C_cal"], 13200.0)
+
+    def test_stream_table_and_curves_agree_with_the_balance(self):
+        res = ok("heat_balance", {"equation": self.SMR, "excess_species": "H2O(g)", "excess": 1.0, "T_in": 600,
+                                  "mode": "duty", "T_out": 1300, "sweep": "T_out", "n_points": 5,
+                                  "side": [{"equation": "CO + H2O(g) -> CO2 + H2", "extent": 0.13}]})
+        p = res["point"]
+        self.assertAlmostEqual(sum(row["sensible_in"] for row in p["species"]), p["path"]["dH_R"], delta=1e-6)
+        self.assertAlmostEqual(sum(row["sensible_out"] for row in p["species"]), p["path"]["dH_P"], delta=1e-6)
+        self.assertLess(p["path"]["dH_R"], 0.0)                 # cooling the feed to 298 K gives up heat
+        self.assertAlmostEqual(sum(row["y_out"] for row in p["species"]), 1.0, places=12)
+        self.assertAlmostEqual(p["Q_per_kg"], p["Q"] / 0.016043, delta=1.0)        # J per kg of methane
+        # the two enthalpy lines are the feed and the outlet, not the other way round
+        case = hb.build_case(Reaction.parse(self.SMR), excess_species="H2O(g)", excess=1.0,
+                             side=[(Reaction.parse("CO + H2O(g) -> CO2 + H2"), 0.13)])
+        feed, outlet = hb.Stream(case["feed"]), hb.Stream(case["outlet"])
+        for T, h_feed, h_out in zip(res["curves"]["T"], res["curves"]["H_feed"], res["curves"]["H_out"]):
+            self.assertAlmostEqual(h_feed, feed.H(T), delta=1e-6)
+            self.assertAlmostEqual(h_out, outlet.H(T), delta=1e-6)
+        # a sweep of the outlet temperature holds duties, rising with temperature
+        sw = res["sweep"]
+        self.assertEqual(sw["T_out"], sw["x"])
+        self.assertTrue(all(b > a for a, b in zip(sw["Q"], sw["Q"][1:])))
+        self.assertAlmostEqual(sw["Q"][0], hb.solve(case, 600.0, "duty", T_out=sw["x"][0])["Q"], delta=1e-6)
+
+    def test_a_hot_feed_is_range_warned_too(self):
+        res = hb.solve(hb.build_case(Reaction.parse(METHANE), excess=2.0, air=True), 1800.0, "duty", T_out=1900.0)
+        feed_warned = {w["species"] for w in res["warnings"] if w["where"] == "feed"}
+        self.assertEqual(feed_warned, {"CH4(g)"})               # methane's correlation ends at 1500 K
+
+    def test_library_examples_give_the_textbook_numbers(self):
+        examples = {e["id"]: e for e in library.HEAT_EXAMPLES}
+
+        def run(key):
+            return ok("heat_balance", {k: v for k, v in examples[key].items() if k not in ("id", "name", "note")})
+
+        self.assertAlmostEqual(run("methane_burner")["point"]["T_out"], 2066.0, delta=1.0)
+        reformer = run("reformer_duty")["point"]
+        self.assertAlmostEqual(reformer["Q"], 328010.0, delta=5.0)
+        self.assertAlmostEqual(reformer["outlet"]["CO(g)"] / reformer["outlet_total"], 0.174, places=6)
+
+    def test_a_point_only_request_skips_the_sweep(self):
+        res = ok("network", {"species": ["N2", "H2", "NH3"], "feed": {"N2": 1, "H2": 3}, "T": 700, "P": 100,
+                             "sweep": "none"})
+        self.assertIsNone(res["sweep"])
+        self.assertAlmostEqual(sum(res["y"].values()), 1.0, places=9)
+
+
 class TestApi(unittest.TestCase):
     def test_heat_balance_point_sweep_and_goal(self):
         res = ok("heat_balance", {"equation": METHANE, "excess": 0.2, "air": True, "target_T": 1500})
@@ -343,9 +563,13 @@ class TestApi(unittest.TestCase):
         self.assertIsNone(single["excess_species"])                # the excess is ignored, not an error
         self.assertEqual(single["sweep"]["variable"], "T_in")
         self.assertTrue(700.0 < single["point"]["T_out"] < 850.0, single["point"]["T_out"])
-        # Half of the ethane cannot crack adiabatically from 1000 K: the reaction would need more
-        # heat than the feed carries, and the solver says so instead of extrapolating far below 298 K.
-        out = call("heat_balance", {"equation": "C2H6 -> C2H4 + H2", "T_in": 1000, "conversion": 0.5})
+        # Cracking half of the ethane adiabatically from 1000 K needs more heat than the feed carries
+        # above 298 K: the balance puts the outlet at 235 K, and the page must say that this is extrapolated.
+        half = ok("heat_balance", {"equation": "C2H6 -> C2H4 + H2", "T_in": 1000, "conversion": 0.5})
+        self.assertAlmostEqual(half["point"]["T_out"], 234.9, delta=0.5)
+        self.assertEqual({w["species"] for w in half["point"]["warnings"]}, {"C2H6(g)", "C2H4(g)", "H2(g)"})
+        # 80 % cannot be reached at all: the outlet would lie below the 200 K floor
+        out = call("heat_balance", {"equation": "C2H6 -> C2H4 + H2", "T_in": 1000, "conversion": 0.8})
         self.assertEqual(out["error"]["kind"], "input_error")
         self.assertIn("preheat", out["error"]["message"])
 
