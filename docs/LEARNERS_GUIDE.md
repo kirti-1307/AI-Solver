@@ -167,14 +167,27 @@ Example: (CO₂ + H₂ → CO + H₂O) plus (CO + 2 H₂ → CH₃OH) gives CO�
 
 Tab 1 looks at one reaction at a time. In a real reactor several reactions compete for the same atoms. Here you only say which substances are allowed to exist. The solver then finds the mixture with the lowest total Gibbs energy, like a ball rolling to the lowest point of a valley. The only rule is that atoms are not created or destroyed.
 
-**You do:** drag the temperature, pressure and feed-ratio sliders. Click a product to switch it off.
+**You do:** drag the temperature, pressure and feed-ratio sliders. Click a product to switch it off. Or press the numbered "Try this" buttons, which do the switching for you.
 
-Example: CO₂ + 3 H₂ at 523 K and 50 bar.
+**What a switch means:** off means the catalyst cannot make that product. So a switch imitates a selective catalyst.
 
-- With methane allowed, 74.8 % of the carbon ends up as methane. Almost no methanol forms.
-- With methane switched off, 25.2 % of the CO₂ reacts, and most of that becomes methanol.
+**Why some switches are faded:** a switch can only change the result if its product holds a real share of the atoms. If a product holds nothing, there is nothing to take away. The solver checks this for every switch, each time you move something:
 
-What this teaches: thermodynamics prefers methane. A methanol plant works because its catalyst does not make methane. Switching a product off is how you imitate such a catalyst.
+- A normal switch shows the share its product holds, for example "74.8 % of C". You can click it.
+- A **faded** switch says "no effect now". Blocking it would change nothing, so it cannot be clicked. It wakes up when it starts to matter.
+- A **dashed** switch is either fed to the reactor, or "needed": without it nothing could react at all, because the atoms would have nowhere to go.
+
+Example: CO₂ + 3 H₂ at 523 K and 50 bar. Press the three "Try this" buttons in turn.
+
+1. **Everything allowed.** 74.8 % of the carbon ends up as methane. Methanol and CO hold 0.0 %, so their switches are faded. Only the methane switch can be clicked.
+2. **Methane off.** Only 25.2 % of the CO₂ reacts now: 17.3 % to methanol and 7.9 % to CO. The methanol and CO switches have woken up.
+3. **Methane and CO off.** Only methanol can form: 21.3 % of the CO₂ reacts. Methanol is now "needed", because it is the only product left.
+
+Water is "needed" in all three steps. The oxygen atoms of CO₂ have to go somewhere, and water is the only place.
+
+What this teaches: thermodynamics prefers methane. A methanol plant works because its catalyst does not make methane.
+
+If you want to allow or block any substance freely, open "Build your own system" under the switches.
 
 The "solid carbon" card tells you whether soot (coke) can form. A carbon activity above 1 means it can.
 
@@ -305,13 +318,14 @@ Try to answer before you read the answer.
 12. **Does a favourable ΔG mean the reaction is fast?** No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.
 13. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
 14. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
+15. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 17.3 %; now its switch matters.
 
 ## 10. A five-minute tour
 
 1. Open the **Start** page and click "Try to break it". The unbalanced reaction is rejected.
 2. Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.
 3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.66 kJ/mol at 200 bar. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
-4. Click "What actually forms?" Switch methane off and on. Drag the temperature slider.
+4. Click "What actually forms?" Press the three "Try this" buttons: everything allowed, methane off, methane and CO off. Point at the faded switches and say why they are faded. Then drag the temperature slider.
 5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool.
 6. Click "Bomb calorimeter" and press Ignite.
 7. Finish on **Validation**: 57 of 57 reference values reproduced.

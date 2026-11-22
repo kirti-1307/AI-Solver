@@ -609,6 +609,91 @@ def formation(payload: dict) -> dict:
 # ---------------------------------------------------------------------------
 # 4. feature: competing-reaction equilibrium by Gibbs minimisation
 # ---------------------------------------------------------------------------
+# A mole fraction or an atom share has to move by more than this (0.05
+# percentage points) before a product switch counts as changing the result.
+SWITCH_TOLERANCE = 5e-4
+
+
+def _switch_effects(point: dict, candidates: List[str], feed: Dict[str, float], T: float, P: float,
+                    model: str, key_el: str) -> List[dict]:
+    """What each product switch of the product slate would change right now.
+
+    A switch removes one species from those allowed to form (or allows it
+    again). Whether that matters depends on the conditions: a species that
+    holds none of the atoms can be removed without any effect. For every
+    species the equilibrium is therefore solved once more with that one switch
+    flipped, and the two mixtures are compared.
+
+    effect: "feed"        fed to the reactor, not a product
+            "needed"      without it nothing can react (the atoms have nowhere else to go)
+            "none"        flipping the switch changes nothing at these conditions
+            "changes"     flipping the switch changes the mixture
+            "cannot_form" the feed has none of an element it contains
+    """
+    ids = list(point["species"])
+    fed = [s for s in ids if point["feed"].get(s, 0.0) > 0.0]
+    with_key = [s for s in fed if SPECIES[s].elements.get(key_el, 0)]
+    primary = max(with_key or fed, key=lambda s: point["feed"][s])
+    dist = point["atom_distribution"]
+
+    def solve(species: List[str]) -> Optional[dict]:
+        try:
+            alt = gibbs_minimize(species, feed, T, P, model)
+        except SolverError:
+            return None
+        alt["atom_distribution"] = atom_distribution(alt, key_el)
+        return alt
+
+    def moved(alt: dict) -> float:
+        """Largest change of a mole fraction or of an atom share."""
+        dy = max(abs(point["y"].get(k, 0.0) - alt["y"].get(k, 0.0)) for k in set(point["y"]) | set(alt["y"]))
+        other = alt["atom_distribution"]
+        ds = max((abs(dist.get(k, 0.0) - other.get(k, 0.0)) for k in set(dist) | set(other)), default=0.0)
+        return max(dy, ds)
+
+    def row(sid: str, state: str) -> dict:
+        return {"species": sid, "name": SPECIES[sid].name, "state": state, "effect": None, "clickable": False,
+                "y": point["y"].get(sid), "share": dist.get(sid),
+                "y_if_flipped": None, "share_if_flipped": None, "largest_change": None,
+                "primary": primary, "conversion_now": point["conversions"][primary],
+                "conversion_if_flipped": None}
+
+    reacting = any(abs(v) > 1e-6 for v in point["conversions"].values())
+    rows = []
+    for sid in ids:
+        r = row(sid, "feed" if sid in fed else "on")
+        if sid in fed:
+            r["effect"] = "feed"
+        elif sid in point["excluded"]:
+            r["effect"] = "cannot_form"
+        else:
+            alt = solve([s for s in ids if s != sid])
+            if alt is None or (reacting and all(abs(v) < 1e-9 for v in alt["conversions"].values())):
+                r["effect"] = "needed"
+            else:
+                change = moved(alt)
+                r.update(largest_change=change, conversion_if_flipped=alt["conversions"][primary],
+                         effect="changes" if change >= SWITCH_TOLERANCE else "none")
+                r["clickable"] = r["effect"] == "changes"
+        rows.append(r)
+
+    for sid in candidates:
+        r = row(sid, "off")
+        r["clickable"] = True                       # a blocked product can always be allowed again
+        alt = solve(ids + [sid])
+        if alt is None:
+            r["effect"] = "changes"
+        elif sid in alt["excluded"]:
+            r["effect"] = "cannot_form"
+        else:
+            change = moved(alt)
+            r.update(largest_change=change, conversion_if_flipped=alt["conversions"][primary],
+                     y_if_flipped=alt["y"][sid], share_if_flipped=alt["atom_distribution"].get(sid),
+                     effect="changes" if change >= SWITCH_TOLERANCE else "none")
+        rows.append(r)
+    return rows
+
+
 def network(payload: dict) -> dict:
     species = payload.get("species")
     feed = payload.get("feed")
@@ -620,6 +705,13 @@ def network(payload: dict) -> dict:
         raise InputError("Every species must be given by its name or formula.")
     if not isinstance(feed, dict) or not feed:
         raise InputError("Give the feed composition in moles.")
+    want_switches = payload.get("switches", False)
+    if not isinstance(want_switches, bool):
+        raise InputError("'switches' must be true or false.")
+    blocked_names = payload.get("candidates") or []
+    if (not isinstance(blocked_names, list) or len(blocked_names) > 20
+            or not all(isinstance(s, str) for s in blocked_names)):
+        raise InputError("The blocked products must be given as a list of at most 20 names or formulas.")
     T = _temperature(payload)
     P = _pressure(payload)
     model = _model(payload, "ideal")
@@ -636,6 +728,15 @@ def network(payload: dict) -> dict:
         raise InputError(f"Element {key_el} is not present in this system.")
     point["key_element"] = key_el
     point["atom_distribution"] = atom_distribution(point, key_el)
+
+    point["switches"] = None
+    if want_switches:
+        blocked = []
+        for name in blocked_names:
+            sid = find_species(name)[0].id
+            if sid not in ids and sid not in blocked:
+                blocked.append(sid)
+        point["switches"] = _switch_effects(point, blocked, clean_feed, T, P, model, key_el)
 
     warnings = []
     for sid in ids:

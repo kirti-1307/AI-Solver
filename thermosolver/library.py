@@ -138,7 +138,16 @@ NETWORKS = [
         "species": ["CO2(g)", "H2(g)", "CH3OH(g)", "CO(g)", "H2O(g)", "CH4(g)"],
         "feed": {"CO2(g)": 1, "H2(g)": 3},
         "T_range": [400, 900], "P": 50,
+        "T": 523,              # the tab opens here: the temperature of methanol synthesis
         "optional": ["CH4(g)"],
+        "tour": [
+            {"label": "Everything allowed", "off": [],
+             "say": "Methane takes almost all the carbon. Methanol and CO get nothing, so their switches do nothing yet."},
+            {"label": "Methane off", "off": ["CH4(g)"],
+             "say": "A catalyst that cannot make methane. Now methanol and CO share the carbon, and their switches wake up."},
+            {"label": "Methane and CO off", "off": ["CH4(g)", "CO(g)"],
+             "say": "Only methanol can form: the most a perfectly selective methanol catalyst could reach."},
+        ],
         "note": "Switch CH4 off to see what a catalyst that cannot make methane is limited to.",
     },
     {
@@ -148,6 +157,14 @@ NETWORKS = [
         "feed": {"CH4(g)": 2, "H2O(g)": 3},
         "T_range": [600, 1300], "P": 1,
         "optional": [],
+        "tour": [
+            {"label": "Everything allowed", "off": [],
+             "say": "Reforming and the water-gas shift run together: the carbon ends up as CO and CO2."},
+            {"label": "CO2 off", "off": ["CO2(g)"],
+             "say": "No water-gas shift: every converted carbon atom ends up as CO."},
+            {"label": "CO off", "off": ["CO(g)"],
+             "say": "Reforming straight to CO2. Less methane converts, because this route needs more steam."},
+        ],
         "note": "SVN solves this system at 1000 K and 1 bar by Gibbs minimisation.",
     },
     {
@@ -157,6 +174,12 @@ NETWORKS = [
         "feed": {"CH4(g)": 1, "CO2(g)": 1},
         "T_range": [700, 1400], "P": 1,
         "optional": [],
+        "tour": [
+            {"label": "Everything allowed", "off": [],
+             "say": "Besides reforming, some hydrogen reacts with CO2 to water (the reverse water-gas shift)."},
+            {"label": "Water off", "off": ["H2O(g)"],
+             "say": "No reverse shift: methane and CO2 now convert to exactly the same extent."},
+        ],
         "note": "Watch the carbon activity: coke is predicted at the lower temperatures.",
     },
     {
@@ -166,6 +189,7 @@ NETWORKS = [
         "feed": {"N2(g)": 1, "H2(g)": 3},
         "T_range": [500, 900], "P": 200,
         "optional": [],
+        "tour": [],
         "note": "One reaction only, so the result must match the single-reaction solver.",
     },
     {
@@ -175,6 +199,12 @@ NETWORKS = [
         "feed": {"CO(g)": 1, "H2(g)": 2, "CO2(g)": 0.1},
         "T_range": [450, 700], "P": 80,
         "optional": [],
+        "tour": [
+            {"label": "Everything allowed", "off": [],
+             "say": "Methanol synthesis and a little water-gas shift run together."},
+            {"label": "Methanol off", "off": ["CH3OH(g)"],
+             "say": "Only the shift reaction is left: hardly any CO converts."},
+        ],
         "note": "",
     },
     {
@@ -184,6 +214,12 @@ NETWORKS = [
         "feed": {"H2(g)": 1, "O2(g)": 1},
         "T_range": [300, 1200], "P": 1,
         "optional": ["H2O(g)"],
+        "tour": [
+            {"label": "Everything allowed", "off": [],
+             "say": "Water is so stable that it takes all the hydrogen. The peroxide switch does nothing."},
+            {"label": "Water off", "off": ["H2O(g)"],
+             "say": "A catalyst that stops at the peroxide: now hydrogen peroxide is what forms."},
+        ],
         "note": "Switch H2O off to see what a catalyst that stops at the peroxide could reach. H2O2 uses NIST data.",
     },
     {
@@ -193,6 +229,12 @@ NETWORKS = [
         "feed": {"N2(g)": 0.79, "O2(g)": 0.21},
         "T_range": [1000, 2000], "P": 1,
         "optional": [],
+        "tour": [
+            {"label": "Everything allowed", "off": [],
+             "say": "Hot air makes a little NO and almost nothing else. Drag the temperature up to see it grow."},
+            {"label": "NO off", "off": ["NO(g)"],
+             "say": "Without NO practically nothing forms: NO2 and N2O are far less stable at flame temperatures."},
+        ],
         "note": "Shows why NO only appears in flames.",
     },
 ]

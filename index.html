@@ -9,17 +9,17 @@
     // Apply a saved light/dark choice before the first paint.
     try { const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-  <link rel="stylesheet" href="web/styles.css?v=1.4.0">
+  <link rel="stylesheet" href="web/styles.css?v=1.5.0">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.4.0" defer></script>
-  <script src="web/tab-reaction.js?v=1.4.0" defer></script>
-  <script src="web/tab-pressure.js?v=1.4.0" defer></script>
-  <script src="web/tab-combine.js?v=1.4.0" defer></script>
-  <script src="web/tab-network.js?v=1.4.0" defer></script>
-  <script src="web/tab-heat.js?v=1.4.0" defer></script>
-  <script src="web/tab-data.js?v=1.4.0" defer></script>
-  <script src="web/tab-validation.js?v=1.4.0" defer></script>
-  <script src="web/main.js?v=1.4.0" defer></script>
+  <script src="web/ui.js?v=1.5.0" defer></script>
+  <script src="web/tab-reaction.js?v=1.5.0" defer></script>
+  <script src="web/tab-pressure.js?v=1.5.0" defer></script>
+  <script src="web/tab-combine.js?v=1.5.0" defer></script>
+  <script src="web/tab-network.js?v=1.5.0" defer></script>
+  <script src="web/tab-heat.js?v=1.5.0" defer></script>
+  <script src="web/tab-data.js?v=1.5.0" defer></script>
+  <script src="web/tab-validation.js?v=1.5.0" defer></script>
+  <script src="web/main.js?v=1.5.0" defer></script>
 </head>
 <body>
 <header class="top">
@@ -233,10 +233,10 @@
   <section id="tab-network" role="tabpanel" aria-labelledby="tabbtn-network" class="tab">
     <div class="panel">
       <h2>Product slate: what actually forms? <span class="tag">extra feature 1</span></h2>
-      <p class="hint">A single-reaction ΔG tells you whether one reaction can go. A real reactor has several
-        reactions competing for the same atoms. Here you only choose which species are allowed to exist; the
-        solver minimises the total Gibbs energy subject to the element balances and returns the equilibrium
-        mixture. No reaction list is needed. Drag a slider and the mixture follows.</p>
+      <p class="hint">Put the feed gases in a reactor and wait until nothing changes: what mixture comes out?
+        One ΔG cannot tell, because several reactions compete for the same atoms. Here you only say which species
+        are allowed to exist. The solver then finds the mixture with the lowest total Gibbs energy that keeps every
+        atom, so no reaction list is needed. Drag a slider and the mixture follows.</p>
       <div class="form">
         <label class="grow3">Example system
           <select id="nw-preset"></select>
@@ -269,6 +269,12 @@
         </div>
       </div>
       <div class="switches" id="nw-switches" aria-label="Species the catalyst is allowed to make"></div>
+      <div class="tour" id="nw-tour" hidden></div>
+      <p class="hint" id="nw-say" style="margin:10px 0 0" aria-live="polite"></p>
+      <p class="hint" style="margin:8px 0 0">A switch imitates a selective catalyst: off means the catalyst cannot make that product.
+        Each switch shows the share its species holds right now. A <strong>faded</strong> switch would change nothing at the current
+        settings, so it cannot be clicked; it wakes up when the conditions or the other switches make it matter.
+        A <strong>dashed</strong> one is fed to the reactor, or is needed for any reaction to happen.</p>
       <details class="plain">
         <summary>Build your own system: species, feed and plot range</summary>
         <div class="form">

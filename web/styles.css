@@ -192,7 +192,13 @@ button.link { background: none; border: 0; color: var(--accent); cursor: pointer
 .switch.off .dot { background: transparent; border: 2px solid var(--muted); }
 .switch.locked { cursor: default; border-style: dashed; }
 .switch.locked .dot { background: var(--accent); }
-.switch small { font-weight: 500; color: var(--muted); text-decoration: none; }
+/* on, but switching it off would change nothing at the current settings */
+.switch.idle { cursor: not-allowed; opacity: 0.55; border-color: var(--line); border-style: dotted; background: var(--bg); }
+.switch.idle .dot { background: var(--muted); }
+.switch small { display: inline-block; font-weight: 500; color: var(--muted); text-decoration: none; margin-left: 2px; }
+.tour { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.tour .cap { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-right: 4px; }
+.tour .seg { flex-wrap: wrap; }
 
 /* ------------------------------------------------------------ live bars */
 .bars { display: grid; grid-template-columns: max-content minmax(60px, 1fr) max-content; gap: 8px 10px; align-items: center; }

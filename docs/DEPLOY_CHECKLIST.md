@@ -87,6 +87,12 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.4 checked on the live page, 22 November 2026, commit `8588e64`, version tag 1.4.0:** both workflows green. Tab 2, ammonia at 723.15 K and 200 bar: "Ideal gas: −106.50 kJ/mol", "Real gas: −111.66 kJ/mol", "Difference: −5.16 kJ/mol, 4.84 %", the three steps (−0.76, −106.50, −4.40 kJ), four plots, 9 of 9 identities. The overview lists six reactions; a click on the first loads CO₂ hydrogenation to methanol at 50 bar (−57.94 against −64.06 kJ/mol, 10.56 %). No "fugacity" or "φ" on the tab or in the guide. Tab 7: 57 of 57. No console errors.
 
+**v1.5 (tab 4: switches that show what they do):**
+
+- [ ] v1.5: tab 4 opens on CO₂ hydrogenation with the methanol and CO switches faded ("no effect now"), water "needed" and methane showing its share
+- [ ] v1.5: "Try this" step 2 (Methane off) gives the methanol and CO switches their shares and one line with the change in conversion
+- [ ] v1.5: a click on a faded switch does nothing; a click on methane changes the bars
+
 ## Before the classroom demonstration
 
 - [ ] Open the live page once on the presentation laptop while on a good connection, so the Python runtime (about 10 MB) is already cached

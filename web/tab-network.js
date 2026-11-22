@@ -12,6 +12,10 @@
   let system = [];          // species shown as switches: the preset's, plus any the user ticked
   let ratioPair = null;     // { top, bottom, base } when exactly two species are fed
   let lastSweep = null;     // "T" or "P" of the plots on screen
+  let switchInfo = {};      // species id -> what the solver says its switch would change (last result)
+  let tour = [];            // guided steps of the example on screen
+  let tourStep = null;      // index of the step that is active, or null
+  let pending = null;       // what to say once the next result is in: a tour step or a flipped switch
 
   const chips = () => $$("#nw-species .chip");
   const parts = (chip) => chip.querySelectorAll("input");   // [tick box, feed]
@@ -62,11 +66,18 @@
       }
       const on = species.includes(sid);
       return `<button type="button" class="switch ${on ? "on" : "off"}" data-id="${esc(sid)}" aria-pressed="${on}"
-        title="${on ? "Click to block this product" : "Click to allow this product"}"><span class="dot"></span><span>${chem(sid)}</span></button>`;
+        title="${on ? "Click to block this product" : "Click to allow this product"}"><span class="dot"></span><span>${chem(sid)} <small></small></span></button>`;
     }).join("");
     for (const button of $$("#nw-switches .switch[data-id]")) {
       button.addEventListener("click", () => {
-        const chip = chips().find((c) => c.dataset.id === button.dataset.id);
+        if (button.getAttribute("aria-disabled") === "true") return;      // faded or needed: nothing to flip
+        const sid = button.dataset.id;
+        const row = switchInfo[sid];
+        pending = row && row.conversion_if_flipped !== null
+          ? { kind: "switch", sid, on: row.state === "off", primary: row.primary, before: row.conversion_now, after: row.conversion_if_flipped }
+          : null;
+        setTourStep(null);
+        const chip = chips().find((c) => c.dataset.id === sid);
         const [box] = parts(chip);
         box.checked = !box.checked;
         chip.classList.toggle("off", !box.checked);
@@ -74,6 +85,7 @@
         full();
       });
     }
+    paintSwitches();
 
     // A ratio slider makes sense when exactly two species are fed.
     if (fed.length === 2) {
@@ -89,6 +101,80 @@
       $("#nw-ratio-box").hidden = true;
     }
   }
+
+  /* What each switch would change, as the solver worked it out for the mixture on screen.
+   * A switch that would change nothing is faded and cannot be clicked. */
+  function paintSwitches() {
+    const el = switchInfo.__element || "";
+    for (const button of $$("#nw-switches .switch[data-id]")) {
+      const sid = button.dataset.id;
+      const row = switchInfo[sid];
+      const small = button.querySelector("small");
+      const on = button.classList.contains("on");
+      button.classList.remove("idle", "locked");
+      button.removeAttribute("aria-disabled");
+      if (!row || (row.state === "on") !== on) { small.textContent = ""; continue; }   // result not in yet
+      const holds = row.share !== null ? `${pct(row.share, 1)} of ${el}` : `y = ${sig(row.y, 3)}`;
+      const move = row.conversion_if_flipped === null ? "" :
+        ` Conversion of ${row.primary} would go from ${pct(row.conversion_now, 1)} to ${pct(row.conversion_if_flipped, 1)}.`;
+      if (row.state === "off") {
+        small.textContent = row.effect === "none" ? "off · no effect now" : "off";
+        button.title = row.effect === "none" ? `Blocked. Allowing ${sid} would change nothing at these settings.`
+          : `Blocked. Click to allow ${sid}.${move}` +
+            (row.share_if_flipped !== null ? ` It would take ${pct(row.share_if_flipped, 1)} of the ${el} atoms.` : "");
+      } else if (row.effect === "needed") {
+        small.textContent = "needed";
+        button.classList.add("locked");
+        button.setAttribute("aria-disabled", "true");
+        button.title = `Without ${sid} nothing can react at these settings: the atoms would have nowhere to go.`;
+      } else if (row.effect === "cannot_form") {
+        small.textContent = "cannot form";
+        button.classList.add("idle");
+        button.setAttribute("aria-disabled", "true");
+        button.title = `${sid} cannot form: the feed has none of an element it contains.`;
+      } else if (row.effect === "none") {
+        small.textContent = "no effect now";
+        button.classList.add("idle");
+        button.setAttribute("aria-disabled", "true");
+        button.title = `Blocking ${sid} would change nothing: it holds ${holds} at these settings. The switch wakes up when that changes.`;
+      } else {
+        small.textContent = holds;
+        button.title = `Click to block ${sid}.${move}`;
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------ guided steps */
+  function setTourStep(index) {
+    tourStep = index;
+    for (const button of $$("#nw-tour button")) button.classList.toggle("on", Number(button.dataset.step) === index);
+  }
+
+  function buildTour() {
+    const box = $("#nw-tour");
+    box.hidden = !tour.length;
+    box.innerHTML = tour.length ? `<span class="cap">Try this:</span><div class="seg">` +
+      tour.map((step, i) => `<button type="button" data-step="${i}">${i + 1}. ${esc(step.label)}</button>`).join("") + `</div>` : "";
+    for (const button of $$("#nw-tour button")) {
+      button.addEventListener("click", () => {
+        const step = tour[Number(button.dataset.step)];
+        const { feed } = readSystem();
+        for (const chip of chips()) {
+          const sid = chip.dataset.id;
+          if (!system.includes(sid) || feed[sid] > 0) continue;
+          const [box_] = parts(chip);
+          box_.checked = !step.off.includes(sid);
+          chip.classList.toggle("off", !box_.checked);
+        }
+        pending = { kind: "tour", say: step.say };
+        setTourStep(Number(button.dataset.step));
+        syncControls();
+        full();
+      });
+    }
+  }
+
+  function say(html) { $("#nw-say").innerHTML = html; }
 
   function applyRatio() {
     if (!ratioPair) return;
@@ -109,8 +195,15 @@
       feed.value = preset.feed[sid] !== undefined ? preset.feed[sid] : "";
     }
     system = preset.species.slice();
+    switchInfo = {};
+    pending = null;
+    tour = preset.tour || [];
+    buildTour();
+    setTourStep(tour.length ? 0 : null);
+    say("");
     const [lo, hi] = preset.T_range;
-    TS.setSlider("nw-T", Math.round((lo + hi) / 2), [Math.min(300, lo), Math.max(1500, hi), 1]);
+    // An example may name the temperature it opens at; otherwise the middle of its range.
+    TS.setSlider("nw-T", preset.T !== undefined ? preset.T : Math.round((lo + hi) / 2), [Math.min(300, lo), Math.max(1500, hi), 1]);
     TS.setSlider("nw-P", preset.P, [1, 300, 1]);
     $("#nw-sweep").value = "T";
     $("#nw-min").value = lo;
@@ -170,6 +263,19 @@
     const el = r.key_element;
     const dist = r.atom_distribution;
     const fedIds = Object.keys(r.feed).filter((s) => r.feed[s] > 0);
+
+    // What each switch would change now, and one line on what the last click did.
+    switchInfo = { __element: el };
+    for (const row of r.switches || []) switchInfo[row.species] = row;
+    paintSwitches();
+    if (pending) {
+      const first = (r.switches || [])[0];
+      const now = first ? ` Conversion of ${chem(first.primary)} is now ${pct(first.conversion_now, 1)}.` : "";
+      say(pending.kind === "tour" ? `${esc(pending.say)}${now}`
+        : `${chem(pending.sid)} switched ${pending.on ? "on" : "off"}: conversion of ${chem(pending.primary)} went from ` +
+          `<strong>${pct(pending.before, 1)}</strong> to <strong>${pct(pending.after, 1)}</strong>.`);
+      pending = null;
+    }
 
     $("#nw-live-notes").innerHTML = TS.notes(r.warnings) + TS.notes(r.notes.filter((n) => n.level !== "info"));
     $("#nw-live-title").innerHTML = `Where the ${esc(el)} atoms go at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar`;
@@ -262,8 +368,9 @@
   function payload(withSweep) {
     const { species, feed } = readSystem();
     const sweep = $("#nw-sweep").value;
+    // "candidates" are the products that are switched off; the solver reports what allowing them would change.
     const body = { species, feed, T: TS.readNumber("nw-T"), P: TS.readNumber("nw-P"), model: $("#nw-model").value,
-      sweep: withSweep ? sweep : "none" };
+      sweep: withSweep ? sweep : "none", switches: true, candidates: system.filter((s) => !species.includes(s)) };
     if (withSweep) {
       body[sweep === "T" ? "T_min" : "P_min"] = TS.readNumber("nw-min");
       body[sweep === "T" ? "T_max" : "P_max"] = TS.readNumber("nw-max");
@@ -301,9 +408,10 @@
       const preset = $("#nw-preset");
       preset.innerHTML = TS.library.networks.map((n) => `<option value="${esc(n.id)}">${esc(n.name)}</option>`).join("");
       preset.addEventListener("change", () => { loadPreset(preset.value); full(); });
-      TS.bindSlider("nw-T", point, full);
-      TS.bindSlider("nw-P", point, full);
-      TS.bindSlider("nw-ratio", () => { applyRatio(); point(); }, () => { applyRatio(); full(); });
+      // The line about the last click belongs to the settings it was made at.
+      TS.bindSlider("nw-T", () => { say(""); point(); }, full);
+      TS.bindSlider("nw-P", () => { say(""); point(); }, full);
+      TS.bindSlider("nw-ratio", () => { say(""); applyRatio(); point(); }, () => { applyRatio(); full(); });
       $("#nw-sweep").addEventListener("change", () => {
         const isT = $("#nw-sweep").value === "T";
         const system_ = TS.library.networks.find((n) => n.id === preset.value);
