@@ -1,10 +1,12 @@
-# Deploy checklist: Thermodynamic Reaction Energy Solver v1.1
+# Deploy checklist: Thermodynamic Reaction Energy Solver v1.2
 
 **Target:** GitHub Pages, served from the root of the `main` branch of `kirti-1307/AI-Solver`
 **Live URL:** https://kirti-1307.github.io/AI-Solver/
 **What ships:** a static site. `index.html`, `web/` and the Python package `thermosolver/`, which the browser runs through Pyodide. No server, no database, no secrets, no build step.
 
-**What changed in v1.1:** the electrochemical tab is replaced by the heat lab (reactor energy balance and virtual bomb calorimeter), the product slate became a live reactor with sliders, and the page got a "start here" strip and a light/dark switch.
+**What changed in v1.1:** the electrochemical tab is replaced by the heat lab (reactor energy balance and virtual bomb calorimeter), the product slate became a live reactor with sliders, and the page got a light/dark switch.
+
+**What changed in v1.2:** a start page with question cards, a headline on the result of tab 1, one-line explanations behind a small "i" on every result card, a loading card, and a beginner's guide (`guide.html`, built from `docs/LEARNERS_GUIDE.md`).
 
 Boxes are ticked only for what has actually been verified.
 
@@ -41,6 +43,9 @@ Boxes are ticked only for what has actually been verified.
 - [x] Tab 5, bomb calorimeter: 1 g of ethanol with the handout calibration shows a rise of 2.31 °C
 - [x] Tab 7: every reference value reads "pass"
 - [x] The "start here" buttons open the right tabs, and the light/dark switch repaints the page
+- [ ] v1.2: the start page shows nine cards and each opens its tab with a result
+- [ ] v1.2: tab 1 shows the headline ("Gives out heat", "Not favourable", "Balanced") and the "i" buttons open an explanation
+- [ ] v1.2: `guide.html` opens from the header and from the start page, with ten sections
 - [x] The page is usable on a phone-width screen (tabs scroll sideways, tables scroll inside their panels)
 
 **Result, 22 November 2026, on https://kirti-1307.github.io/AI-Solver/:** all eleven pass. What the live page showed:

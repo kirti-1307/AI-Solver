@@ -9,17 +9,17 @@
     // Apply a saved light/dark choice before the first paint.
     try { const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-  <link rel="stylesheet" href="web/styles.css?v=1.1.2">
+  <link rel="stylesheet" href="web/styles.css?v=1.2.0">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.1.2" defer></script>
-  <script src="web/tab-reaction.js?v=1.1.2" defer></script>
-  <script src="web/tab-pressure.js?v=1.1.2" defer></script>
-  <script src="web/tab-combine.js?v=1.1.2" defer></script>
-  <script src="web/tab-network.js?v=1.1.2" defer></script>
-  <script src="web/tab-heat.js?v=1.1.2" defer></script>
-  <script src="web/tab-data.js?v=1.1.2" defer></script>
-  <script src="web/tab-validation.js?v=1.1.2" defer></script>
-  <script src="web/main.js?v=1.1.2" defer></script>
+  <script src="web/ui.js?v=1.2.0" defer></script>
+  <script src="web/tab-reaction.js?v=1.2.0" defer></script>
+  <script src="web/tab-pressure.js?v=1.2.0" defer></script>
+  <script src="web/tab-combine.js?v=1.2.0" defer></script>
+  <script src="web/tab-network.js?v=1.2.0" defer></script>
+  <script src="web/tab-heat.js?v=1.2.0" defer></script>
+  <script src="web/tab-data.js?v=1.2.0" defer></script>
+  <script src="web/tab-validation.js?v=1.2.0" defer></script>
+  <script src="web/main.js?v=1.2.0" defer></script>
 </head>
 <body>
 <header class="top">
@@ -33,6 +33,7 @@
       </div>
     </div>
     <div class="top-tools">
+      <a class="icon-btn" href="guide.html">Guide</a>
       <button id="theme" class="icon-btn" type="button" aria-label="Switch between light and dark">Dark</button>
       <div id="engine" class="engine loading" role="status" aria-live="polite">
         <span class="dot"></span><span id="engine-text">Starting…</span>
@@ -40,7 +41,8 @@
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Sections">
-    <button role="tab" id="tabbtn-reaction" aria-controls="tab-reaction" aria-selected="true" data-tab="reaction" class="active"><span class="n">1</span>Reaction</button>
+    <button role="tab" id="tabbtn-home" aria-controls="tab-home" aria-selected="true" data-tab="home" class="active">Start</button>
+    <button role="tab" id="tabbtn-reaction" aria-controls="tab-reaction" aria-selected="false" data-tab="reaction"><span class="n">1</span>Reaction</button>
     <button role="tab" id="tabbtn-pressure" aria-controls="tab-pressure" aria-selected="false" data-tab="pressure"><span class="n">2</span>Pressure &amp; real gas</button>
     <button role="tab" id="tabbtn-combine" aria-controls="tab-combine" aria-selected="false" data-tab="combine"><span class="n">3</span>Combine reactions</button>
     <button role="tab" id="tabbtn-network" aria-controls="tab-network" aria-selected="false" data-tab="network"><span class="n">4</span>Product slate <span class="tag">extra</span></button>
@@ -52,22 +54,83 @@
 
 <main class="wrap">
 
-  <div class="start" id="start">
-    <span class="lead">Start here</span>
-    <div class="demos">
-      <button class="demo" type="button" data-demo="methanol">CO<sub>2</sub> to methanol</button>
-      <button class="demo" type="button" data-demo="ammonia">Ammonia at 200 bar</button>
-      <button class="demo" type="button" data-demo="hess">Hess's law</button>
-      <button class="demo" type="button" data-demo="slate">Live reactor</button>
-      <button class="demo" type="button" data-demo="flame">Flame temperature</button>
-      <button class="demo" type="button" data-demo="bomb">Bomb calorimeter</button>
-      <button class="demo" type="button" data-demo="break">Break it <small>unbalanced reaction</small></button>
+  <div id="boot" class="boot" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <div>
+      <strong id="boot-title">Starting the solver…</strong>
+      <div id="boot-text" class="dim">The first visit downloads the Python runtime (about 10 MB). After that the page starts in a second or two.</div>
     </div>
-    <button class="close" id="start-close" type="button" aria-label="Hide this strip">×</button>
   </div>
 
+  <!-- ============================================================ start -->
+  <section id="tab-home" role="tabpanel" aria-labelledby="tabbtn-home" class="tab active">
+    <div class="hero-panel">
+      <h2>What do you want to find out?</h2>
+      <p>Pick a question. Each card opens the right tab with a worked example that you can change.</p>
+    </div>
+    <div class="qgrid">
+      <button class="qcard demo" type="button" data-demo="methanol">
+        <span class="qtag">Tab 1</span>
+        <span class="qtitle">Heat, entropy and Gibbs energy</span>
+        <span class="qtext">Does the reaction give out heat, and can it go at my temperature?</span>
+      </button>
+      <button class="qcard demo" type="button" data-demo="ammonia">
+        <span class="qtag">Tab 2</span>
+        <span class="qtitle">What does pressure change?</span>
+        <span class="qtext">The real-gas correction to the heat of reaction, and what it does to the conversion.</span>
+      </button>
+      <button class="qcard demo" type="button" data-demo="hess">
+        <span class="qtag">Tab 3</span>
+        <span class="qtitle">Build a reaction from others</span>
+        <span class="qtext">Add and subtract reactions (Hess's law) and check the sum against the direct result.</span>
+      </button>
+      <button class="qcard demo extra" type="button" data-demo="slate">
+        <span class="qtag">Tab 4 · extra feature</span>
+        <span class="qtitle">What actually forms?</span>
+        <span class="qtext">A live reactor: drag temperature and pressure, and switch products off like choosing a catalyst.</span>
+      </button>
+      <button class="qcard demo extra" type="button" data-demo="flame">
+        <span class="qtag">Tab 5 · extra feature</span>
+        <span class="qtitle">How hot does it get?</span>
+        <span class="qtext">Flame temperature and heat duty from an energy balance around the reactor.</span>
+      </button>
+      <button class="qcard demo extra" type="button" data-demo="bomb">
+        <span class="qtag">Tab 5 · extra feature</span>
+        <span class="qtitle">Bomb calorimeter</span>
+        <span class="qtext">The lab experiment on screen: ignite a sample, read ΔU, ΔH and the heating values.</span>
+      </button>
+      <button class="qcard demo" type="button" data-demo="break">
+        <span class="qtag">Tab 1</span>
+        <span class="qtitle">Try to break it</span>
+        <span class="qtext">An unbalanced reaction is rejected, and the balanced form is offered.</span>
+      </button>
+      <button class="qcard demo" type="button" data-demo="validation">
+        <span class="qtag">Tab 7</span>
+        <span class="qtitle">Can I trust the numbers?</span>
+        <span class="qtext">Reference values from the textbook, recalculated while you watch.</span>
+      </button>
+      <a class="qcard" href="guide.html">
+        <span class="qtag">Guide</span>
+        <span class="qtitle">New here?</span>
+        <span class="qtext">The whole solver explained in plain words, with questions to check yourself.</span>
+      </a>
+    </div>
+    <div class="panel legend">
+      <h3>How to read a result</h3>
+      <div class="chips-row">
+        <span class="chip-key exo">gives out heat (exothermic)</span>
+        <span class="chip-key endo">takes in heat (endothermic)</span>
+        <span class="chip-key good">favourable, or a check that passed</span>
+        <span class="chip-key bad">not favourable, or a check that failed</span>
+        <span class="chip-key warn">used outside its valid range</span>
+      </div>
+      <p class="hint" style="margin:10px 0 0">A small <span class="term-btn static" aria-hidden="true">i</span> next to a term opens a one-line explanation.
+        Every number on this site is calculated in your browser by the same Python code that the tests check.</p>
+    </div>
+  </section>
+
   <!-- ============================================================ 1 -->
-  <section id="tab-reaction" role="tabpanel" aria-labelledby="tabbtn-reaction" class="tab active">
+  <section id="tab-reaction" role="tabpanel" aria-labelledby="tabbtn-reaction" class="tab">
     <div class="panel">
       <h2>Standard reaction thermodynamics</h2>
       <p class="hint">Pick a reaction or type your own. The elemental balance is checked before anything is
@@ -235,11 +298,9 @@
   <section id="tab-heat" role="tabpanel" aria-labelledby="tabbtn-heat" class="tab">
     <div class="panel">
       <h2>Heat lab: how hot does it get, and how much heat is needed? <span class="tag">extra feature 2</span></h2>
-      <p class="hint">An energy balance around the reactor, Q = ΔH. The feed is taken from its inlet temperature to
-        298.15 K, the reaction happens there, and the products are taken to the outlet temperature:
-        Q = ΔH<sub>R</sub> + ΔH°<sub>298</sub> + ΔH<sub>P</sub>. With Q = 0 the same balance gives the temperature of a
-        flame or of an adiabatic reactor. The second view is the bomb calorimeter of the lab, where the vessel is
-        closed and the heat released is ΔU.</p>
+      <p class="hint">An energy balance around the reactor: Q = ΔH<sub>R</sub> + ΔH°<sub>298</sub> + ΔH<sub>P</sub>
+        (feed to 298.15 K, reaction there, products to the outlet). With Q = 0 it gives the flame temperature.
+        The second view is the bomb calorimeter of the lab, where the vessel is closed and the heat released is ΔU.</p>
       <div class="seg big" id="hl-view" role="tablist" aria-label="View">
         <button type="button" data-view="reactor" class="on">Reactor and flame</button>
         <button type="button" data-view="calorimeter">Bomb calorimeter</button>

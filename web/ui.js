@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.1.2");
+      this.worker = new Worker("web/worker.js?v=1.2.0");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -216,7 +216,7 @@ TS.hline = (y, color) => ({ type: "line", xref: "paper", yref: "y", x0: 0, x1: 1
   line: { color: color || TS.css("--muted"), width: 1, dash: "dot" } });
 
 /* ------------------------------------------------------- shared UI pieces */
-TS.tabs = [];          // each tab file registers { id, init, onShow }
+TS.tabs = [{ id: "home", init() {}, onShow() {} }];   // each tab file registers { id, init, onShow }
 
 /* Fill a <select> with the predefined reactions, grouped by category, and keep
  * it in sync with a free-text input. */
@@ -410,6 +410,103 @@ TS.theme = {
       });
     }
   },
+};
+
+/* ------------------------------------------------------------- glossary */
+/* A small "i" next to the label of a result card opens a one-line explanation
+ * in plain words. The first entry whose pattern matches the label is used. */
+TS.GLOSSARY = [
+  [/^Σ ν H/, "Residual part of the heat of reaction",
+    "At high pressure gas molecules attract each other, so a real gas holds a little less enthalpy than an ideal gas. This is that difference, added up over the reaction."],
+  [/^ΔH\(T,P\)/, "Heat of reaction of the real gas",
+    "The ideal-gas heat of reaction plus the residual part. This is the value that holds at your pressure."],
+  [/^ΔH°298|Heat of reaction at 298/, "Heat of reaction at 298.15 K",
+    "Heat the reaction gives out (negative) or takes in (positive) at 25 °C and 1 bar. It comes straight from the heats of formation in the textbook table."],
+  [/^ΔH°/, "Heat of reaction at your temperature",
+    "The heat of reaction at 298.15 K, corrected to your temperature with the heat capacities of all the species."],
+  [/^ΔS/, "Entropy change",
+    "The change in disorder. It is positive when the reaction makes more gas molecules and negative when it makes fewer."],
+  [/^ΔG/, "Gibbs energy change",
+    "ΔG = ΔH − T·ΔS. A negative value means the reaction can go forward under these conditions. A positive value means it would rather go backward."],
+  [/^Kφ/, "Fugacity-coefficient ratio",
+    "It collects how far each gas is from ideal behaviour. It is 1 for ideal gases; any other value shifts the equilibrium at high pressure."],
+  [/Equilibrium constant|^K = /, "Equilibrium constant",
+    "It tells where the reaction stops. Much bigger than 1 means mostly products, much smaller than 1 means mostly reactants."],
+  [/conversion/i, "Conversion",
+    "The fraction of a reactant that has reacted. 25 % means a quarter of what was fed is gone."],
+  [/carbon|coke/i, "Carbon activity",
+    "Whether solid carbon (soot, coke) could form from this gas. Above 1 it can; below 1 it cannot."],
+  [/^Outlet temperature/, "Outlet temperature",
+    "The temperature at which the heat released by the reaction is exactly used up in heating the products. For a burner with no heat loss this is the flame temperature."],
+  [/^Heat duty/, "Heat duty",
+    "The heat that has to be added (positive) or removed (negative) to bring the feed to the outlet state."],
+  [/^Mean C/, "Mean heat capacity of the products",
+    "The heat needed to warm all the products by 1 K, averaged between 298.15 K and the outlet temperature."],
+  [/^Heating value/, "Heating value",
+    "Heat released by burning 1 kg of the fuel. Lower: the water leaves as vapour. Higher: the water is condensed, so its latent heat is collected too."],
+  [/^Calorific value/, "Calorific value",
+    "Heat released per kilogram when the sample burns in the closed bomb. The volume is fixed, so this is −ΔU with the water formed as liquid."],
+  [/^Calorimeter constant/, "Calorimeter constant",
+    "The heat that warms the whole calorimeter by 1 °C. It is found by burning a standard whose calorific value is known."],
+  [/^Heat taken up/, "Heat taken up by the calorimeter",
+    "Calorimeter constant times the temperature rise. It equals the heat released by the sample plus the thread and wire."],
+  [/^Excess for/, "Excess for a temperature limit",
+    "How much more of the reactant than the reaction needs must be fed so that the outlet stays at the limit you set."],
+  [/^Moles of gas/, "Moles of gas",
+    "Total amount of gas at equilibrium. It is smaller than the feed when the reactions make fewer molecules."],
+];
+
+TS.glossarize = (root) => {
+  for (const label of TS.$$(".card .k", root)) {
+    if (label.querySelector(".term-btn")) continue;
+    const text = label.textContent.trim();
+    const index = TS.GLOSSARY.findIndex(([pattern]) => pattern.test(text));
+    if (index < 0) continue;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "term-btn";
+    button.textContent = "i";
+    button.dataset.term = String(index);
+    button.setAttribute("aria-label", `What does "${TS.GLOSSARY[index][1]}" mean?`);
+    label.appendChild(button);
+  }
+};
+
+/* One shared pop-up, placed under the button that opened it. */
+TS.watchTerms = () => {
+  const pop = document.createElement("div");
+  pop.className = "term-pop";
+  pop.hidden = true;
+  pop.setAttribute("role", "tooltip");
+  document.body.appendChild(pop);
+  let opener = null;
+  const close = () => { pop.hidden = true; opener = null; };
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest ? event.target.closest(".term-btn[data-term]") : null;
+    if (!button) { if (!pop.contains(event.target)) close(); return; }
+    if (opener === button) { close(); return; }
+    const [, title, text] = TS.GLOSSARY[Number(button.dataset.term)];
+    pop.innerHTML = `<strong>${TS.esc(title)}</strong><span>${TS.esc(text)}</span>`;
+    pop.hidden = false;
+    const box = button.getBoundingClientRect();
+    const width = Math.min(320, window.innerWidth - 24);
+    pop.style.width = `${width}px`;
+    pop.style.left = `${Math.max(12, Math.min(box.left + window.scrollX - 12, window.scrollX + window.innerWidth - width - 12))}px`;
+    pop.style.top = `${box.bottom + window.scrollY + 8}px`;
+    opener = button;
+  });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
+  window.addEventListener("resize", close);
+
+  // Result cards are redrawn all the time; add the buttons whenever they appear.
+  const main = TS.$("main");
+  let queued = false;
+  new MutationObserver(() => {
+    if (queued) return;
+    queued = true;
+    setTimeout(() => { queued = false; TS.glossarize(main); }, 0);     // a timer: hidden tabs get no animation frames
+  }).observe(main, { childList: true, subtree: true });
+  TS.glossarize(main);
 };
 
 window.TS = TS;

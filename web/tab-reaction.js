@@ -162,10 +162,14 @@
     const eq = r.equilibrium || {};
     let html = `<div class="panel">
       <div class="eqn">${chem(r.equation)}</div>
-      <p><span class="badge ${exo}">${esc(e.thermicity)} at ${fix(r.T, 0)} K</span>
-         <span class="badge ${fav.spontaneous_standard ? "good" : "bad"}">${esc(fav.label)} (ΔG° ${e.dG < 0 ? "<" : ">"} 0)</span>
-         <span class="badge neutral">Δν(gas) = ${signed(e.delta_n_gas, 2).replace(".00", "")}</span>
-         <span class="badge good">elemental balance verified</span></p>`;
+      <div class="verdict">
+        <div class="v-item ${exo}"><div class="v-big">${e.dH < 0 ? "Gives out heat" : "Takes in heat"}</div>
+          <div class="v-sub">${esc(e.thermicity)} at ${fix(r.T, 0)} K: ΔH° = ${kJ(e.dH)} kJ/mol</div></div>
+        <div class="v-item ${fav.spontaneous_standard ? "good" : "bad"}"><div class="v-big">${fav.spontaneous_standard ? "Favourable" : "Not favourable"}</div>
+          <div class="v-sub">${esc(fav.label)} at 1 bar: ΔG° = ${signed(e.dG / 1000, 2)} kJ/mol, K = ${fmtK(e.lnK)}</div></div>
+        <div class="v-item neutral"><div class="v-big">Balanced</div>
+          <div class="v-sub">every element checked; gas moles change by ${signed(e.delta_n_gas, 2).replace(".00", "")}</div></div>
+      </div>`;
     html += (r.notes || []).map((n) => TS.message("info", `<strong>Note:</strong> ${chem(n)}`)).join("");
     html += TS.notes(r.warnings);
     html += `<div class="cards">

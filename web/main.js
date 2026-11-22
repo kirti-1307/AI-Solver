@@ -1,5 +1,5 @@
 /* Start-up: boot the Python engine, load the library and database, wire the
- * tabs, the "start here" strip and the light/dark switch. */
+ * tabs, the start page and the light/dark switch. */
 "use strict";
 (() => {
   const { $, $$ } = TS;
@@ -8,6 +8,18 @@
     const el = $("#engine");
     el.className = `engine ${state}`;
     $("#engine-text").textContent = text;
+    // The loading card on the page says the same thing in more words.
+    const boot = $("#boot");
+    if (!boot) return;
+    if (state === "ready") {
+      boot.hidden = true;
+    } else if (state === "failed") {
+      boot.classList.add("failed");
+      $("#boot-title").textContent = "The solver could not start";
+      $("#boot-text").textContent = text;
+    } else {
+      $("#boot-title").textContent = text;
+    }
   }
 
   function showTab(id, push = true) {
@@ -29,7 +41,7 @@
     }
   }
 
-  /* One-click demonstrations: each opens a tab with a ready-made case. */
+  /* The cards of the start page: each opens a tab with a ready-made case. */
   const pick = (selector, value) => {
     const select = $(selector);
     select.value = value;
@@ -49,6 +61,7 @@
     slate() { showTab("network"); pick("#nw-preset", "co2_hydrogenation"); },
     flame() { showTab("heat"); TS.heatView("reactor"); TS.heatExample("methane_burner"); },
     bomb() { showTab("heat"); TS.heatView("calorimeter"); },
+    validation() { showTab("validation"); },
   };
 
   function wireTheme() {
@@ -63,7 +76,7 @@
       button.addEventListener("click", () => showTab(button.dataset.tab));
     }
     wireTheme();
-    $("#start-close").addEventListener("click", () => { $("#start").hidden = true; });
+    TS.watchTerms();
     for (const button of $$("button.primary, .demo")) button.disabled = true;
 
     TS.engine = new TS.Engine(setEngine);
@@ -86,7 +99,7 @@
         window.scrollTo({ top: 0 });
       });
     }
-    showTab((location.hash || "#reaction").slice(1), false);
+    showTab((location.hash || "#home").slice(1), false);
     window.addEventListener("hashchange", () => showTab(location.hash.slice(1), false));
   }
 

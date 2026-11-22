@@ -27,7 +27,7 @@ The same benchmarks can be printed as a table with `python -m thermosolver --val
 | 9. Review regressions | Do the bugs found in review stay fixed? | `tests/test_review_regressions.py`, `tests/test_heatbalance.py` | One test per finding of the independent code reviews, plus a structured fuzz: 6,000 random combinations of JSON types on every parameter of every endpoint |
 | 10. Browser | Does the hosted page work? | manual, see below | Pyodide runs the same Python files, so layers 1 to 9 already cover the numbers |
 
-In total: 214 tests in seven files, about 20 seconds. Four of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist, and no thermodynamic constant may appear in the JavaScript.
+In total: 215 tests in seven files, about 20 seconds. Five of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist and carry the same version tag, the guide page must match its Markdown source, and no thermodynamic constant may appear in the JavaScript.
 
 ## What is deliberately not tested
 
@@ -45,7 +45,7 @@ In total: 214 tests in seven files, about 20 seconds. Four of them guard the dep
 
 1. `python serve.py` and open http://localhost:8000.
 2. The status pill turns green ("Solver ready") within about ten seconds on a first visit.
-3. Open each of the seven tabs: no red error box, plots drawn.
+3. The start page shows nine question cards; each opens its tab with a result. Then open each of the seven tabs: no red error box, plots drawn.
 4. Type `CH4 + O2 -> CO2 + H2O` on tab 1: it must be rejected and offer the balanced form.
 5. On tab 4, drag the temperature slider: the bars must follow.
 6. On tab 5, the methane burner must show 2,066 K, and "Ignite" on the bomb calorimeter must draw the temperature rise.

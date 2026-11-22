@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A beginner&#x27;s guide to the solver · Thermodynamic Reaction Energy Solver</title>
+  <meta name="description" content="The Thermodynamic Reaction Energy Solver explained in plain words: the ideas behind it, each tab, why the numbers can be trusted, and questions to check yourself.">
+  <!-- Built from docs/LEARNERS_GUIDE.md by docs/build_guide.py. Edit the Markdown, not this file. -->
+  <script>
+    try { const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="web/styles.css?v=1.2.0">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">ΔH</div>
+      <div>
+        <h1>A beginner&#x27;s guide to the solver</h1>
+        <p class="sub">Thermodynamic Reaction Energy Solver, explained in plain words.</p>
+      </div>
+    </div>
+    <div class="top-tools">
+      <button id="theme" class="icon-btn" type="button" aria-label="Switch between light and dark">Dark</button>
+      <a class="icon-btn solid" href="index.html">Open the solver</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap guide">
+  <nav class="toc" aria-label="Sections of the guide">
+    <div class="toc-title">In this guide</div>
+    <ol>
+        <li><a href="#1-what-the-solver-does">1. What the solver does</a></li>
+        <li><a href="#2-six-ideas-you-need">2. Six ideas you need</a></li>
+        <li><a href="#3-why-everything-starts-at-298-15-k">3. Why everything starts at 298.15 K</a></li>
+        <li><a href="#4-the-tabs-one-by-one">4. The tabs, one by one</a></li>
+        <li><a href="#5-why-you-can-trust-the-answers">5. Why you can trust the answers</a></li>
+        <li><a href="#6-mistakes-the-ai-made-and-how-they-were-caught">6. Mistakes the AI made, and how they were caught</a></li>
+        <li><a href="#7-how-it-is-built">7. How it is built</a></li>
+        <li><a href="#8-words-you-will-meet">8. Words you will meet</a></li>
+        <li><a href="#9-check-yourself">9. Check yourself</a></li>
+        <li><a href="#10-a-five-minute-tour">10. A five-minute tour</a></li>
+    </ol>
+  </nav>
+  <article class="panel prose">
+<p>This guide explains the Thermodynamic Reaction Energy Solver in plain words. You do not need to read it in order. If you only have ten minutes, read sections 1, 2 and 4.</p>
+<h2 id="1-what-the-solver-does">1. What the solver does</h2>
+<p>You give it a chemical reaction, a temperature and a pressure. It tells you four things:</p>
+<ul><li><strong>How much heat</strong> the reaction gives out or takes in.</li><li><strong>Whether the reaction can go</strong> at that temperature.</li><li><strong>How far it goes</strong> before it stops.</li><li><strong>What changes</strong> if you raise the pressure.</li></ul>
+<p>Before it calculates anything, it checks that the reaction is balanced. If the atoms on the left do not match the atoms on the right, it refuses and shows you the balanced form.</p>
+<p>All the data come from the course textbook (Smith, Van Ness and Abbott). The solver knows 57 substances and 45 ready-made reactions, and you can type your own.</p>
+<h2 id="2-six-ideas-you-need">2. Six ideas you need</h2>
+<h3>Heat of reaction, ΔH</h3>
+<p>ΔH is the heat a reaction gives out or takes in.</p>
+<ul><li><strong>Negative ΔH</strong> means the reaction gives out heat. It is called exothermic. Burning is an example.</li><li><strong>Positive ΔH</strong> means the reaction takes in heat. It is called endothermic. You have to keep heating it.</li></ul>
+<p>Example: CO₂ + 3 H₂ → CH₃OH + H₂O has ΔH = −48.97 kJ/mol at 298 K. It gives out heat.</p>
+<h3>Heat capacity, Cp</h3>
+<p>Cp tells you how much heat a substance needs to get 1 K hotter. It is not a fixed number: it changes with temperature. The textbook gives a formula for it with four constants, A, B, C and D:</p>
+<pre class="formula">Cp/R = A + B·T + C·T² + D/T²</pre>
+<p>The heat needed to warm something from T₁ to T₂ is called <strong>sensible heat</strong>. You get it by adding up Cp over that temperature range. Example: warming 1 mol of methane from 260 °C to 600 °C needs 19,778 J.</p>
+<h3>Entropy change, ΔS</h3>
+<p>Entropy measures how spread out, or disordered, things are. Gases are very disordered.</p>
+<ul><li>If a reaction makes <strong>more gas molecules</strong>, ΔS is positive.</li><li>If it makes <strong>fewer gas molecules</strong>, ΔS is negative.</li></ul>
+<p>Example: CO₂ + 3 H₂ → CH₃OH + H₂O turns 4 gas molecules into 2, so ΔS is negative (−199.76 J/(mol·K) at 523 K).</p>
+<h3>Gibbs energy, ΔG</h3>
+<p>ΔG combines the two ideas above into one number that decides whether a reaction can go:</p>
+<pre class="formula">ΔG = ΔH − T·ΔS</pre>
+<ul><li><strong>Negative ΔG</strong>: the reaction can go forward.</li><li><strong>Positive ΔG</strong>: it would rather go backward.</li></ul>
+<p>Notice the T in the formula. The same reaction can be favourable at one temperature and unfavourable at another.</p>
+<p>Example at 523 K: ΔG = −57.94 − 523.15 × (−0.19976) = +46.56 kJ/mol. The reaction gives out heat, but the loss of entropy wins, so it is not favourable at this temperature.</p>
+<h3>Equilibrium constant, K</h3>
+<p>A reaction does not always go all the way. It stops at a balance point called equilibrium. K tells you where that point is:</p>
+<pre class="formula">ln K = −ΔG / (R·T)</pre>
+<ul><li><strong>K much bigger than 1</strong>: mostly products.</li><li><strong>K much smaller than 1</strong>: mostly reactants.</li><li><strong>K near 1</strong>: a mixture of both.</li></ul>
+<p>Example: for the reaction above at 523 K, K = 2.2 × 10⁻⁵. Almost nothing reacts at 1 bar (0.6 % conversion).</p>
+<h3>Real gases and residual enthalpy, Hᴿ</h3>
+<p>At low pressure, gas molecules are far apart and ignore each other. That is an ideal gas, and its enthalpy does not depend on pressure.</p>
+<p>At high pressure the molecules are close and attract each other. The gas is then a <strong>real gas</strong>. The difference between the real value and the ideal value is called the <strong>residual</strong> enthalpy, Hᴿ. The solver gets it from an equation of state such as Peng/Robinson.</p>
+<p>So at high pressure: ΔH(real) = ΔH(ideal) + the residual part.</p>
+<h2 id="3-why-everything-starts-at-298-15-k">3. Why everything starts at 298.15 K</h2>
+<p>The textbook lists the heat of formation of each substance at one temperature only: 298.15 K (25 °C), at 1 bar. That is the <strong>standard state</strong>. The small ° in ΔH° means "standard state".</p>
+<p>To get ΔH at another temperature, the solver walks a three-step path:</p>
+<ol><li>Take the reactants from your temperature to 298.15 K.</li><li>Let them react at 298.15 K, where the data are known.</li><li>Take the products back to your temperature.</li></ol>
+<p>Steps 1 and 3 are sensible heat, calculated from Cp. The answer does not depend on the path, because enthalpy only depends on where you start and where you end.</p>
+<p>Example from the textbook: CO + 2 H₂ → CH₃OH has ΔH° = −90,135 J at 298.15 K and −103,566 J at 800 °C. The solver gives the same numbers.</p>
+<h2 id="4-the-tabs-one-by-one">4. The tabs, one by one</h2>
+<h3>Start</h3>
+<p>The first page asks "What do you want to find out?" Each card opens the right tab with a ready example. Use it when you are showing the solver to someone.</p>
+<h3>Tab 1: Reaction</h3>
+<p><strong>It answers:</strong> how much heat, and can the reaction go?</p>
+<p><strong>You do:</strong> pick a reaction or type one, set the temperature, press Calculate.</p>
+<p><strong>You read:</strong></p>
+<ul><li>The headline at the top: "Gives out heat" or "Takes in heat", and "Favourable" or "Not favourable".</li><li>The cards: ΔH, ΔS, ΔG and K at your temperature.</li><li>"What the numbers mean": the same result in sentences.</li><li>The plots: how ΔH, ΔG and K change with temperature.</li><li>The step-by-step calculation, if you want to follow the arithmetic.</li></ul>
+<p>A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens.</p>
+<h3>Tab 2: Pressure and real gas</h3>
+<p><strong>It answers:</strong> what does pressure change?</p>
+<p><strong>You read:</strong> the ideal-gas ΔH, the residual part, and their sum.</p>
+<p>Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.16 kJ/mol. The conversion at equilibrium rises from 39.8 % to 42.8 %.</p>
+<p>Why pressure helps here: N₂ + 3 H₂ → 2 NH₃ turns 4 gas molecules into 2. Squeezing the gas pushes the reaction towards the side with fewer molecules.</p>
+<h3>Tab 3: Combine reactions</h3>
+<p><strong>It answers:</strong> can I build one reaction out of others?</p>
+<p>This is Hess's law. If you add reactions, their ΔH values add too. If you reverse a reaction, the sign of ΔH flips.</p>
+<p>Example: (CO₂ + H₂ → CO + H₂O) plus (CO + 2 H₂ → CH₃OH) gives CO₂ + 3 H₂ → CH₃OH + H₂O. At 523 K the two steps are +39.50 and −97.44 kJ, which add up to −57.94 kJ. That is exactly what tab 1 gives for the overall reaction.</p>
+<h3>Tab 4: Product slate (extra feature 1)</h3>
+<p><strong>It answers:</strong> if I put these gases in a reactor and wait, what comes out?</p>
+<p>Tab 1 looks at one reaction at a time. In a real reactor several reactions compete for the same atoms. Here you only say which substances are allowed to exist. The solver then finds the mixture with the lowest total Gibbs energy, like a ball rolling to the lowest point of a valley. The only rule is that atoms are not created or destroyed.</p>
+<p><strong>You do:</strong> drag the temperature, pressure and feed-ratio sliders. Click a product to switch it off.</p>
+<p>Example: CO₂ + 3 H₂ at 523 K and 50 bar.</p>
+<ul><li>With methane allowed, 74.8 % of the carbon ends up as methane. Almost no methanol forms.</li><li>With methane switched off, 25.2 % of the CO₂ reacts, and most of that becomes methanol.</li></ul>
+<p>What this teaches: thermodynamics prefers methane. A methanol plant works because its catalyst does not make methane. Switching a product off is how you imitate such a catalyst.</p>
+<p>The "solid carbon" card tells you whether soot (coke) can form. A carbon activity above 1 means it can.</p>
+<h3>Tab 5: Heat lab (extra feature 2)</h3>
+<p><strong>Reactor and flame</strong> answers two questions: how hot does it get, and how much heat is needed?</p>
+<p>It is an energy balance: heat added = enthalpy out − enthalpy in. It uses the same three-step path as section 3:</p>
+<ol><li>Feed from its inlet temperature to 298.15 K.</li><li>Reaction at 298.15 K.</li><li>Products from 298.15 K to the outlet temperature.</li></ol>
+<p>If no heat is added or removed, the three steps must add up to zero. The solver finds the outlet temperature that makes this true. For a burner, that is the flame temperature.</p>
+<p>Examples:</p>
+<ul><li>Methane with 20 % excess air, entering at 25 °C: the flame is at 2066 K.</li><li>With no excess air it is 2311 K. With 100 % excess air it is 1486 K. Extra air cools the flame, because the extra air has to be heated too.</li><li>To stay below 1500 K you need 97 % excess air.</li><li>A steam reformer fed at 600 K with products at 1300 K needs 328 kJ per mole of methane (−34.4 + 200.5 + 161.9 kJ for the three steps).</li></ul>
+<p><strong>Bomb calorimeter</strong> is the lab experiment on screen. A sample burns in a closed steel vessel. The vessel cannot change its volume, so the heat released is ΔU, not ΔH. The two are linked by:</p>
+<pre class="formula">ΔH = ΔU + Δn·R·T</pre>
+<p>where Δn is the change in the number of gas molecules.</p>
+<p>Example: 1 g of ethanol, with the calorimeter constant from the lab handout (3059 cal/°C), gives a temperature rise of 2.31 °C and a calorific value of 29.62 MJ/kg.</p>
+<p>Two more words from this tab:</p>
+<ul><li><strong>HHV</strong> (higher heating value): the water formed ends up as liquid.</li><li><strong>LHV</strong> (lower heating value): the water stays as vapour. It is smaller, because the heat of condensing the water is not collected.</li></ul>
+<h3>Tab 6: Species data</h3>
+<p>The full table of the 57 substances, with the source of every number. There is also a small calculator for the sensible heat of one substance.</p>
+<h3>Tab 7: Validation</h3>
+<p>This is the proof that the numbers are right. It has three parts:</p>
+<ul><li><strong>51 reference values</strong> from textbook examples, course slides and the lab handout. The solver recalculates each one while you watch. All 51 pass.</li><li><strong>Five stress tests</strong> from the assignment (see section 6).</li><li><strong>Comparison with published research</strong> values.</li></ul>
+<h2 id="5-why-you-can-trust-the-answers">5. Why you can trust the answers</h2>
+<ul><li><strong>The data are traceable.</strong> 54 of the 57 substances use only the textbook tables. The other three come from the NIST database and are labelled.</li><li><strong>It checks itself.</strong> Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency audit" under each result.</li><li><strong>It has more than 200 automated tests.</strong> They run every time the code changes.</li><li><strong>It refuses bad input.</strong> An unbalanced reaction gets no answer at all.</li><li><strong>It warns you.</strong> If a formula is used outside its valid temperature range, you see a warning.</li></ul>
+<h2 id="6-mistakes-the-ai-made-and-how-they-were-caught">6. Mistakes the AI made, and how they were caught</h2>
+<p>The assignment asks for mistakes of the AI-built solver that were found and fixed. These are the main ones, in plain words.</p>
+<div class="table-scroll"><table><thead><tr><th class="l">What went wrong</th><th class="l">Why it was wrong</th><th class="l">How it is fixed</th></tr></thead><tbody><tr><td class="l wrapcell">Liquid water was treated as a gas at high pressure</td><td class="l wrapcell">It predicted 48 % conversion, which is far too high</td><td class="l wrapcell">The solver notices when a gas would really be a liquid and refuses to give a gas value</td></tr><tr><td class="l wrapcell">An old data value for ammonia</td><td class="l wrapcell">The AI remembered a number from an older edition of the book</td><td class="l wrapcell">Every number was compared with the printed tables</td></tr><tr><td class="l wrapcell">Two rounded constants in a formula</td><td class="l wrapcell">Two results that should agree differed slightly</td><td class="l wrapcell">The exact constants are used</td></tr><tr><td class="l wrapcell">"Practically no reaction" for ammonia</td><td class="l wrapcell">True at 1 bar, but at 200 bar 43 % reacts</td><td class="l wrapcell">The text now gives a separate verdict at your pressure</td></tr><tr><td class="l wrapcell">The calorimeter named a gas as the unknown sample</td><td class="l wrapcell">A gas cannot be weighed into a crucible</td><td class="l wrapcell">Only liquids and solids are compared</td></tr><tr><td class="l wrapcell">The "excess air for a temperature limit" search gave a wrong value</td><td class="l wrapcell">It never checked its own answer</td><td class="l wrapcell">It now solves again with its answer before showing it</td></tr></tbody></table></div>
+<p>The five stress tests of the assignment:</p>
+<ol><li><strong>Unbalanced reaction.</strong> CH₄ + O₂ → CO₂ + H₂O is rejected, and CH₄ + 2 O₂ → CO₂ + 2 H₂O is offered.</li><li><strong>Shortcut on Cp.</strong> For steam reforming at 1000 K, the proper Cp gives ΔH = 225.3 kJ/mol. A constant Cp gives 238.8, and ignoring Cp gives 205.8. K changes from 25.8 to 50.3 or 2.8.</li><li><strong>Liquid or vapour water.</strong> Burning methane gives −890.65 kJ/mol with liquid water and −802.63 with vapour. The gap is the heat needed to boil 2 moles of water.</li><li><strong>Formula out of range.</strong> The solver warns you.</li><li><strong>Published values.</strong> The solver agrees with research papers within 0.5 kJ/mol.</li></ol>
+<h2 id="7-how-it-is-built">7. How it is built</h2>
+<ul><li>The calculations are written in <strong>Python</strong>.</li><li>The web page runs that same Python <strong>inside your browser</strong>, using a tool called Pyodide. Nothing is sent to a server.</li><li>The page itself (HTML and JavaScript) only draws forms, tables and plots. It does no thermodynamics.</li></ul>
+<p>This is why the first visit takes about ten seconds: the browser downloads Python once.</p>
+<h2 id="8-words-you-will-meet">8. Words you will meet</h2>
+<div class="table-scroll"><table><thead><tr><th class="l">Word or symbol</th><th class="l">Plain meaning</th></tr></thead><tbody><tr><td class="l wrapcell">ΔH</td><td class="l wrapcell">Heat given out (negative) or taken in (positive) by the reaction</td></tr><tr><td class="l wrapcell">ΔS</td><td class="l wrapcell">Change in disorder; positive when more gas is made</td></tr><tr><td class="l wrapcell">ΔG</td><td class="l wrapcell">Decides if the reaction can go; negative means yes</td></tr><tr><td class="l wrapcell">K</td><td class="l wrapcell">Where the reaction stops; bigger than 1 means mostly products</td></tr><tr><td class="l wrapcell">° (as in ΔH°)</td><td class="l wrapcell">Standard state: pure substance at 1 bar</td></tr><tr><td class="l wrapcell">Cp</td><td class="l wrapcell">Heat needed to warm a substance by 1 K</td></tr><tr><td class="l wrapcell">Sensible heat</td><td class="l wrapcell">Heat that changes temperature without any reaction</td></tr><tr><td class="l wrapcell">Exothermic / endothermic</td><td class="l wrapcell">Gives out heat / takes in heat</td></tr><tr><td class="l wrapcell">Conversion</td><td class="l wrapcell">The fraction of a reactant that has reacted</td></tr><tr><td class="l wrapcell">Stoichiometric</td><td class="l wrapcell">Exactly the amounts the balanced reaction asks for</td></tr><tr><td class="l wrapcell">Excess air</td><td class="l wrapcell">Air beyond what the reaction needs</td></tr><tr><td class="l wrapcell">Adiabatic</td><td class="l wrapcell">No heat goes in or out through the walls</td></tr><tr><td class="l wrapcell">Residual property, Hᴿ</td><td class="l wrapcell">Real-gas value minus ideal-gas value</td></tr><tr><td class="l wrapcell">Fugacity coefficient, φ</td><td class="l wrapcell">How far a real gas is from ideal; 1 for an ideal gas</td></tr><tr><td class="l wrapcell">Equation of state</td><td class="l wrapcell">A formula linking pressure, volume and temperature of a gas</td></tr><tr><td class="l wrapcell">Hess's law</td><td class="l wrapcell">Adding reactions adds their ΔH</td></tr><tr><td class="l wrapcell">Gibbs minimisation</td><td class="l wrapcell">Finding the mixture with the lowest total Gibbs energy</td></tr><tr><td class="l wrapcell">Carbon activity</td><td class="l wrapcell">Above 1 means solid carbon (coke) can form</td></tr><tr><td class="l wrapcell">HHV / LHV</td><td class="l wrapcell">Heating value with liquid water / with water vapour</td></tr><tr><td class="l wrapcell">ΔU</td><td class="l wrapcell">Heat released at constant volume, as in a bomb calorimeter</td></tr></tbody></table></div>
+<h2 id="9-check-yourself">9. Check yourself</h2>
+<p>Try to answer before you read the answer.</p>
+<ol><li><strong>A reaction has ΔH = −50 kJ/mol. Does it give out or take in heat?</strong> It gives out heat. It is exothermic.</li><li><strong>A reaction turns 4 gas molecules into 2. Is ΔS positive or negative?</strong> Negative. There is less gas, so less disorder.</li><li><strong>Can an exothermic reaction be unfavourable?</strong> Yes. If ΔS is negative, the −T·ΔS term is positive and grows with temperature. Methanol from CO₂ at 523 K is an example.</li><li><strong>K = 0.00002. Mostly products or mostly reactants?</strong> Mostly reactants.</li><li><strong>Why does pressure help ammonia synthesis?</strong> The reaction reduces the number of gas molecules from 4 to 2. Higher pressure favours the side with fewer molecules.</li><li><strong>Why is the heat of formation given at 298.15 K only?</strong> That is the temperature the tables use. Other temperatures are reached with Cp.</li><li><strong>Why does extra air cool a flame?</strong> The extra air does not react. It only has to be heated, so the same heat is shared by more gas.</li><li><strong>Why does a bomb calorimeter measure ΔU and not ΔH?</strong> Its volume is fixed, so no work is done. Heat at constant volume equals ΔU.</li><li><strong>Why is LHV smaller than HHV?</strong> With LHV the water leaves as vapour, so the heat of condensing it is not collected.</li><li><strong>In tab 4, why does switching methane off change the answer?</strong> Methane is the most stable product. Remove it, and the atoms settle into the next best mixture, which contains methanol.</li><li><strong>What does the consistency audit prove?</strong> That two different ways of calculating the same quantity agree. A wrong sign or unit would break it.</li><li><strong>Does a favourable ΔG mean the reaction is fast?</strong> No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.</li></ol>
+<h2 id="10-a-five-minute-tour">10. A five-minute tour</h2>
+<ol><li>Open the <strong>Start</strong> page and click "Try to break it". The unbalanced reaction is rejected.</li><li>Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.</li><li>Click "What does pressure change?" Show that the residual part is −5.16 kJ/mol at 200 bar.</li><li>Click "What actually forms?" Switch methane off and on. Drag the temperature slider.</li><li>Click "How hot does it get?" Drag the excess-air slider and watch the flame cool.</li><li>Click "Bomb calorimeter" and press Ignite.</li><li>Finish on <strong>Validation</strong>: 51 of 51 reference values reproduced.</li></ol>
+  </article>
+</main>
+
+<footer class="wrap foot">
+  <p>Data and equations: Smith, Van Ness &amp; Abbott, <em>Introduction to Chemical Engineering Thermodynamics</em>.
+    <a href="index.html">Back to the solver</a>.</p>
+</footer>
+<script>
+  (() => {
+    const root = document.documentElement;
+    const button = document.getElementById("theme");
+    const current = () => root.dataset.theme || (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const label = () => { button.textContent = current() === "dark" ? "Light" : "Dark"; };
+    button.addEventListener("click", () => {
+      const next = current() === "dark" ? "light" : "dark";
+      root.dataset.theme = next;
+      try { localStorage.setItem("ts-theme", next); } catch (e) {}
+      label();
+    });
+    label();
+  })();
+</script>
+</body>
+</html>

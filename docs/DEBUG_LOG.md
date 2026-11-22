@@ -165,3 +165,11 @@ The full list is in [CODE_REVIEW.md](CODE_REVIEW.md), second review. The three t
 - **Root cause:** item 14 protected only the unknown outlet temperature. The given temperatures were extrapolated wherever the user put them, into the range where the summed heat capacity is negative.
 - **Fix:** the inlet temperature, and a given outlet temperature, must lie in the range where the stream's heat capacity is positive, and not below 200 K. With this change the cracker of item 15 at 50 % conversion is no longer refused: its outlet of 235 K lies inside the range and is shown with a warning that every heat capacity is extrapolated.
 
+## Round 7: start page, glossary and guide (v1.2)
+
+### 23. The explanation buttons were missing on a phone-width check
+
+- **Actual:** the small "i" buttons next to the result labels were there at laptop width and absent in a second check at phone width, although the same code ran.
+- **Root cause:** the buttons were added in a `requestAnimationFrame` callback, and a tab that is not being painted gets no animation frames. It is the same trap as item 17's calorimeter readout, in a new place.
+- **Fix:** a zero-delay timer instead of an animation frame. Nothing that puts content on the page depends on animation frames any more; they are used only to resize plots that are already drawn.
+

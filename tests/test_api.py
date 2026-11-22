@@ -1,6 +1,7 @@
 """The JSON API the web page talks to, the textbook benchmarks, and the five
 stress tests of the assignment's AI Error Challenge."""
 
+import importlib.util
 import json
 import math
 import os
@@ -82,6 +83,21 @@ class TestDeployment(unittest.TestCase):
             worker = re.search(r'new Worker\("web/worker\.js\?v=([^"]+)"\)', fh.read())
         self.assertIsNotNone(worker)
         self.assertEqual(worker.group(1), tagged[0][1])
+
+    def test_guide_page_is_built_from_the_markdown(self):
+        # guide.html is generated from docs/LEARNERS_GUIDE.md; the two must not drift apart,
+        # and the page must load the stylesheet of the current release.
+        spec = importlib.util.spec_from_file_location("build_guide", os.path.join(self.ROOT, "docs", "build_guide.py"))
+        build_guide = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(build_guide)
+        with open(build_guide.SOURCE, encoding="utf-8") as fh:
+            expected = build_guide.render(fh.read(), build_guide.site_version())
+        with open(build_guide.TARGET, encoding="utf-8") as fh:
+            self.assertEqual(fh.read(), expected, "guide.html is stale: run  python docs/build_guide.py")
+        self.assertGreaterEqual(expected.count("<h2 id="), 8)
+        self.assertNotIn("**", expected)                     # no Markdown left unconverted
+        with open(os.path.join(self.ROOT, "index.html"), encoding="utf-8") as fh:
+            self.assertIn('href="guide.html"', fh.read())
 
     def test_no_thermodynamic_constants_in_the_front_end(self):
         # The page must not carry its own copy of R or of any correlation constant.

@@ -6,10 +6,13 @@ An interactive solver for the energetics of chemical reactions: heat of reaction
 
 The page needs no installation. The first visit takes about ten seconds while the browser downloads the Python runtime; after that everything is instant.
 
+**New to the solver?** Read the beginner's guide, which explains every idea and every tab in plain words: [docs/LEARNERS_GUIDE.md](docs/LEARNERS_GUIDE.md), also on the site at https://kirti-1307.github.io/AI-Solver/guide.html
+
 ## What it does
 
 | Tab | What you get |
 |---|---|
+| Start | "What do you want to find out?" Nine question cards, each of which opens the right tab with a worked example. |
 | 1 · Reaction | ΔH°, ΔS°, ΔG° and K at any temperature for 45 predefined reactions or your own. Elemental balance check, exothermic/endothermic label, sensible heat of each species, step-by-step working, plots against temperature, plain-language explanation. |
 | 2 · Pressure & real gas | How pressure changes ΔH at constant temperature, through residual enthalpies: ΔH(T,P) = ΔH°(T) + Σ νᵢHᵢᴿ. Five real-gas models (generalized virial, van der Waals, Redlich/Kwong, SRK, Peng/Robinson), fugacity coefficients, and ideal against real equilibrium conversion. |
 | 3 · Combine reactions | Add and subtract two or more reactions with multipliers (Hess's law). The net reaction is evaluated two ways and the difference is shown. |
@@ -67,6 +70,7 @@ The test strategy is described in [docs/TESTING.md](docs/TESTING.md), and the bu
 
 ```
 index.html, web/        the page: forms, tables, plots (no thermodynamics in JavaScript)
+guide.html              the beginner's guide as a page, built from docs/LEARNERS_GUIDE.md
 thermosolver/           the solver, pure Python, standard library only
     data.py             SVN tables, transcribed
     heatcap.py          Cp polynomial and its integrals
@@ -81,7 +85,7 @@ thermosolver/           the solver, pure Python, standard library only
     literature.py       published research values for comparison
     api.py              JSON interface used by the page
 tests/                  automated tests (unittest)
-docs/                   theory, data sources, testing, debug log, review, deploy checklist
+docs/                   beginner's guide, theory, data sources, testing, debug log, review, deploy checklist
 report/                 the two-page assignment report
 ```
 
