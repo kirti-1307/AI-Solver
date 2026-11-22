@@ -62,7 +62,20 @@ What is still not available: liquid hydrogen peroxide (NIST's WebBook has no con
 3. **Formula check.** The molar mass computed from each chemical formula must match the molar mass printed in Table B.1 to 0.02 g/mol.
 4. **Third-law cross-check.** ΔS°f from Table C.4 plus the CODATA element entropies must reproduce the absolute entropies tabulated by CODATA / NIST for 15 common species to within 1 J/(mol·K). This catches an error in ΔH°f or ΔG°f of about 300 J/mol.
 5. **NIST entries.** The NIST numbers were read from the species pages themselves. For hydrogen peroxide the solver's enthalpy and entropy integrals reproduce NIST's own H°(T) − H°(298.15) and S°(T) functions to nine decimal places; for acetic acid vapour every point of the NIST heat-capacity table is compared with the fitted polynomial.
-6. **Worked examples.** The solver reproduces 47 reference values, 42 of them printed in SVN's worked examples (the rest are one hand calculation from Table C.4, two cubic-equation roots from the course slides and two steam-table checks). See [TESTING.md](TESTING.md) and the Validation tab of the web app.
+6. **Worked examples.** The solver reproduces 51 reference values: 44 from SVN's worked examples, four from course material (two cubic-equation roots from the slides and two results of the bomb-calorimeter handout), one hand calculation from Table C.4 and two steam-table checks. See [TESTING.md](TESTING.md) and the Validation tab of the web app.
+
+   **Not yet confirmed against a printed copy:** five of the 44 SVN values belong to the two heat-balance examples of Chapter 4 (flame temperature of methane with 20 % excess air, 2066 K; heat requirement of the steam reformer, −34,390 + 200,460 + 161,940 = 328,010 J). They were added together with the heat lab, when no copy of the book could be opened, and are quoted as remembered from the 7th and 8th editions. The solver reproduces all five to four significant figures without having been given them, which makes a wrong recollection unlikely, but they should be compared with the book before they are relied on.
+
+## Constants of the heat lab
+
+| Item | Value | Source |
+|---|---|---|
+| Composition of air | 21 mol-% O₂, 79 mol-% N₂, so 79/21 = 3.762 mol N₂ per mol O₂ | as used in the combustion examples of SVN Chapter 4 |
+| Thermochemical calorie | 4.184 J | course bomb-calorimeter handout |
+| Calorific value of benzoic acid | 6319 cal/g at 25 °C | course bomb-calorimeter handout |
+| Calibration run | 1.1942 g of benzoic acid, rise 2.48 °C, thread and wire 41.0 cal, giving 3059.33 cal/°C | course bomb-calorimeter handout |
+
+Benzoic acid is not a species of the database. Its calorific value is only the default of the calibration input of the virtual calorimeter, and it can be overwritten there. Heating values of the fuels themselves come from the formation data of Table C.4.
 
 ## Oddities found in the book itself
 

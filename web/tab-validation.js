@@ -11,17 +11,18 @@
     }
     let body = "";
     for (const [group, rows] of groups) {
-      body += `<tr><td class="l" colspan="6"><strong>${esc(group)}</strong></td></tr>`;
+      body += `<tr><td class="l" colspan="7"><strong>${esc(group)}</strong></td></tr>`;
       body += rows.map((r) => `<tr><td class="l wrapcell">${chem(r.description)}</td>
         <td>${sig(r.expected, 6)}</td><td>${r.computed === null ? esc(r.error || "–") : sig(r.computed, 6)}</td>
         <td class="l">${esc(r.unit)}</td><td>${r.rel_error === null ? "–" : fix(100 * r.rel_error, 3) + " %"}</td>
-        <td class="${r.passed ? "pass" : "fail"}">${r.passed ? "pass" : "FAIL"}</td></tr>`).join("");
+        <td class="${r.passed ? "pass" : "fail"}">${r.passed ? "pass" : "FAIL"}</td>
+        <td class="l wrapcell dim">${esc(r.source)}</td></tr>`).join("");
     }
     const s = res.summary;
     $("#vl-bench").innerHTML = TS.message(s.passed === s.total ? "good" : "error",
-      `<strong>${s.passed} of ${s.total}</strong> textbook values reproduced.`) +
-      `<div class="table-scroll"><table><thead><tr><th class="l">Quantity</th><th>Textbook</th><th>Solver</th><th class="l">Unit</th>
-        <th>Difference</th><th>Result</th></tr></thead><tbody>${body}</tbody></table></div>
+      `<strong>${s.passed} of ${s.total}</strong> reference values reproduced.`) +
+      `<div class="table-scroll"><table><thead><tr><th class="l">Quantity</th><th>Reference</th><th>Solver</th><th class="l">Unit</th>
+        <th>Difference</th><th>Result</th><th class="l">Where the reference value comes from</th></tr></thead><tbody>${body}</tbody></table></div>
       <p class="hint" style="margin-top:8px">Small differences (below 0.1 %) come from the rounding of intermediate values in the printed solutions.</p>`;
   }
 

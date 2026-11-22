@@ -6,7 +6,6 @@ import random
 import unittest
 
 from thermosolver import Reaction, SPECIES, api
-from thermosolver.electrochem import electrochemistry_sweep
 from thermosolver.equilibrium import gibbs_minimize, reaction_equilibrium
 from thermosolver.realgas import CUBIC, cubic_Z_roots, residual
 
@@ -69,7 +68,7 @@ class TestCritical(unittest.TestCase):
     def test_C3a_number_of_points(self):
         base = {"equation": "N2 + 3 H2 -> 2 NH3", "T": 500}
         for bad in ("abc", 1e999, [3], -5, 0, 100000):
-            for endpoint in ("analyze", "pressure", "electro"):
+            for endpoint in ("analyze", "pressure", "heat_balance"):
                 self.expect_input_error(endpoint, dict(base, n_points=bad))
         self.expect_input_error("network", {"species": ["N2", "H2", "NH3"], "feed": {"N2": 1, "H2": 3},
                                             "T": 700, "n_points": "abc"})
@@ -110,16 +109,8 @@ class TestCritical(unittest.TestCase):
 
 
 class TestShouldFix(unittest.TestCase):
-    def test_S1_real_gas_electro_sweep_skips_condensing_points(self):
-        out = call("electro", {"equation": "H2 + 1/2 O2 -> H2O(g)", "T": 1073.15, "P": 30, "model": "pr"})
-        self.assertTrue(out["ok"], out)
-        sweep = out["result"]["sweep"]
-        self.assertIsNone(sweep["E_rev"][0])               # 298 K, 30 bar: water is a liquid
-        self.assertIsNotNone(sweep["E_rev"][-1])
-        self.assertEqual(len(sweep["E_rev"]), len(sweep["T"]))
-        rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-        direct = electrochemistry_sweep(rxn, [300.0, 1000.0], P=30.0, model="pr")
-        self.assertEqual([v is None for v in direct["dG"]], [True, False])
+    # S1 concerned the electrochemical lens, which was later replaced by the heat lab
+    # (see docs/CODE_REVIEW.md), so its regression test went with it.
 
     def test_S2_soave_alpha_fades_out_continuously(self):
         # The Soave term reaches zero at 1027.5 K for N2 with SRK. Nothing may jump there.
@@ -177,15 +168,20 @@ class TestStructuredFuzz(unittest.TestCase):
 
     VALUES = [None, "", "abc", 0, -1, 1, 3.5, 1e-200, 1e308, 1e999, True, False, [], [1], ["pr"], {}, {"a": 1},
               "pr", "ideal", "T", "P", 298.15, 700, 5000, "CH4", "N2 + 3 H2 -> 2 NH3", "H2O(g)", ["N2", "H2", "NH3"],
-              {"N2": 1, "H2": 3}, {"N2": "x"}, {"N2": -1}, [{"equation": "CO + H2O(g) -> CO2 + H2", "multiplier": 1}] * 2]
+              {"N2": 1, "H2": 3}, {"N2": "x"}, {"N2": -1}, [{"equation": "CO + H2O(g) -> CO2 + H2", "multiplier": 1}] * 2,
+              "adiabatic", "duty", "predict", "identify", "excess", "conversion", "T_in", "T_out", "none", 0.2, 2.5, 12800,
+              "CH4 + 2 O2 -> CO2 + 2 H2O(g)", "O2(g)", "C2H5OH(l)", {"mass": 1.2, "dT": 2.5, "calorific_value": 26440},
+              {"mass": "x"}, [{"equation": "CO + H2O(g) -> CO2 + H2", "extent": 0.1}], [{"equation": 3}], {"N2(g)": 4}]
     KEYS = ["equation", "T", "P", "model", "n_points", "T_min", "T_max", "P_min", "P_max", "species", "feed",
-            "steps", "sweep", "n_electrons", "T_cold", "T1", "T2", "moles", "key_element", "name"]
+            "steps", "sweep", "T1", "T2", "moles", "key_element", "name",
+            "T_in", "T_out", "mode", "conversion", "excess", "excess_species", "key", "air", "extra", "side", "Q",
+            "target_T", "sweep_min", "sweep_max", "fuel", "mass", "C_cal", "dT", "corrections", "calibration"]
 
     def test_never_an_internal_error(self):
         rng = random.Random(2026)
-        for _ in range(4000):
+        for _ in range(6000):
             endpoint = rng.choice(list(api.ENDPOINTS))
-            payload = {k: rng.choice(self.VALUES) for k in rng.sample(self.KEYS, rng.randint(0, 8))}
+            payload = {k: rng.choice(self.VALUES) for k in rng.sample(self.KEYS, rng.randint(0, 10))}
             try:
                 text = json.dumps(payload)
             except ValueError:

@@ -4,7 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Thermodynamic Reaction Energy Solver</title>
-  <meta name="description" content="Reaction enthalpy, entropy, Gibbs energy and equilibrium from Smith, Van Ness & Abbott data, with residual properties, reaction combination, Gibbs minimisation and an electrochemical lens.">
+  <meta name="description" content="Reaction enthalpy, entropy, Gibbs energy and equilibrium from Smith, Van Ness & Abbott data, with residual properties, reaction combination, a live equilibrium reactor and a heat lab (flame temperature, heat duty, bomb calorimeter).">
+  <script>
+    // Apply a saved light/dark choice before the first paint.
+    try { const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <link rel="stylesheet" href="web/styles.css">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
   <script src="web/ui.js" defer></script>
@@ -12,7 +16,7 @@
   <script src="web/tab-pressure.js" defer></script>
   <script src="web/tab-combine.js" defer></script>
   <script src="web/tab-network.js" defer></script>
-  <script src="web/tab-electro.js" defer></script>
+  <script src="web/tab-heat.js" defer></script>
   <script src="web/tab-data.js" defer></script>
   <script src="web/tab-validation.js" defer></script>
   <script src="web/main.js" defer></script>
@@ -20,27 +24,47 @@
 <body>
 <header class="top">
   <div class="wrap top-row">
-    <div>
-      <h1>Thermodynamic Reaction Energy Solver</h1>
-      <p class="sub">Heat of reaction, entropy, Gibbs energy and equilibrium, built on the data and equations of
-        Smith, Van Ness &amp; Abbott.</p>
+    <div class="brand">
+      <div class="mark" aria-hidden="true">ΔH</div>
+      <div>
+        <h1>Thermodynamic Reaction Energy Solver</h1>
+        <p class="sub">Heat of reaction, entropy, Gibbs energy and equilibrium, on the data and equations of
+          Smith, Van Ness &amp; Abbott.</p>
+      </div>
     </div>
-    <div id="engine" class="engine loading" role="status" aria-live="polite">
-      <span class="dot"></span><span id="engine-text">Starting…</span>
+    <div class="top-tools">
+      <button id="theme" class="icon-btn" type="button" aria-label="Switch between light and dark">Dark</button>
+      <div id="engine" class="engine loading" role="status" aria-live="polite">
+        <span class="dot"></span><span id="engine-text">Starting…</span>
+      </div>
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Sections">
-    <button role="tab" id="tabbtn-reaction" aria-controls="tab-reaction" aria-selected="true" data-tab="reaction" class="active">1 · Reaction</button>
-    <button role="tab" id="tabbtn-pressure" aria-controls="tab-pressure" aria-selected="false" data-tab="pressure">2 · Pressure &amp; real gas</button>
-    <button role="tab" id="tabbtn-combine" aria-controls="tab-combine" aria-selected="false" data-tab="combine">3 · Combine reactions</button>
-    <button role="tab" id="tabbtn-network" aria-controls="tab-network" aria-selected="false" data-tab="network">4 · Product slate <span class="tag">new</span></button>
-    <button role="tab" id="tabbtn-electro" aria-controls="tab-electro" aria-selected="false" data-tab="electro">5 · Electrochemical lens <span class="tag">new</span></button>
-    <button role="tab" id="tabbtn-data" aria-controls="tab-data" aria-selected="false" data-tab="data">6 · Species data</button>
-    <button role="tab" id="tabbtn-validation" aria-controls="tab-validation" aria-selected="false" data-tab="validation">7 · Validation</button>
+    <button role="tab" id="tabbtn-reaction" aria-controls="tab-reaction" aria-selected="true" data-tab="reaction" class="active"><span class="n">1</span>Reaction</button>
+    <button role="tab" id="tabbtn-pressure" aria-controls="tab-pressure" aria-selected="false" data-tab="pressure"><span class="n">2</span>Pressure &amp; real gas</button>
+    <button role="tab" id="tabbtn-combine" aria-controls="tab-combine" aria-selected="false" data-tab="combine"><span class="n">3</span>Combine reactions</button>
+    <button role="tab" id="tabbtn-network" aria-controls="tab-network" aria-selected="false" data-tab="network"><span class="n">4</span>Product slate <span class="tag">extra</span></button>
+    <button role="tab" id="tabbtn-heat" aria-controls="tab-heat" aria-selected="false" data-tab="heat"><span class="n">5</span>Heat lab <span class="tag">extra</span></button>
+    <button role="tab" id="tabbtn-data" aria-controls="tab-data" aria-selected="false" data-tab="data"><span class="n">6</span>Species data</button>
+    <button role="tab" id="tabbtn-validation" aria-controls="tab-validation" aria-selected="false" data-tab="validation"><span class="n">7</span>Validation</button>
   </nav>
 </header>
 
 <main class="wrap">
+
+  <div class="start" id="start">
+    <span class="lead">Start here</span>
+    <div class="demos">
+      <button class="demo" type="button" data-demo="methanol">CO<sub>2</sub> to methanol</button>
+      <button class="demo" type="button" data-demo="ammonia">Ammonia at 200 bar</button>
+      <button class="demo" type="button" data-demo="hess">Hess's law</button>
+      <button class="demo" type="button" data-demo="slate">Live reactor</button>
+      <button class="demo" type="button" data-demo="flame">Flame temperature</button>
+      <button class="demo" type="button" data-demo="bomb">Bomb calorimeter</button>
+      <button class="demo" type="button" data-demo="break">Break it <small>unbalanced reaction</small></button>
+    </div>
+    <button class="close" id="start-close" type="button" aria-label="Hide this strip">×</button>
+  </div>
 
   <!-- ============================================================ 1 -->
   <section id="tab-reaction" role="tabpanel" aria-labelledby="tabbtn-reaction" class="tab active">
@@ -56,9 +80,10 @@
           <input id="rx-equation" type="text" spellcheck="false" autocomplete="off"
                  placeholder="e.g. CO2 + 3 H2 -> CH3OH + H2O">
         </label>
+      </div>
+      <div class="form">
         <label>Temperature (K)
           <input id="rx-T" type="number" step="any" value="298.15">
-          <small id="rx-TC" class="unit"></small>
         </label>
         <label>Plot from (K)
           <input id="rx-Tmin" type="number" step="any" placeholder="auto">
@@ -68,6 +93,7 @@
         </label>
         <button id="rx-run" class="primary">Calculate</button>
       </div>
+      <small id="rx-TC" class="unit"></small>
     </div>
     <div id="rx-out" aria-live="polite"></div>
   </section>
@@ -87,6 +113,8 @@
         <label class="grow3">Reaction (editable)
           <input id="pr-equation" type="text" spellcheck="false" autocomplete="off">
         </label>
+      </div>
+      <div class="form">
         <label>Temperature (K)
           <input id="pr-T" type="number" step="any" value="723.15">
         </label>
@@ -143,17 +171,10 @@
       <p class="hint">A single-reaction ΔG tells you whether one reaction can go. A real reactor has several
         reactions competing for the same atoms. Here you only choose which species are allowed to exist; the
         solver minimises the total Gibbs energy subject to the element balances and returns the equilibrium
-        mixture. No reaction list is needed. Removing a species shows what a selective catalyst that cannot make
-        it would be limited to.</p>
+        mixture. No reaction list is needed. Drag a slider and the mixture follows.</p>
       <div class="form">
         <label class="grow3">Example system
           <select id="nw-preset"></select>
-        </label>
-        <label>Temperature (K)
-          <input id="nw-T" type="number" step="any" value="523.15">
-        </label>
-        <label>Pressure (bar)
-          <input id="nw-P" type="number" step="any" value="50">
         </label>
         <label>Gas model
           <select id="nw-model">
@@ -163,56 +184,201 @@
             <option value="virial">Generalized virial</option>
           </select>
         </label>
-        <label>Sweep
-          <select id="nw-sweep">
-            <option value="T">Temperature</option>
-            <option value="P">Pressure</option>
-          </select>
-        </label>
-        <label>From
-          <input id="nw-min" type="number" step="any" value="400">
-        </label>
-        <label>To
-          <input id="nw-max" type="number" step="any" value="900">
-        </label>
       </div>
-      <p id="nw-note" class="hint"></p>
-      <div class="species-picker">
-        <div class="picker-head"><strong>Species allowed at equilibrium</strong> and feed (mol). Tick a species to allow it; give it moles to feed it.</div>
-        <div id="nw-species" class="chips"></div>
+      <p id="nw-note" class="hint" style="margin:10px 0 0"></p>
+      <div class="sliders">
+        <div class="slider">
+          <span class="name">Temperature</span>
+          <span class="val"><input id="nw-T" type="number" step="any" value="650"><span>K</span></span>
+          <input id="nw-T-r" type="range" min="300" max="1500" step="1" value="650" aria-label="Temperature in kelvin">
+        </div>
+        <div class="slider">
+          <span class="name">Pressure</span>
+          <span class="val"><input id="nw-P" type="number" step="any" value="50"><span>bar</span></span>
+          <input id="nw-P-r" type="range" min="1" max="300" step="1" value="50" aria-label="Pressure in bar">
+        </div>
+        <div class="slider" id="nw-ratio-box" hidden>
+          <span class="name" id="nw-ratio-name">Feed ratio</span>
+          <span class="val"><input id="nw-ratio" type="number" step="any" value="3"><span>mol/mol</span></span>
+          <input id="nw-ratio-r" type="range" min="0.2" max="10" step="0.05" value="3" aria-label="Feed ratio">
+        </div>
       </div>
-      <div class="form"><button id="nw-run" class="primary">Find equilibrium</button></div>
+      <div class="switches" id="nw-switches" aria-label="Species the catalyst is allowed to make"></div>
+      <details class="plain">
+        <summary>Build your own system: species, feed and plot range</summary>
+        <div class="form">
+          <label>Plot against
+            <select id="nw-sweep">
+              <option value="T">Temperature</option>
+              <option value="P">Pressure</option>
+            </select>
+          </label>
+          <label>From
+            <input id="nw-min" type="number" step="any" value="400">
+          </label>
+          <label>To
+            <input id="nw-max" type="number" step="any" value="900">
+          </label>
+          <button id="nw-run" class="primary">Find equilibrium</button>
+        </div>
+        <div class="species-picker">
+          <div class="picker-head"><strong>Species allowed at equilibrium</strong> and feed (mol). Tick a species to allow it; give it moles to feed it.</div>
+          <div id="nw-species" class="chips"></div>
+        </div>
+      </details>
     </div>
-    <div id="nw-out" aria-live="polite"></div>
+    <div id="nw-live" aria-live="polite"></div>
+    <div id="nw-out"></div>
   </section>
 
   <!-- ============================================================ 5 -->
-  <section id="tab-electro" role="tabpanel" aria-labelledby="tabbtn-electro" class="tab">
+  <section id="tab-heat" role="tabpanel" aria-labelledby="tabbtn-heat" class="tab">
     <div class="panel">
-      <h2>Electrochemical lens <span class="tag">extra feature 2</span></h2>
-      <p class="hint">The same ΔG and ΔH, read as voltages. Run reversibly in an electrochemical cell, a reaction
-        exchanges electrical work equal to ΔG, so E<sub>rev</sub> = −ΔG/(nF) and the thermoneutral voltage is
-        E<sub>tn</sub> = −ΔH/(nF). A spontaneous reaction is a fuel cell; its reverse is an electrolyser.</p>
-      <div class="form">
-        <label class="grow2">Example
-          <select id="el-select"></select>
-        </label>
-        <label class="grow3">Reaction (editable)
-          <input id="el-equation" type="text" spellcheck="false" autocomplete="off">
-        </label>
-        <label>Temperature (K)
-          <input id="el-T" type="number" step="any" value="1073.15">
-        </label>
-        <label>Pressure (bar)
-          <input id="el-P" type="number" step="any" value="1">
-        </label>
-        <label>Electrons, n
-          <input id="el-n" type="number" step="any" placeholder="auto">
-        </label>
-        <button id="el-run" class="primary">Calculate</button>
+      <h2>Heat lab: how hot does it get, and how much heat is needed? <span class="tag">extra feature 2</span></h2>
+      <p class="hint">An energy balance around the reactor, Q = ΔH. The feed is taken from its inlet temperature to
+        298.15 K, the reaction happens there, and the products are taken to the outlet temperature:
+        Q = ΔH<sub>R</sub> + ΔH°<sub>298</sub> + ΔH<sub>P</sub>. With Q = 0 the same balance gives the temperature of a
+        flame or of an adiabatic reactor. The second view is the bomb calorimeter of the lab, where the vessel is
+        closed and the heat released is ΔU.</p>
+      <div class="seg big" id="hl-view" role="tablist" aria-label="View">
+        <button type="button" data-view="reactor" class="on">Reactor and flame</button>
+        <button type="button" data-view="calorimeter">Bomb calorimeter</button>
       </div>
     </div>
-    <div id="el-out" aria-live="polite"></div>
+
+    <div id="hl-reactor">
+      <div class="panel">
+        <div class="form">
+          <label class="grow2">Example
+            <select id="hb-select"></select>
+          </label>
+          <label class="grow3">Reaction (editable)
+            <input id="hb-equation" type="text" spellcheck="false" autocomplete="off">
+          </label>
+          <button id="hb-run" class="primary">Calculate</button>
+        </div>
+        <p id="hb-note" class="hint" style="margin:10px 0 0"></p>
+        <div class="form">
+          <div class="seg" id="hb-mode" aria-label="What to find">
+            <button type="button" data-mode="adiabatic" class="on">Find the outlet temperature</button>
+            <button type="button" data-mode="duty">Find the heat duty</button>
+          </div>
+          <label class="check" id="hb-air-box"><input type="checkbox" id="hb-air"><span>Oxygen comes as air (79 % N<sub>2</sub>)</span></label>
+        </div>
+        <div class="sliders">
+          <div class="slider">
+            <span class="name">Inlet temperature</span>
+            <span class="val"><input id="hb-Tin" type="number" step="any" value="298.15"><span>K</span></span>
+            <input id="hb-Tin-r" type="range" min="250" max="1500" step="1" value="298.15" aria-label="Inlet temperature in kelvin">
+          </div>
+          <div class="slider" id="hb-excess-box">
+            <span class="name" id="hb-excess-name">Excess</span>
+            <span class="val"><input id="hb-excess" type="number" step="any" value="20"><span>%</span></span>
+            <input id="hb-excess-r" type="range" min="0" max="400" step="1" value="20" aria-label="Excess reactant in percent">
+          </div>
+          <div class="slider">
+            <span class="name" id="hb-conv-name">Conversion</span>
+            <span class="val"><input id="hb-conv" type="number" step="any" value="100"><span>%</span></span>
+            <input id="hb-conv-r" type="range" min="0" max="100" step="1" value="100" aria-label="Conversion in percent">
+          </div>
+          <div class="slider" id="hb-Tout-box" hidden>
+            <span class="name">Outlet temperature</span>
+            <span class="val"><input id="hb-Tout" type="number" step="any" value="1300"><span>K</span></span>
+            <input id="hb-Tout-r" type="range" min="300" max="2500" step="1" value="1300" aria-label="Outlet temperature in kelvin">
+          </div>
+        </div>
+        <details class="plain">
+          <summary>More settings: side reaction, extra feed, heat removed, temperature limit</summary>
+          <div class="form">
+            <label>Basis: 1 mol of
+              <select id="hb-key"></select>
+            </label>
+            <label>Reactant in excess
+              <select id="hb-excess-species"></select>
+            </label>
+            <label>Plot against
+              <select id="hb-sweep"></select>
+            </label>
+            <label id="hb-target-box">Temperature limit (K), optional
+              <input id="hb-target" type="number" step="any" placeholder="e.g. 1500">
+            </label>
+            <label id="hb-Q-box">Heat added (kJ per mol), 0 = adiabatic
+              <input id="hb-Q" type="number" step="any" value="0">
+            </label>
+          </div>
+          <div class="form">
+            <label class="grow3">Side reaction, optional
+              <input id="hb-side-eq" class="mono-input" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. CO + H2O(g) -> CO2 + H2">
+            </label>
+            <label>Its extent (mol per mol of basis)
+              <input id="hb-side-extent" type="number" step="any" placeholder="0">
+            </label>
+            <label>Extra feed species, optional
+              <select id="hb-extra-species"></select>
+            </label>
+            <label>Its amount (mol per mol of basis)
+              <input id="hb-extra-n" type="number" step="any" placeholder="0">
+            </label>
+          </div>
+        </details>
+      </div>
+      <div id="hb-out" aria-live="polite"></div>
+    </div>
+
+    <div id="hl-calorimeter" hidden>
+      <div class="panel">
+        <h3>1. The calorimeter constant</h3>
+        <div class="form">
+          <div class="seg" id="bc-cal-mode" aria-label="How the calorimeter constant is known">
+            <button type="button" data-cal="calibrate" class="on">Calibrate with a standard</button>
+            <button type="button" data-cal="known">I know the constant</button>
+          </div>
+        </div>
+        <div class="form" id="bc-calibrate">
+          <label>Mass of benzoic acid (g)
+            <input id="bc-std-mass" type="number" step="any">
+          </label>
+          <label>Its calorific value (cal/g)
+            <input id="bc-std-cv" type="number" step="any">
+          </label>
+          <label>Temperature rise (°C)
+            <input id="bc-std-dT" type="number" step="any">
+          </label>
+          <label>Thread and wire (cal)
+            <input id="bc-std-corr" type="number" step="any">
+          </label>
+        </div>
+        <div class="form" id="bc-known" hidden>
+          <label>Calorimeter constant (cal/°C)
+            <input id="bc-C" type="number" step="any">
+          </label>
+        </div>
+        <h3 style="margin-top:16px">2. The experiment</h3>
+        <div class="form">
+          <div class="seg" id="bc-mode" aria-label="Kind of experiment">
+            <button type="button" data-mode="predict" class="on">Burn a known fuel</button>
+            <button type="button" data-mode="identify">Identify an unknown sample</button>
+          </div>
+        </div>
+        <div class="form">
+          <label class="grow2" id="bc-fuel-box">Fuel
+            <select id="bc-fuel"></select>
+          </label>
+          <label>Sample mass (g)
+            <input id="bc-mass" type="number" step="any" value="1.00">
+          </label>
+          <label id="bc-dT-box" hidden>Measured temperature rise (°C)
+            <input id="bc-dT" type="number" step="any" value="2.30">
+          </label>
+          <label>Thread and wire (cal)
+            <input id="bc-corr" type="number" step="any" value="0">
+          </label>
+          <label class="check" id="bc-gases-box" hidden><input type="checkbox" id="bc-gases"><span>Also compare with gases</span></label>
+          <button id="bc-run" class="primary">Ignite</button>
+        </div>
+      </div>
+      <div id="bc-out" aria-live="polite"></div>
+    </div>
   </section>
 
   <!-- ============================================================ 6 -->
@@ -256,7 +422,8 @@
     <div class="panel">
       <h2>Solver versus the textbook</h2>
       <p class="hint">These checks are computed live in your browser by the same code that produced every other
-        number on this site. Expected values are the ones printed in Smith, Van Ness &amp; Abbott.</p>
+        number on this site. Expected values are the ones printed in Smith, Van Ness &amp; Abbott, in the course
+        slides and in the bomb-calorimeter lab handout; each row names its source.</p>
       <div id="vl-bench"></div>
     </div>
     <div class="panel">
@@ -274,7 +441,8 @@
   <p><strong>Data:</strong> Smith, Van Ness &amp; Abbott, <em>Introduction to Chemical Engineering Thermodynamics</em>:
     Table C.1 (gas heat capacities), C.2 (solids), C.3 (liquids), C.4 (formation properties at 298.15 K) and
     B.1 (critical constants). Hydrogen peroxide and acetic acid, which SVN does not fully cover, use the NIST Chemistry WebBook
-    and are labelled wherever they appear. Standard state: pure species at 1 bar; gases as ideal gases. R = 8.314 J/(mol·K).</p>
+    and are labelled wherever they appear. Standard state: pure species at 1 bar; gases as ideal gases. R = 8.314 J/(mol·K).
+    Air is taken as 21 mol-% O<sub>2</sub> and 79 mol-% N<sub>2</sub>.</p>
   <p>All calculations run in your browser. The solver is the Python package <code>thermosolver</code>, executed with Pyodide.</p>
 </footer>
 </body>

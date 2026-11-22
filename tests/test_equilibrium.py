@@ -1,13 +1,12 @@
 """Hess-law combination, single-reaction equilibrium, Gibbs-energy
-minimisation and the electrochemical lens."""
+minimisation."""
 
 import math
 import unittest
 
-from thermosolver import FARADAY, InputError, R, Reaction, SPECIES, T0
+from thermosolver import InputError, R, Reaction, SPECIES, T0
 from thermosolver import library
 from thermosolver.combine import combine_reactions, formation_reaction
-from thermosolver.electrochem import electrochemistry, electrochemistry_sweep, electron_count
 from thermosolver.equilibrium import atom_distribution, gibbs_minimize, reaction_equilibrium
 
 
@@ -248,93 +247,6 @@ class TestGibbsMinimisation(unittest.TestCase):
                     self.assertLess(res["kkt_residual"], 1e-7, f"{T} {P} {model}")
         self.assertEqual(solved + refused, 48)
         self.assertGreaterEqual(solved, 40)
-
-
-class TestElectrochemistry(unittest.TestCase):
-    def test_svn_fuel_cell_section(self):
-        # SVN works the hydrogen cell with water vapour as the product
-        rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-        res = electrochemistry(rxn, T0)
-        self.assertAlmostEqual(res["electrical_work"], -228572.0, delta=1e-6)
-        self.assertAlmostEqual(res["reversible_heat"], -13246.0, delta=1e-6)
-        self.assertAlmostEqual(res["E_rev"], 1.184, delta=6e-4)
-        hot = electrochemistry(rxn, 333.15)
-        self.assertAlmostEqual(hot["dH"], -242168.0, delta=5.0)
-        self.assertAlmostEqual(hot["dG"], -226997.0, delta=5.0)
-
-    def test_liquid_water_fuel_cell(self):
-        rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(l)")
-        res = electrochemistry(rxn, T0)
-        self.assertEqual(res["n_electrons"], 2.0)
-        self.assertAlmostEqual(res["E_rev"], 1.229, delta=5e-4)
-        self.assertAlmostEqual(res["E_tn"], 285830.0 / (2 * FARADAY), places=9)      # 1.481 V
-        self.assertAlmostEqual(res["reversible_heat"], -48701.0, delta=1e-6)
-        self.assertEqual(res["mode"], "galvanic")
-        self.assertAlmostEqual(res["efficiency"], 237129.0 / 285830.0, places=9)     # 83 %
-
-    def test_electron_count(self):
-        cases = {"H2 + 1/2 O2 -> H2O(g)": 2, "CH4 + 2 O2 -> CO2 + 2 H2O(g)": 8,
-                 "N2 + 3 H2 -> 2 NH3": 6, "CO2 + 3 H2 -> CH3OH(g) + H2O(g)": 6,
-                 "CO + 1/2 O2 -> CO2": 2, "4 NH3 + 5 O2 -> 4 NO + 6 H2O(g)": 20}
-        for eq, n in cases.items():
-            self.assertEqual(electron_count(Reaction.parse(eq))[0], n, eq)
-        self.assertIsNone(electron_count(Reaction.parse("CaCO3 -> CaO + CO2"))[0])
-        with self.assertRaises(InputError):
-            electrochemistry(Reaction.parse("CaCO3 -> CaO + CO2"), 1000.0)
-
-    def test_electron_count_with_hydrogen_peroxide(self):
-        # Oxygen in H2O2 is at -1, so O2 <-> H2O2 exchanges 2 electrons per O2, not 4
-        cases = {"H2 + O2 -> H2O2": 2,                 # two-electron oxygen reduction
-                 "2 H2O2 -> 2 H2O(g) + O2": 2,          # disproportionation
-                 "H2O2 + H2 -> 2 H2O(g)": 2,
-                 "H2O2 + CO -> CO2 + H2O(g)": 2}
-        for eq, n in cases.items():
-            self.assertEqual(electron_count(Reaction.parse(eq))[0], n, eq)
-        res = electrochemistry(Reaction.parse("H2 + O2 -> H2O2"), T0)
-        self.assertAlmostEqual(res["E_rev"], 105435.7 / (2 * FARADAY), delta=1e-5)   # 0.546 V
-        four = electrochemistry(Reaction.parse("H2 + 1/2 O2 -> H2O(g)"), T0)
-        self.assertLess(res["E_rev"], four["E_rev"])    # the 4-electron route to water gives more voltage
-
-    def test_reverse_reaction_is_an_electrolyser(self):
-        fc = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-        el = fc.reversed()
-        a = electrochemistry(fc, 1073.15)
-        b = electrochemistry(el, 1073.15)
-        self.assertEqual(b["mode"], "electrolytic")
-        self.assertAlmostEqual(a["E_rev"], -b["E_rev"], places=12)
-        self.assertAlmostEqual(a["E_tn"], -b["E_tn"], places=12)
-        # steam electrolysis at 800 C: about 0.98 V reversible, 1.29 V thermoneutral
-        self.assertAlmostEqual(a["E_rev"], 0.98, delta=0.01)
-        self.assertAlmostEqual(a["E_tn"], 1.29, delta=0.01)
-
-    def test_temperature_coefficient_is_entropy(self):
-        rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-        h = 0.01
-        slope = (electrochemistry(rxn, 900 + h)["E_rev"] - electrochemistry(rxn, 900 - h)["E_rev"]) / (2 * h)
-        self.assertAlmostEqual(slope, electrochemistry(rxn, 900.0)["dE_dT"], delta=1e-9)
-
-    def test_nernst_pressure_shift(self):
-        rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-        T, P = 1000.0, 10.0
-        res = electrochemistry(rxn, T, P=P, model="ideal")
-        # dn_gas = -1/2:  E = E0 - (RT/nF) * dn * ln(P/P0)
-        expected = res["E_std"] + R * T / (2 * FARADAY) * 0.5 * math.log(P)
-        self.assertAlmostEqual(res["E_rev"], expected, places=10)
-        self.assertGreater(res["E_rev"], res["E_std"])
-
-    def test_fuel_cell_beats_carnot_only_below_a_crossover(self):
-        rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-        sweep = electrochemistry_sweep(rxn, [400 + 20 * i for i in range(71)])
-        self.assertTrue(1050 < sweep["crossover_T"] < 1250, sweep["crossover_T"])
-        self.assertGreater(sweep["efficiency"][0], sweep["carnot_efficiency"][0])
-        self.assertLess(sweep["efficiency"][-1], sweep["carnot_efficiency"][-1])
-
-    def test_user_supplied_electrons(self):
-        rxn = Reaction.parse("CO + H2O(g) -> CO2 + H2")
-        res = electrochemistry(rxn, 600.0, n_electrons=2)
-        self.assertEqual(res["n_basis"], "entered by the user")
-        with self.assertRaises(InputError):
-            electrochemistry(rxn, 600.0, n_electrons=0)
 
 
 if __name__ == "__main__":

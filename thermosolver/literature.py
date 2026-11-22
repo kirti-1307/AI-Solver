@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 from typing import List
 
-from .constants import FARADAY, R
+from .constants import R
 from .reaction import Reaction
 from .realgas import residual
 from .species import SPECIES
@@ -129,19 +129,6 @@ def build() -> dict:
     other.append({"name": "H2 + 1/2 O2 -> H2O(g): standard heat of reaction at 1000 K",
                   "solver": h2.dH(1000.0) / 1000.0, "published": -247.857, "unit": "kJ/mol",
                   "source": "NIST-JANAF Thermochemical Tables, H2O(g), table H-064"})
-    other.append({"name": "Hydrogen fuel cell, reversible voltage at 1000 K (from the JANAF Gibbs energy)",
-                  "solver": -h2.dG(1000.0) / (2 * FARADAY), "published": 192590.0 / (2 * 96485.33), "unit": "V",
-                  "source": "NIST-JANAF Thermochemical Tables, H2O(g), table H-064"})
-    h2l = Reaction.parse("H2O(l) -> H2 + 1/2 O2")
-    other.append({"name": "Water electrolysis at 25 C: reversible voltage",
-                  "solver": h2l.dG0 / (2 * FARADAY), "published": 1.23, "unit": "V",
-                  "source": "Du et al., Chem. Rev. 122 (2022) 11830, doi:10.1021/acs.chemrev.1c00854"})
-    other.append({"name": "Water electrolysis at 25 C: thermoneutral voltage",
-                  "solver": h2l.dH0 / (2 * FARADAY), "published": 1.48, "unit": "V",
-                  "source": "Du et al., Chem. Rev. 122 (2022) 11830, doi:10.1021/acs.chemrev.1c00854"})
-    other.append({"name": "Steam electrolysis at 700 C: thermoneutral voltage",
-                  "solver": -h2.dH(973.15) / (2 * FARADAY), "published": 1.28, "unit": "V",
-                  "source": "Zhou et al., ChemSusChem 18 (2025) e202501131, doi:10.1002/cssc.202501131"})
     # Effect of pressure on the enthalpy of pure gases at 700 K: H(200 bar) - H(1 bar)
     nist = {"NH3(g)": -2.117, "N2(g)": 0.202, "H2(g)": 0.335}
     nu = {"NH3(g)": 1.0, "N2(g)": -0.5, "H2(g)": -1.5}

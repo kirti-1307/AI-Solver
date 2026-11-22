@@ -11,7 +11,7 @@ const PYODIDE_BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/
 const FILES = [
   "__init__.py", "constants.py", "errors.py", "formula.py", "data.py", "heatcap.py",
   "species.py", "reaction.py", "realgas.py", "equilibrium.py", "combine.py",
-  "electrochem.py", "audit.py", "library.py", "benchmarks.py", "literature.py", "api.py",
+  "heatbalance.py", "audit.py", "library.py", "benchmarks.py", "literature.py", "api.py",
 ];
 
 function status(message) {

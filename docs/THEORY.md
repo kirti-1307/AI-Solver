@@ -11,7 +11,7 @@ Each block names the Python function that implements it, so the code can be chec
 | Gas constant R | 8.314 J/(mol·K) = 83.14 cm³·bar/(mol·K) | SVN Table A.2 |
 | Reference temperature T₀ | 298.15 K | SVN Table C.4 |
 | Standard-state pressure P° | 1 bar | SVN Sec. 4.3 |
-| Faraday constant F | 96,485 C/mol | SVN Sec. 14.10 |
+| Air | 21 mol-% O₂, 79 mol-% N₂ | SVN Ch. 4 examples |
 
 - **Standard state** (SVN Sec. 4.3): the pure species at 1 bar. Gases are in the ideal-gas state; liquids and solids are the real pure substance.
 - **Stoichiometric numbers** νᵢ are positive for products and negative for reactants. Every property change of reaction is ΔM = Σ νᵢ Mᵢ, per mole of reaction as written.
@@ -187,19 +187,72 @@ No list of reactions is needed: the species list alone decides what can form.
 
 Validation: with the ΔG°f values quoted in SVN's example (CH₄/H₂O/CO/CO₂/H₂ at 1000 K and 1 bar) the solver returns the book's mole fractions to four decimals, and for a single reaction it reproduces the reaction-coordinate result of Section 6.
 
-## 8. Extra feature 2: electrochemical lens (SVN Sec. 14.10)
+## 8. Extra feature 2: the heat lab (SVN Sec. 4.5 to 4.7, and the bomb-calorimeter lab)
 
-A reaction run reversibly in an electrochemical cell at constant T and P exchanges electrical work equal to its Gibbs energy change (`electrochem.electrochemistry`):
+### 8.1 Energy balance on a reactor (`heatbalance.solve`)
 
-    W_elec = ΔG                         Q_rev = T·ΔS = ΔH − ΔG
-    E_rev  = −ΔG/(n·F)                  E_tn  = −ΔH/(n·F)
-    dE_rev/dT = ΔS/(n·F)
+For a steady-flow reactor with no shaft work and negligible kinetic and potential energy changes, the first law is
 
-n is the number of electrons per mole of reaction: 4 per O₂, otherwise 2 per H₂ or Cl₂, or entered by hand. Hydrogen peroxide is the exception, because its oxygen is at oxidation state −1: when it takes part, n is 2 per H₂ or, without H₂, 2 per O₂.
+    Q = ΔH = H_out(T_out) − H_in(T_in)
 
-- ΔG < 0: a **fuel cell**. Ideal efficiency ΔG/ΔH, compared with the Carnot limit 1 − Tc/T of a heat engine burning the same fuel.
-- ΔG > 0: an **electrolyser**. Minimum electricity ΔG; the remainder T·ΔS of the energy demand ΔH can be supplied as heat. E_tn is the voltage at which the cell neither heats nor cools.
-- At pressure P the same ΔG(T,P) of Section 5 is used, which is the Nernst equation for pure gases at P.
+per mole of the key reactant fed. Enthalpy is a state function, so ΔH is evaluated along the path SVN uses for industrial reactions: take the feed to 298.15 K, react there, take the products to the outlet temperature.
+
+    ΔH_R    = Σ n_in,i  ∫ from T_in to T₀  of Cp,i dT        (feed to 298.15 K)
+    ΔH°₂₉₈  = Σ_j ξ_j ΔH°₂₉₈,j                               (ξ_j = extent of reaction j)
+    ΔH_P    = Σ n_out,i ∫ from T₀ to T_out of Cp,i dT        (products to the outlet)
+    Q       = ΔH_R + ΔH°₂₉₈ + ΔH_P
+
+The same Q is Σ n_out,i Hᵢ(T_out) − Σ n_in,i Hᵢ(T_in) with Hᵢ(T) = ΔH°f,ᵢ + ∫Cp dT, because Σ n_out ΔH°f − Σ n_in ΔH°f = Σ ξ_j ΔH°₂₉₈,j. The solver evaluates both routes and shows that they agree.
+
+Two questions are answered with it:
+
+- **Heat duty**: T_out is given, Q is the result.
+- **Outlet temperature**: Q is given (0 for an adiabatic reactor) and T_out is the unknown, found from H_out(T_out) = H_in(T_in) + Q by Newton's method kept inside a bracket (`heatbalance.outlet_temperature`). With complete combustion and Q = 0 this is the theoretical flame temperature. In the book's own notation the solution satisfies T = T₀ − ΔH°₂₉₈/⟨Cp⟩_H when the feed enters at T₀.
+
+The heat capacities of a mixture add, so each stream has one set of constants (Σ nᵢAᵢ, Σ nᵢBᵢ, ...) and one enthalpy polynomial (`heatbalance.Stream`).
+
+**Feed and outlet** (`heatbalance.build_case`), per mole of key reactant:
+
+    n_in(reactant r) = |ν_r| / |ν_key| × (1 + excess of r)
+    n_in(N₂)        += (79/21) × n_in(O₂)          when the oxygen comes as air
+    n_out,i          = n_in,i + Σ_j ν_i,j ξ_j       with ξ_main = conversion / |ν_key|
+
+A setting that would leave a negative amount of any species is rejected.
+
+**Where the search is allowed to go.** A polynomial heat capacity can turn negative far outside the range it was fitted to (methane's does above about 4400 K, graphite's below about 210 K). The outlet-temperature search stays in the interval around 298.15 K where the summed heat capacity of the outlet stream is positive, so the enthalpy rises with temperature and the balance has one solution. If the balance has no solution there, the solver says so and suggests what to change. Inside that interval, a species used outside its own fitted range still raises the usual extrapolation warning.
+
+**Assumptions**, the same as in SVN's examples: every species stays in the phase written, the gases are ideal, and the reactions go to the stated extents. In particular no dissociation is considered, so above about 2000 K real flames are cooler than the calculated value.
+
+### 8.2 Work that the hot products could deliver (`heatbalance.work_potential`)
+
+Cooling the outlet stream to the temperature of the surroundings T_σ at constant pressure and composition, the ideal work (SVN Chapter 5) is
+
+    W_ideal = ΔH − T_σ ΔS          ΔH = Σ nᵢ ∫ Cp,i dT,   ΔS = Σ nᵢ ∫ Cp,i dT/T    from T_out to T_σ
+
+It is negative when the stream can deliver work. If the heat is simply discarded, all of it is lost work. For comparison the solver also gives 1 − T_σ/T_out, the Carnot efficiency of an engine supplied at the constant temperature T_out; the stream does less because its temperature falls while it gives up heat.
+
+### 8.3 Fuel facts (`heatbalance.fuel_facts`, `heatbalance.heating_values`)
+
+For the complete combustion of a fuel made of C, H, O, N and S,
+
+    CxHyOzNwSv + (x + y/4 + v − z/2) O₂ → x CO₂ + (y/2) H₂O + (w/2) N₂ + v SO₂
+
+- **Lower heating value** = −ΔH°₂₉₈ with the water as vapour; **higher heating value** = −ΔH°₂₉₈ with the water as liquid. Their difference is the heat of vaporisation of the water formed.
+- **Stoichiometric air** = moles of O₂ / 0.21.
+
+### 8.4 Bomb calorimeter (`heatbalance.calorimeter_run`, `heatbalance.identify_fuel`)
+
+The bomb is a closed, rigid vessel: W = 0, so the heat released is the change of internal energy, with the water formed as liquid. From H = U + PV and ideal gases,
+
+    ΔU_c = ΔH_c − Δn_gas·R·T            Δn_gas counts gaseous species only
+    calorific value = −ΔU_c / M          per gram of fuel
+
+These are the relations of the course lab handout. The calorimeter constant comes from a calibration run with a standard of known calorific value, and the temperature rise of a sample follows from it:
+
+    C_cal = (m_std × CV_std + ignition corrections) / ΔT_std
+    ΔT    = (m × CV + ignition corrections) / C_cal
+
+Run in reverse, a measured ΔT gives the calorific value of an unknown sample, which is compared with the liquid and solid fuels of the database. The handout's shortcut LHV = HHV − m_w·h_fg is shown next to the lower heating value from formation data; the two differ only by the small Δn_gas·R·T term.
 
 ## 9. Consistency audit (`audit.py`)
 
@@ -216,5 +269,8 @@ Every result is re-derived by an independent numerical route. A wrong formula, s
 | Residual Gibbs energy | Hᴿ − T·Sᴿ = R·T·ln φ |
 | Residual Gibbs-Helmholtz | (∂ ln φ/∂T)_P = −Hᴿ/(R·T²) |
 | Volume relation | (∂ ln φ/∂P)_T = (Z − 1)/P |
+| Atoms in the reactor | atoms in the feed = atoms in the outlet, every element |
+| Two routes to the heat duty | ΔH_R + ΔH°₂₉₈ + ΔH_P = Σ n_out Hᵢ(T_out) − Σ n_in Hᵢ(T_in) |
+| Energy balance closes | H_out(T_out) − H_in(T_in) = Q |
 
 Derivatives are central finite differences, so they share no code with the formulas they test.

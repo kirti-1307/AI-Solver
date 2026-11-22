@@ -1,5 +1,5 @@
 """Benchmarks: the solver against numbers printed in Smith, Van Ness & Abbott
-(and one case from the course lecture slides).
+(and cases from the course lecture slides and the bomb-calorimeter handout).
 
 The same list feeds the automated tests and the "Validation" tab of the web
 app, so the comparison the professor sees on screen is the comparison the
@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from typing import Callable, List
 
-from .constants import FARADAY, R, T0
+from .constants import R, T0
+from . import heatbalance
 from .equilibrium import gibbs_minimize
 from .heatcap import icph
 from .reaction import Reaction
@@ -146,18 +147,43 @@ def build() -> List[dict]:
             y, lambda s=sid: _svn_gibbs_example()["y"][s], "-", 6e-3,
             "SVN Gibbs-minimisation example")
 
-    # --- Fuel cell (SVN fuel-cell section) -------------------------------------
-    fc = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-    add("Electrochemistry", "H2/O2 fuel cell at 25 C, water vapour product: electrical work = ΔG",
-        -228572.0, lambda: fc.dG0, "J/mol", 1e-6, "SVN fuel-cell section")
-    add("Electrochemistry", "H2/O2 fuel cell at 25 C: heat transfer Q = ΔH − ΔG",
-        -13246.0, lambda: fc.dH0 - fc.dG0, "J/mol", 1e-6, "SVN fuel-cell section")
-    add("Electrochemistry", "H2/O2 fuel cell at 25 C: cell voltage E = −ΔG/(2F)",
-        1.184, lambda: -fc.dG0 / (2 * FARADAY), "V", 5e-4, "SVN fuel-cell section")
-    add("Electrochemistry", "Same cell at 60 C: ΔH° of formation of H2O(g) at 333.15 K",
-        -242168.0, lambda: fc.dH(333.15), "J/mol", 2e-5, "SVN fuel-cell section")
-    add("Electrochemistry", "Same cell at 60 C: ΔG° of formation of H2O(g) at 333.15 K",
-        -226997.0, lambda: fc.dG(333.15), "J/mol", 2e-5, "SVN fuel-cell section")
+    # --- Formation of water vapour at 60 C (values quoted in SVN) -----------------
+    h2o = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
+    add("Gibbs energy and K", "H2 + 1/2 O2 -> H2O(g): ΔH° at 60 C",
+        -242168.0, lambda: h2o.dH(333.15), "J/mol", 2e-5, "SVN, value quoted for 333.15 K")
+    add("Gibbs energy and K", "H2 + 1/2 O2 -> H2O(g): ΔG° at 60 C",
+        -226997.0, lambda: h2o.dG(333.15), "J/mol", 2e-5, "SVN, value quoted for 333.15 K")
+
+    # --- Heat effects of industrial reactions (SVN Ch. 4) -------------------------
+    def flame():
+        burn = Reaction.parse("CH4 + 2 O2 -> CO2 + 2 H2O(g)")
+        return heatbalance.solve(heatbalance.build_case(burn, excess=0.2, air=True), T0, "adiabatic")
+
+    def reformer():
+        smr = Reaction.parse("CH4 + H2O(g) -> CO + 3 H2")
+        wgs = Reaction.parse("CO + H2O(g) -> CO2 + H2")
+        case = heatbalance.build_case(smr, excess_species="H2O(g)", excess=1.0, side=[(wgs, 0.13)])
+        return heatbalance.solve(case, 600.0, "duty", T_out=1300.0)
+
+    add("Reactor heat balance", "Methane burned with 20 % excess air, both entering at 25 C: flame temperature",
+        2066.0, lambda: flame()["T_out"], "K", 5e-4, "SVN Ch. 4 example (theoretical flame temperature)")
+    add("Reactor heat balance", "Steam reformer, feed at 600 K: heat to cool the reactants to 298.15 K",
+        -34390.0, lambda: reformer()["path"]["dH_R"], "J", 2e-4, "SVN Ch. 4 example (reformer heat requirement)")
+    add("Reactor heat balance", "Steam reformer: heat of the two reactions at 298.15 K",
+        200460.0, lambda: reformer()["path"]["dH_298"], "J", 2e-5, "SVN Ch. 4 example (reformer heat requirement)")
+    add("Reactor heat balance", "Steam reformer: heat to bring the products to 1300 K",
+        161940.0, lambda: reformer()["path"]["dH_P"], "J", 2e-4, "SVN Ch. 4 example (reformer heat requirement)")
+    add("Reactor heat balance", "Steam reformer: total heat requirement",
+        328010.0, lambda: reformer()["Q"], "J", 2e-5, "SVN Ch. 4 example (reformer heat requirement)")
+
+    # --- Bomb calorimeter (course lab handout, benzoic acid calibration) -----------
+    cal = heatbalance.JOULE_PER_CAL
+    add("Bomb calorimeter", "Calibration with 1.1942 g benzoic acid, rise 2.48 C: calorimeter constant",
+        3059.33, lambda: heatbalance.calorimeter_constant(1.1942, 2.48, 6319.0 * cal, 41.0 * cal) / cal,
+        "cal/K", 1e-5, "Course bomb-calorimeter handout")
+    add("Bomb calorimeter", "Benzoic acid: ΔH from ΔU = −3228.7 kJ/mol with Δn(gas) = −0.5 at 303.15 K",
+        -3230.0, lambda: -3228.7 + (-0.5) * R * 303.15 / 1000.0, "kJ/mol", 3e-5,
+        "Course bomb-calorimeter handout (ΔH = ΔU + Δn·RT)")
 
     # --- Independent physical check -------------------------------------------
     vap = Reaction.parse("H2O(l) -> H2O(g)")

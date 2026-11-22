@@ -1,4 +1,5 @@
-/* Start-up: boot the Python engine, load the library and database, wire the tabs. */
+/* Start-up: boot the Python engine, load the library and database, wire the
+ * tabs, the "start here" strip and the light/dark switch. */
 "use strict";
 (() => {
   const { $, $$ } = TS;
@@ -15,6 +16,7 @@
       const active = button.dataset.tab === tab.id;
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", active ? "true" : "false");
+      if (active && button.scrollIntoView) button.scrollIntoView({ block: "nearest", inline: "nearest" });
     }
     for (const section of $$("main .tab")) section.classList.toggle("active", section.id === `tab-${tab.id}`);
     if (push && location.hash !== `#${tab.id}`) history.replaceState(null, "", `#${tab.id}`);
@@ -27,11 +29,42 @@
     }
   }
 
+  /* One-click demonstrations: each opens a tab with a ready-made case. */
+  const pick = (selector, value) => {
+    const select = $(selector);
+    select.value = value;
+    select.dispatchEvent(new Event("change"));
+  };
+  const demos = {
+    methanol() { showTab("reaction"); pick("#rx-select", "co2_methanol"); },
+    break() {
+      showTab("reaction");
+      const input = $("#rx-equation");
+      input.value = "CH4 + O2 -> CO2 + H2O";
+      input.dispatchEvent(new Event("input"));
+      $("#rx-run").click();
+    },
+    ammonia() { showTab("pressure"); $("#pr-P").value = 200; pick("#pr-select", "ammonia"); },
+    hess() { showTab("combine"); const s = $("#cb-preset"); s.selectedIndex = 0; s.dispatchEvent(new Event("change")); },
+    slate() { showTab("network"); pick("#nw-preset", "co2_hydrogenation"); },
+    flame() { showTab("heat"); TS.heatView("reactor"); TS.heatExample("methane_burner"); },
+    bomb() { showTab("heat"); TS.heatView("calorimeter"); },
+  };
+
+  function wireTheme() {
+    const button = $("#theme");
+    const label = () => { button.textContent = TS.theme.current() === "dark" ? "Light" : "Dark"; };
+    button.addEventListener("click", () => { TS.theme.set(TS.theme.current() === "dark" ? "light" : "dark"); label(); });
+    label();
+  }
+
   async function start() {
     for (const button of $$(".tabs button")) {
       button.addEventListener("click", () => showTab(button.dataset.tab));
     }
-    for (const button of $$("button.primary")) button.disabled = true;
+    wireTheme();
+    $("#start-close").addEventListener("click", () => { $("#start").hidden = true; });
+    for (const button of $$("button.primary, .demo")) button.disabled = true;
 
     TS.engine = new TS.Engine(setEngine);
     try {
@@ -42,9 +75,17 @@
       $("#rx-out").innerHTML = TS.message("error", `<strong>The solver could not start.</strong> ${TS.esc(err.message)}`);
       return;
     }
-    for (const button of $$("button.primary")) button.disabled = false;
+    for (const button of $$("button.primary, .demo")) button.disabled = false;
     for (const tab of TS.tabs) tab.init();
     TS.ready = true;
+    for (const button of $$(".demo")) {
+      button.addEventListener("click", () => {
+        const run = demos[button.dataset.demo];
+        if (!run) return;
+        run();
+        window.scrollTo({ top: 0 });
+      });
+    }
     showTab((location.hash || "#reaction").slice(1), false);
     window.addEventListener("hashchange", () => showTab(location.hash.slice(1), false));
   }

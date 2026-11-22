@@ -296,4 +296,120 @@ TS.auditTable = (checks) => {
       <th>Right side</th><th>Relative error</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
 };
 
+/* ---------------------------------------------------------- live controls */
+/* A slider is a number box (id) and a range input (id + "-r") that mirror each
+ * other. The number box is the value that is sent to the solver, so a typed
+ * value may lie outside the track. onInput fires while dragging, onChange
+ * when the user lets go or finishes typing. */
+TS.bindSlider = (id, onInput, onChange) => {
+  const box = TS.$("#" + id);
+  const range = TS.$("#" + id + "-r");
+  range.addEventListener("input", () => { box.value = range.value; onInput(); });
+  range.addEventListener("change", () => onChange());
+  box.addEventListener("input", () => {
+    const value = Number(box.value);
+    if (box.value !== "" && Number.isFinite(value)) range.value = value;
+  });
+  box.addEventListener("change", () => onChange());
+  box.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); onChange(); } });
+};
+
+TS.setSlider = (id, value, limits) => {
+  const range = TS.$("#" + id + "-r");
+  if (limits) { range.min = limits[0]; range.max = limits[1]; range.step = limits[2] || 1; }
+  if (Number(value) > Number(range.max)) range.max = value;      // widen the track for a preset outside it
+  if (Number(value) < Number(range.min)) range.min = value;
+  TS.$("#" + id).value = value;
+  range.value = value;
+};
+
+/* Only one call in flight; while it runs, the newest request is remembered and
+ * run next. Dragging a slider therefore never queues stale calculations. */
+TS.latest = (task) => {
+  let busy = false;
+  let waiting = null;
+  const run = async (arg) => {
+    if (busy) { waiting = { arg }; return; }
+    busy = true;
+    try {
+      await task(arg);
+    } finally {
+      busy = false;
+      if (waiting) { const next = waiting.arg; waiting = null; run(next); }
+    }
+  };
+  return run;
+};
+
+/* Segmented control: buttons with a data attribute, one of them "on". */
+TS.bindSeg = (id, attribute, onPick) => {
+  const root = TS.$("#" + id);
+  const set = (value) => {
+    for (const b of TS.$$("button", root)) {
+      const on = b.dataset[attribute] === value;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+  };
+  for (const b of TS.$$("button", root)) {
+    b.addEventListener("click", () => { set(b.dataset[attribute]); onPick(b.dataset[attribute]); });
+  }
+  const current = TS.$("button.on", root);
+  if (current) set(current.dataset[attribute]);
+  return { set, get: () => (TS.$("button.on", root) || {}).dataset?.[attribute] };
+};
+
+/* The same species keeps the same colour in every bar and plot. */
+TS.colorOf = (() => {
+  const seen = new Map();
+  return (key) => {
+    if (!seen.has(key)) seen.set(key, TS.palette()[seen.size % TS.palette().length]);
+    return seen.get(key);
+  };
+})();
+
+/* Horizontal bars that are updated in place (so the widths glide) as long as
+ * the same rows are shown. rows: [{ key, label (html), percent, text, color }] */
+TS.updateBars = (container, rows) => {
+  const width = (p) => `${Math.max(0, Math.min(100, p)).toFixed(2)}%`;
+  const keys = rows.map((r) => r.key).join("|");
+  if (container.dataset.keys === keys) {
+    const fills = TS.$$(".fill", container);
+    const nums = TS.$$(".num", container);
+    rows.forEach((r, i) => { fills[i].style.width = width(r.percent); nums[i].innerHTML = r.text; });
+    return;
+  }
+  container.dataset.keys = keys;
+  container.innerHTML = `<div class="bars">${rows.map((r) => `<span class="lab">${r.label}</span>
+    <span class="track"><span class="fill" style="width:${width(r.percent)};background:${r.color}"></span></span>
+    <span class="num">${r.text}</span>`).join("")}</div>`;
+};
+
+/* ------------------------------------------------------------------- theme */
+TS.theme = {
+  current() {
+    return document.documentElement.dataset.theme ||
+      (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  },
+  set(mode) {
+    document.documentElement.dataset.theme = mode;
+    try { localStorage.setItem("ts-theme", mode); } catch (err) { /* private mode: not remembered */ }
+    TS.theme.repaint();
+  },
+  /* Plots take their colours from the page when they are drawn; restyle the ones on screen. */
+  repaint() {
+    if (typeof Plotly === "undefined") return;
+    const ink = TS.css("--ink");
+    const line = TS.css("--line");
+    const muted = TS.css("--muted");
+    for (const el of TS.$$(".js-plotly-plot")) {
+      Plotly.relayout(el, {
+        "font.color": ink, "title.font.color": ink,
+        "xaxis.gridcolor": line, "yaxis.gridcolor": line, "xaxis.linecolor": line, "yaxis.linecolor": line,
+        "xaxis.zerolinecolor": line, "yaxis.zerolinecolor": muted,
+      });
+    }
+  },
+};
+
 window.TS = TS;

@@ -14,12 +14,11 @@ import json
 import math
 from typing import Any, Callable, Dict, List, Optional
 
-from . import benchmarks, library
+from . import benchmarks, heatbalance, library
 from .audit import audit_reaction, audit_residuals
 from .combine import combine_reactions, formation_decomposition, formation_reaction
-from .constants import FARADAY, P0, R, T0
+from .constants import P0, R, T0
 from .data import SOURCES
-from .electrochem import electrochemistry, electrochemistry_sweep, electron_count
 from .equilibrium import atom_distribution, gibbs_minimize, reaction_equilibrium
 from .errors import InputError, SolverError, UnbalancedReactionError
 from .heatcap import mcph, mcps
@@ -166,7 +165,7 @@ def database(payload: Optional[dict] = None) -> dict:
         "count": len(species),
         "svn_count": sum(1 for sp in SPECIES.values() if sp.from_svn),
         "phase_counts": phases,
-        "constants": {"R": R, "T0": T0, "P0": P0, "F": FARADAY},
+        "constants": {"R": R, "T0": T0, "P0": P0},
         "sources": SOURCES,
         "models": MODEL_NAMES,
         "data_notes": [
@@ -196,15 +195,15 @@ def get_library(payload: Optional[dict] = None) -> dict:
             "id": c["id"], "name": c["name"], "T": c["T"],
             "steps": [{"equation": eq, "multiplier": m} for eq, m in c["steps"]],
         })
-    electro = []
-    for rid, label in library.ELECTRO_EXAMPLES:
-        row = library.reaction_by_id(rid)
-        electro.append({"id": rid, "label": label, "equation": row[2]})
     return _safe({
         "reactions": reactions,
         "combinations": combos,
         "networks": library.NETWORKS,
-        "electro_examples": electro,
+        "heat_examples": library.HEAT_EXAMPLES,
+        "fuels": [{"id": sid, "name": SPECIES[sid].name, "phase": SPECIES[sid].phase}
+                  for sid in heatbalance.combustible_species()],
+        "calorimeter_handout": library.CALORIMETER_HANDOUT,
+        "joule_per_cal": heatbalance.JOULE_PER_CAL,
     })
 
 
@@ -500,7 +499,9 @@ def network(payload: dict) -> dict:
     lo_default = max(SPECIES[s].cp_Tmin for s in ids)
     hi_default = min(SPECIES[s].cp_Tmax for s in ids)
     sweep = None
-    if variable == "T":
+    if variable == "none":
+        xs = []
+    elif variable == "T":
         lo = _num(payload, "T_min", max(lo_default, 300.0), 1.0, T_ABS_MAX, "Minimum temperature")
         hi = _num(payload, "T_max", hi_default, 1.0, T_ABS_MAX, "Maximum temperature")
         xs = _grid(lo, hi, _points(payload, 41)) if hi > lo else []
@@ -509,7 +510,7 @@ def network(payload: dict) -> dict:
         hi = _num(payload, "P_max", max(P, 100.0), P_ABS_MIN, P_ABS_MAX, "Maximum pressure")
         xs = _grid(lo, hi, _points(payload, 41)) if hi > lo else []
     else:
-        raise InputError("The sweep variable must be 'T' or 'P'.")
+        raise InputError("The sweep variable must be 'T', 'P' or 'none'.")
     if xs:
         sweep = {"variable": variable, "x": xs, "y": {s: [] for s in ids},
                  "distribution": {s: [] for s in point["atom_distribution"]},
@@ -539,27 +540,203 @@ def network(payload: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 5. feature: electrochemical lens
+# 5. feature: reactor heat balance (adiabatic temperature and heat duty)
 # ---------------------------------------------------------------------------
-def electro(payload: dict) -> dict:
+def _species_id(text: Any, label: str) -> str:
+    if not isinstance(text, str) or not text.strip():
+        raise InputError(f"{label} must be a species name or formula.")
+    return find_species(text)[0].id
+
+
+def _heat_settings(payload: dict, rxn: Reaction) -> dict:
+    """Feed and reaction settings of the heat balance, validated."""
+    key = payload.get("key")
+    key = heatbalance.default_key(rxn) if key in (None, "") else _species_id(key, "The key reactant")
+    in_excess = payload.get("excess_species")
+    in_excess = (heatbalance.default_excess_species(rxn, key) if in_excess in (None, "")
+                 else _species_id(in_excess, "The reactant in excess"))
+    excess = _num(payload, "excess", 0.0, -0.99, heatbalance.MAX_EXCESS, "Excess")
+    if in_excess is None:
+        excess = 0.0                      # a single reactant: nothing can be in excess
+
+    raw_extra = payload.get("extra") or {}
+    if not isinstance(raw_extra, dict):
+        raise InputError("The extra feed must map species to moles.")
+    if len(raw_extra) > 10:
+        raise InputError("At most ten extra feed species can be given.")
+    extra: Dict[str, float] = {}
+    for name in raw_extra:
+        sid = _species_id(name, "An extra feed species")
+        extra[sid] = extra.get(sid, 0.0) + _num(raw_extra, name, 0.0, 0.0, 1e6, f"Feed of {name}")
+
+    raw_side = payload.get("side") or []
+    if not isinstance(raw_side, list):
+        raise InputError("The side reactions must be a list.")
+    if len(raw_side) > 4:
+        raise InputError("At most four side reactions can be given.")
+    side = []
+    for i, item in enumerate(raw_side, 1):
+        if not isinstance(item, dict):
+            raise InputError(f"Side reaction {i} is not valid.")
+        try:
+            other = _reaction(item)
+        except SolverError as exc:
+            raise type(exc)(f"Side reaction {i}: {exc.message}", exc.details)
+        side.append((other, _num(item, "extent", 0.0, 0.0, 1e6, f"Extent of side reaction {i}")))
+
+    air = payload.get("air", False)
+    if not isinstance(air, bool):
+        raise InputError("'air' must be true or false.")
+    return {"key": key, "conversion": _num(payload, "conversion", 1.0, 0.0, 1.0, "Conversion"),
+            "excess_species": in_excess, "excess": excess, "air": air, "extra": extra, "side": side}
+
+
+def heat_balance(payload: dict) -> dict:
+    """Energy balance on a reactor, per mole of key reactant fed.
+
+    mode "adiabatic": the outlet temperature for a given heat input Q (0 by default).
+    mode "duty":      the heat duty for a given outlet temperature.
+    """
     rxn = _reaction(payload)
-    T = _temperature(payload)
-    P = _pressure(payload)
-    model = _model(payload, "ideal")
-    n = _num(payload, "n_electrons", None, 1e-6, 1e4, "Number of electrons")
-    T_cold = _num(payload, "T_cold", T0, 1.0, T_ABS_MAX, "Cold-reservoir temperature")
-    point = electrochemistry(rxn, T, n, P, model, T_cold)
-    auto_n, basis = electron_count(rxn)
-    result = {
-        "equation": rxn.equation, "point": point,
-        "auto_n": auto_n, "auto_basis": basis,
-        "warnings": rxn.range_warnings(T),
-        "sweep": None,
-    }
-    rng = _sweep_range(rxn, payload)
-    if rng:
-        Ts = _grid(rng[0], rng[1], _points(payload, 61))
-        result["sweep"] = electrochemistry_sweep(rxn, Ts, n, P, model, T_cold)
+    settings = _heat_settings(payload, rxn)
+    T_in = _temperature(payload, "T_in", T0)
+    mode = payload.get("mode") or "adiabatic"
+    if mode not in ("adiabatic", "duty"):
+        raise InputError("The mode must be 'adiabatic' or 'duty'.")
+    Q = _num(payload, "Q", 0.0, -1e10, 1e10, "Heat added") if mode == "adiabatic" else 0.0
+    T_out = _temperature(payload, "T_out", T0) if mode == "duty" else None
+
+    def run(T_in_: float, T_out_: Optional[float], **change):
+        case_ = heatbalance.build_case(rxn, **{**settings, **change})
+        return case_, heatbalance.solve(case_, T_in_, mode, T_out_, Q)
+
+    case, point = run(T_in, T_out)
+    feed, outlet = heatbalance.Stream(case["feed"]), heatbalance.Stream(case["outlet"])
+
+    # Enthalpy-temperature lines of the feed and of the outlet mixture
+    lo = min(T0, T_in, point["T_out"])
+    hi = max(T0, T_in, point["T_out"])
+    pad = max(25.0, 0.06 * (hi - lo))
+    Ts = _grid(max(1.0, lo - pad), min(T_ABS_MAX, hi + pad), 61)
+    curves = {"T": Ts, "H_feed": [feed.H(t) for t in Ts], "H_out": [outlet.H(t) for t in Ts]}
+
+    # Sweep of one setting
+    default_sweep = "T_out" if mode == "duty" else ("excess" if case["excess_species"] else "T_in")
+    variable = payload.get("sweep") or default_sweep
+    sweep = None
+    if variable != "none":
+        if variable == "excess":
+            if case["excess_species"] is None:
+                raise InputError("This reaction has a single reactant, so there is no excess to vary.")
+            limits = (0.0, max(3.0, 2.0 * settings["excess"]), 0.0, heatbalance.MAX_EXCESS)
+        elif variable == "T_in":
+            limits = (T0, max(1200.0, T_in), T_ABS_MIN, T_ABS_MAX)
+        elif variable == "conversion":
+            limits = (0.0, 1.0, 0.0, 1.0)
+        elif variable == "T_out" and mode == "duty":
+            limits = (T0, max(2000.0, point["T_out"]), T_ABS_MIN, T_ABS_MAX)
+        else:
+            raise InputError("The sweep variable must be 'excess', 'T_in', 'conversion', "
+                             "'T_out' (heat-duty mode only) or 'none'.")
+        x_lo = _num(payload, "sweep_min", limits[0], limits[2], limits[3], "Start of the plot")
+        x_hi = _num(payload, "sweep_max", limits[1], limits[2], limits[3], "End of the plot")
+        if x_hi <= x_lo:
+            raise InputError("The end of the plot must be above its start.")
+        xs = _grid(x_lo, x_hi, _points(payload, 41))
+        sweep = {"variable": variable, "x": xs, "T_out": [], "Q": []}
+        for x in xs:
+            try:
+                if variable == "T_in":
+                    _, r = run(x, T_out)
+                elif variable == "T_out":
+                    _, r = run(T_in, x)
+                else:
+                    _, r = run(T_in, T_out, **{variable: x})
+                sweep["T_out"].append(r["T_out"])
+                sweep["Q"].append(r["Q"])
+            except SolverError:
+                sweep["T_out"].append(None)
+                sweep["Q"].append(None)
+
+    # Goal seek: the excess that holds the adiabatic outlet at a chosen temperature
+    target = None
+    if mode == "adiabatic" and payload.get("target_T") not in (None, "") and case["excess_species"]:
+        target = heatbalance.excess_for_outlet_temperature(
+            rxn, _temperature(payload, "target_T"), T_in, Q=Q,
+            **{k: v for k, v in settings.items() if k != "excess"})
+
+    return _safe({
+        "equation": rxn.equation, "notes": list(rxn.notes) + case["notes"],
+        "reactants": rxn.reactant_ids, "key": case["key"], "excess_species": case["excess_species"],
+        "has_o2": "O2(g)" in case["feed"],
+        "settings": {"conversion": settings["conversion"], "excess": settings["excess"], "air": settings["air"],
+                     "extra": settings["extra"],
+                     "side": [{"equation": r.equation, "extent": xi} for r, xi in settings["side"]]},
+        "dH0": rxn.dH0, "mode": mode, "point": point,
+        "work": heatbalance.work_potential(case, point["T_out"]),
+        "fuel": heatbalance.fuel_facts(rxn, case["key"]),
+        "curves": curves, "sweep": sweep, "target": target,
+    })
+
+
+def calorimeter(payload: dict) -> dict:
+    """Virtual bomb calorimeter (constant-volume combustion, water as liquid).
+
+    The calorimeter constant is either given directly ("C_cal", J/K) or found
+    from a calibration run with a standard of known calorific value.
+
+    mode "predict":  fuel and sample mass -> temperature rise
+    mode "identify": sample mass and measured rise -> calorific value and the
+                     closest fuels of the database
+    """
+    cal = heatbalance.JOULE_PER_CAL
+    calibration = None
+    raw = payload.get("calibration")
+    if raw not in (None, ""):
+        if not isinstance(raw, dict):
+            raise InputError("The calibration must be an object.")
+        mass_std = _num(raw, "mass", None, 1e-6, 1e6, "Mass of the standard")
+        dT_std = _num(raw, "dT", None, 1e-6, 1e4, "Temperature rise of the calibration run")
+        cv_std = _num(raw, "calorific_value", None, 1e-3, 1e9, "Calorific value of the standard")
+        if mass_std is None or dT_std is None or cv_std is None:
+            raise InputError("The calibration needs the mass of the standard, its calorific value "
+                             "and the temperature rise.")
+        corr_std = _num(raw, "corrections", 0.0, 0.0, 1e9, "Ignition corrections of the calibration run")
+        C_cal = heatbalance.calorimeter_constant(mass_std, dT_std, cv_std, corr_std)
+        calibration = {"mass": mass_std, "dT": dT_std, "calorific_value": cv_std, "corrections": corr_std,
+                       "heat": mass_std * cv_std + corr_std, "C_cal": C_cal}
+    else:
+        C_cal = _num(payload, "C_cal", None, 1e-6, 1e12, "Calorimeter constant")
+        if C_cal is None:
+            raise InputError("Give the calorimeter constant or a calibration run.")
+
+    mass = _num(payload, "mass", None, 1e-9, 1e6, "Sample mass")
+    if mass is None:
+        raise InputError("Give the sample mass in grams.")
+    corrections = _num(payload, "corrections", 0.0, 0.0, 1e9, "Ignition corrections")
+    mode = payload.get("mode") or "predict"
+
+    result: Dict[str, Any] = {"mode": mode, "C_cal": C_cal, "C_cal_cal": C_cal / cal,
+                              "calibration": calibration, "joule_per_cal": cal, "T": T0}
+    if mode == "predict":
+        fuel = _species_id(payload.get("fuel"), "The fuel")
+        run = heatbalance.calorimeter_run(fuel, mass, C_cal, corrections)
+        result["run"] = run
+        result["warnings"] = ([{"level": "info", "message": SPECIES[fuel].remark}]
+                              if SPECIES[fuel].remark else [])
+    elif mode == "identify":
+        dT = _num(payload, "dT", None, 1e-9, 1e4, "Measured temperature rise")
+        if dT is None:
+            raise InputError("Give the measured temperature rise.")
+        gases = payload.get("include_gases", False)
+        if not isinstance(gases, bool):
+            raise InputError("'include_gases' must be true or false.")
+        result["identify"] = heatbalance.identify_fuel(mass, dT, C_cal, corrections, include_gases=gases)
+        best = result["identify"]["candidates"][0]["fuel"]
+        result["run"] = heatbalance.calorimeter_run(best, mass, C_cal, corrections)
+        result["warnings"] = []
+    else:
+        raise InputError("The mode must be 'predict' or 'identify'.")
     return _safe(result)
 
 
@@ -709,7 +886,8 @@ ENDPOINTS: Dict[str, Callable[[dict], dict]] = {
     "combine": combine,
     "formation": formation,
     "network": network,
-    "electro": electro,
+    "heat_balance": heat_balance,
+    "calorimeter": calorimeter,
     "sensible": sensible,
     "balance": balance,
     "validate": validate,

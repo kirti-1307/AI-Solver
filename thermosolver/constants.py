@@ -17,7 +17,6 @@ R = 8.314            # J mol^-1 K^-1            (SVN Table A.2)
 R_CM3_BAR = 83.14    # cm^3 bar mol^-1 K^-1     (SVN Table A.2)
 T0 = 298.15          # K, reference temperature of SVN Table C.4
 P0 = 1.0             # bar, standard-state pressure
-FARADAY = 96485.0    # C mol^-1, Faraday constant as used in the SVN fuel-cell section
 
 # Standard atomic weights. They are used only to cross-check the chemical
 # formulas against the molar masses printed in SVN Table B.1 and to report a

@@ -1,8 +1,22 @@
-/* Tab 4 (extra feature 1): equilibrium of competing reactions by Gibbs-energy minimisation. */
+/* Tab 4 (extra feature 1): equilibrium of competing reactions by Gibbs-energy
+ * minimisation, as a live reactor.
+ *
+ * Two kinds of request go to the solver: a single point (while a slider is
+ * being dragged) and the same point with a sweep for the plots (when the user
+ * lets go). The page itself calculates nothing.
+ */
 "use strict";
 (() => {
   const { $, $$, esc, chem, fix, sig, pct } = TS;
 
+  let system = [];          // species shown as switches: the preset's, plus any the user ticked
+  let ratioPair = null;     // { top, bottom, base } when exactly two species are fed
+  let lastSweep = null;     // "T" or "P" of the plots on screen
+
+  const chips = () => $$("#nw-species .chip");
+  const parts = (chip) => chip.querySelectorAll("input");   // [tick box, feed]
+
+  /* ------------------------------------------------------------ species grid */
   function buildChips() {
     const gases = TS.database.species.filter((s) => s.phase === "g");
     $("#nw-species").innerHTML = gases.map((s, i) => `<div class="chip off" data-id="${esc(s.id)}">
@@ -10,31 +24,102 @@
         <label for="nw-allow-${i}" title="${esc(s.name)}">${chem(s.id)} <span class="dim">${esc(s.name)}</span></label>
         <input type="number" step="any" min="0" value="" placeholder="feed" aria-label="Feed of ${esc(s.id)} in mol">
       </div>`).join("");
-    for (const chip of $$("#nw-species .chip")) {
-      const [box, feed] = chip.querySelectorAll("input");
-      box.addEventListener("change", () => { chip.classList.toggle("off", !box.checked); if (!box.checked) feed.value = ""; });
-      feed.addEventListener("keydown", (ev) => { if (ev.key === "Enter") calculate(); });
+    for (const chip of chips()) {
+      const [box, feed] = parts(chip);
+      box.addEventListener("change", () => {
+        chip.classList.toggle("off", !box.checked);
+        if (!box.checked) feed.value = "";
+        if (box.checked && !system.includes(chip.dataset.id)) system.push(chip.dataset.id);
+        syncControls();
+        full();
+      });
+      feed.addEventListener("change", () => { syncControls(); full(); });
+      feed.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { syncControls(); full(); } });
     }
+  }
+
+  function readSystem() {
+    const species = [];
+    const feed = {};
+    for (const chip of chips()) {
+      const [box, feedInput] = parts(chip);
+      if (!box.checked) continue;
+      species.push(chip.dataset.id);
+      const moles = Number(feedInput.value);
+      if (feedInput.value.trim() !== "" && Number.isFinite(moles) && moles !== 0) feed[chip.dataset.id] = moles;
+    }
+    return { species, feed };
+  }
+
+  /* --------------------------------------------- switches and the feed ratio */
+  function syncControls() {
+    const { species, feed } = readSystem();
+    const fed = Object.keys(feed).filter((s) => feed[s] > 0);
+
+    $("#nw-switches").innerHTML = `<span class="cap">The catalyst may form:</span>` + system.map((sid) => {
+      if (fed.includes(sid)) {
+        return `<button type="button" class="switch locked" disabled title="Fed to the reactor"><span class="dot"></span><span>${chem(sid)} <small>feed</small></span></button>`;
+      }
+      const on = species.includes(sid);
+      return `<button type="button" class="switch ${on ? "on" : "off"}" data-id="${esc(sid)}" aria-pressed="${on}"
+        title="${on ? "Click to block this product" : "Click to allow this product"}"><span class="dot"></span><span>${chem(sid)}</span></button>`;
+    }).join("");
+    for (const button of $$("#nw-switches .switch[data-id]")) {
+      button.addEventListener("click", () => {
+        const chip = chips().find((c) => c.dataset.id === button.dataset.id);
+        const [box] = parts(chip);
+        box.checked = !box.checked;
+        chip.classList.toggle("off", !box.checked);
+        syncControls();
+        full();
+      });
+    }
+
+    // A ratio slider makes sense when exactly two species are fed.
+    if (fed.length === 2) {
+      const [a, b] = fed;
+      const top = feed[a] > feed[b] ? a : b;
+      const bottom = top === a ? b : a;
+      ratioPair = { top, bottom, base: feed[bottom] };
+      $("#nw-ratio-name").innerHTML = `Feed ratio ${chem(top.replace(/\(g\)$/, ""))} : ${chem(bottom.replace(/\(g\)$/, ""))}`;
+      TS.setSlider("nw-ratio", Number((feed[top] / feed[bottom]).toPrecision(4)), [0.2, 10, 0.05]);
+      $("#nw-ratio-box").hidden = false;
+    } else {
+      ratioPair = null;
+      $("#nw-ratio-box").hidden = true;
+    }
+  }
+
+  function applyRatio() {
+    if (!ratioPair) return;
+    const ratio = Number($("#nw-ratio").value);
+    if (!Number.isFinite(ratio) || ratio <= 0) return;
+    const chip = chips().find((c) => c.dataset.id === ratioPair.top);
+    parts(chip)[1].value = Number((ratio * ratioPair.base).toPrecision(6));
   }
 
   function loadPreset(id) {
     const preset = TS.library.networks.find((n) => n.id === id);
     if (!preset) return;
-    for (const chip of $$("#nw-species .chip")) {
-      const [box, feed] = chip.querySelectorAll("input");
+    for (const chip of chips()) {
+      const [box, feed] = parts(chip);
       const sid = chip.dataset.id;
       box.checked = preset.species.includes(sid);
       chip.classList.toggle("off", !box.checked);
       feed.value = preset.feed[sid] !== undefined ? preset.feed[sid] : "";
     }
-    $("#nw-P").value = preset.P;
-    $("#nw-T").value = Math.round((preset.T_range[0] + preset.T_range[1]) / 2);
+    system = preset.species.slice();
+    const [lo, hi] = preset.T_range;
+    TS.setSlider("nw-T", Math.round((lo + hi) / 2), [Math.min(300, lo), Math.max(1500, hi), 1]);
+    TS.setSlider("nw-P", preset.P, [1, 300, 1]);
     $("#nw-sweep").value = "T";
-    $("#nw-min").value = preset.T_range[0];
-    $("#nw-max").value = preset.T_range[1];
+    $("#nw-min").value = lo;
+    $("#nw-max").value = hi;
     $("#nw-note").textContent = preset.note || "";
+    syncControls();
   }
 
+  /* ------------------------------------------------------------- explanation */
   function explain(r) {
     const lines = [];
     const dist = r.atom_distribution;
@@ -46,96 +131,163 @@
       lines.push(`At ${fix(r.T, 0)} K and ${fix(r.P, 1)} bar, ${pct(dist[top], 1)} of the ${esc(el)} atoms end up in ` +
         `<strong>${chem(top)}</strong>` + (products[1] ? `, then ${pct(dist[products[1]], 2)} in ${chem(products[1])}.` : "."));
     }
-    for (const sid of fedIds) {
-      lines.push(`Equilibrium conversion of ${chem(sid)}: <strong>${pct(r.conversions[sid], 2)}</strong>.`);
-    }
     if (r.carbon_activity !== null && r.carbon_activity !== undefined) {
       const a = r.carbon_activity;
+      const blocked = system.filter((s) => !r.species.includes(s));
       lines.push(`Carbon activity a<sub>C</sub> = ${sig(a, 3)}. ` + (a > 1
-        ? "It is above 1, so solid carbon (graphite) would lower the Gibbs energy further: <strong>coke formation is thermodynamically favoured</strong> at these conditions."
+        ? "It is above 1, so solid carbon (graphite) would lower the Gibbs energy further: <strong>coke formation is thermodynamically favoured</strong> at these conditions." +
+          (blocked.length ? ` With ${blocked.map(chem).join(", ")} switched off the gas is held away from its full equilibrium, which is why the value is so large. ` +
+            "Carbon is then one more product that a selective catalyst has to avoid: the number says it is possible, not that it forms." : "")
         : "It is below 1, so the gas is not saturated with carbon: no coke is expected from thermodynamics."));
     }
     if (r.excluded.length) {
       lines.push(`Left out because the feed has none of their elements: ${r.excluded.map(chem).join(", ")}.`);
     }
-    lines.push("This is the composition the system would reach with unlimited time and a non-selective catalyst. " +
-      "Untick a species to model a catalyst that cannot form it; the difference between the two answers is what catalyst selectivity has to fight against.");
+    lines.push("This is the composition the system would reach with unlimited time and a catalyst that can make every species that is switched on. " +
+      "Switch a product off to model a catalyst that cannot form it; the difference between the two answers is what catalyst selectivity has to fight against.");
     lines.push(`Method: minimise G/RT = Σ n<sub>i</sub>[G<sub>i</sub>°/RT + ln(y<sub>i</sub>φ<sub>i</sub>P/P°)] subject to the element balances ` +
       `(Lagrange multipliers). Converged in ${r.iterations} Newton iterations; largest residual of the equilibrium conditions ${sig(r.kkt_residual, 2)}.`);
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 
-  function render(r) {
-    const el = r.key_element;
-    const ids = r.species.slice().sort((a, b) => r.y[b] - r.y[a]);
-    const rows = ids.map((s) => `<tr><td class="l mono">${chem(s)}</td><td>${fix(r.feed[s], 4)}</td>
-      <td>${sig(r.moles[s], 5)}</td><td>${sig(r.y[s], 5)}</td>
-      <td>${r.atom_distribution[s] === undefined ? "–" : pct(r.atom_distribution[s], 2)}</td></tr>`).join("");
-    let html = `<div class="panel">${TS.notes(r.warnings)}${TS.notes(r.notes.filter((n) => n.level !== "info"))}
-      <div class="grid two"><div>
-        <h3>Equilibrium mixture at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar</h3>
-        <div class="table-scroll"><table><thead><tr><th class="l">Species</th><th>Feed (mol)</th><th>Equilibrium (mol)</th>
-          <th>Mole fraction y</th><th>Share of ${esc(el)} atoms</th></tr></thead><tbody>${rows}
-          <tr class="sum"><td class="l">Total</td><td>${fix(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)}</td><td>${sig(r.total_moles, 6)}</td><td>1</td><td></td></tr>
-          </tbody></table></div></div>
-        <div><h3>What it means</h3>${explain(r)}</div></div></div>`;
-    if (r.sweep) {
-      const sk = r.sweep.skipped || [];
-      const unit = r.sweep.variable === "T" ? "K" : "bar";
-      html += `<div class="panel"><div class="grid two"><div id="nw-plot-y" class="plot tall"></div><div id="nw-plot-dist" class="plot tall"></div>
-        ${r.sweep.carbon_activity.some((v) => v !== null) ? '<div id="nw-plot-aC" class="plot"></div>' : ""}
-        <div id="nw-plot-conv" class="plot"></div></div>
-        ${sk.length ? `<p class="hint" style="margin:8px 0 0">Gaps in the curves: ${sk.length} of ${r.sweep.x.length} points
-          (${fix(Math.min(...sk), 0)} to ${fix(Math.max(...sk), 0)} ${unit}) could not be calculated with this real-gas model.
-          ${esc(r.sweep.skipped_reason || "")}</p>` : ""}</div>`;
-    }
-    $("#nw-out").innerHTML = html;
-    if (!r.sweep) return;
+  /* ---------------------------------------------------------------- live view */
+  function ensureLive() {
+    if ($("#nw-live-bars")) return;
+    $("#nw-live").innerHTML = `<div class="panel">
+      <div id="nw-live-notes"></div>
+      <div class="cards" id="nw-live-cards"></div>
+      <div class="grid two">
+        <div><h3 id="nw-live-title"></h3><div id="nw-live-bars"></div>
+          <h3 style="margin-top:16px">Mole fractions at equilibrium</h3><div id="nw-live-y"></div>
+          <p class="live-note">Bars follow the sliders. The plots below are redrawn when you let go.</p></div>
+        <div><h3>What it means</h3><div id="nw-live-explain"></div>
+          <details><summary>Equilibrium mixture as numbers</summary><div id="nw-live-table"></div></details></div>
+      </div></div>`;
+  }
 
+  function renderLive(r) {
+    ensureLive();
+    const el = r.key_element;
+    const dist = r.atom_distribution;
+    const fedIds = Object.keys(r.feed).filter((s) => r.feed[s] > 0);
+
+    $("#nw-live-notes").innerHTML = TS.notes(r.warnings) + TS.notes(r.notes.filter((n) => n.level !== "info"));
+    $("#nw-live-title").innerHTML = `Where the ${esc(el)} atoms go at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar`;
+
+    // Rows keep the order of the system so the bars do not jump around while dragging.
+    const order = system.filter((s) => dist[s] !== undefined).concat(Object.keys(dist).filter((s) => !system.includes(s)));
+    TS.updateBars($("#nw-live-bars"), order.map((sid) => ({
+      key: sid, label: chem(sid), percent: 100 * dist[sid], text: pct(dist[sid], 1), color: TS.colorOf(sid),
+    })));
+    const all = system.filter((s) => r.y[s] !== undefined).concat(r.species.filter((s) => !system.includes(s)));
+    TS.updateBars($("#nw-live-y"), all.map((sid) => ({
+      key: sid, label: chem(sid), percent: 100 * r.y[sid], text: sig(r.y[sid], 3), color: TS.colorOf(sid),
+    })));
+
+    let cards = fedIds.map((sid) => `<div class="card hero"><div class="k">Equilibrium conversion of ${chem(sid)}</div>
+      <div class="v">${pct(r.conversions[sid], 1)}</div><div class="s">${fix(r.feed[sid], 3)} mol fed</div></div>`).join("");
+    if (r.carbon_activity !== null && r.carbon_activity !== undefined) {
+      const coke = r.carbon_activity > 1;
+      cards += `<div class="card ${coke ? "bad" : "good"}"><div class="k">Solid carbon (coke)</div><div class="v">${coke ? "can form" : "cannot form"}</div>
+        <div class="s">carbon activity ${sig(r.carbon_activity, 3)} (${coke ? "above" : "below"} 1)</div></div>`;
+    }
+    cards += `<div class="card"><div class="k">Moles of gas</div><div class="v">${sig(r.total_moles, 4)}</div>
+      <div class="s">from ${sig(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)} mol of feed</div></div>`;
+    $("#nw-live-cards").innerHTML = cards;
+
+    const ids = r.species.slice().sort((a, b) => r.y[b] - r.y[a]);
+    $("#nw-live-table").innerHTML = `<div class="table-scroll"><table><thead><tr><th class="l">Species</th><th>Feed (mol)</th>
+      <th>Equilibrium (mol)</th><th>Mole fraction y</th><th>Share of ${esc(el)} atoms</th></tr></thead><tbody>${
+      ids.map((s) => `<tr><td class="l mono">${chem(s)}</td><td>${fix(r.feed[s], 4)}</td><td>${sig(r.moles[s], 5)}</td>
+        <td>${sig(r.y[s], 5)}</td><td>${dist[s] === undefined ? "–" : pct(dist[s], 2)}</td></tr>`).join("")}
+      <tr class="sum"><td class="l">Total</td><td>${fix(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)}</td>
+        <td>${sig(r.total_moles, 6)}</td><td>1</td><td></td></tr></tbody></table></div>`;
+    $("#nw-live-explain").innerHTML = explain(r);
+
+    // Move the marker on the plots that are already on screen.
+    if (lastSweep && typeof Plotly !== "undefined") {
+      const here = lastSweep === "T" ? r.T : r.P;
+      for (const plot of $$("#nw-out .js-plotly-plot")) Plotly.relayout(plot, { "shapes[0].x0": here, "shapes[0].x1": here });
+    }
+  }
+
+  function showError(err) {
+    $("#nw-live").innerHTML = `<div class="panel">${TS.errorBox(err)}</div>`;
+  }
+
+  /* -------------------------------------------------------------------- plots */
+  function renderPlots(r) {
     const s = r.sweep;
+    const out = $("#nw-out");
+    if (!s) { out.innerHTML = ""; lastSweep = null; return; }
+    const el = r.key_element;
+    const sk = s.skipped || [];
+    const unit = s.variable === "T" ? "K" : "bar";
+    const hasCoke = s.carbon_activity.some((v) => v !== null);
+    out.innerHTML = `<div class="panel"><div class="grid two"><div id="nw-plot-y" class="plot tall"></div><div id="nw-plot-dist" class="plot tall"></div>
+      ${hasCoke ? '<div id="nw-plot-aC" class="plot"></div>' : ""}
+      <div id="nw-plot-conv" class="plot"></div></div>
+      ${sk.length ? `<p class="hint" style="margin:8px 0 0">Gaps in the curves: ${sk.length} of ${s.x.length} points
+        (${fix(Math.min(...sk), 0)} to ${fix(Math.max(...sk), 0)} ${unit}) could not be calculated with this real-gas model.
+        ${esc(s.skipped_reason || "")}</p>` : ""}</div>`;
+    lastSweep = s.variable;
+
     const xTitle = s.variable === "T" ? "Temperature (K)" : "Pressure (bar)";
     const here = s.variable === "T" ? r.T : r.P;
-    const palette = TS.palette();
-    const colour = {};
-    r.species.forEach((sid, i) => { colour[sid] = palette[i % palette.length]; });
-
     TS.plot("nw-plot-y", r.species.map((sid) => ({
-      x: s.x, y: s.y[sid], name: sid, mode: "lines", line: { width: 2.2, color: colour[sid] },
+      x: s.x, y: s.y[sid], name: sid, mode: "lines", line: { width: 2.2, color: TS.colorOf(sid) },
     })), TS.layout("Equilibrium mole fractions", xTitle, "Mole fraction", { shapes: [TS.vline(here)] }));
 
     TS.plot("nw-plot-dist", Object.keys(s.distribution).map((sid) => ({
       x: s.x, y: s.distribution[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines",
-      stackgroup: "one", line: { width: 0.6, color: colour[sid] },
+      stackgroup: "one", line: { width: 0.6, color: TS.colorOf(sid) },
     })), TS.layout(`Where the ${el} atoms go`, xTitle, `% of ${el} atoms`, { shapes: [TS.vline(here)], yaxis: { range: [0, 100] } }));
 
-    if (s.carbon_activity.some((v) => v !== null)) {
+    if (hasCoke) {
       TS.plot("nw-plot-aC", [{ x: s.x, y: s.carbon_activity, name: "carbon activity", mode: "lines", line: { width: 2.5, color: "#475569" } }],
         TS.layout("Carbon activity: coke is favoured above the dotted line", xTitle, "a_C",
           { shapes: [TS.vline(here), TS.hline(1)], yaxis: { type: "log" }, showlegend: false }));
     }
     TS.plot("nw-plot-conv", Object.keys(s.conversion).map((sid) => ({
-      x: s.x, y: s.conversion[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines", line: { width: 2.2, color: colour[sid] },
+      x: s.x, y: s.conversion[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines",
+      line: { width: 2.2, color: TS.colorOf(sid) },
     })), TS.layout("Equilibrium conversion of the feed species", xTitle, "Conversion (%)", { shapes: [TS.vline(here)] }));
   }
 
-  function calculate() {
-    const species = [];
-    const feed = {};
-    for (const chip of $$("#nw-species .chip")) {
-      const [box, feedInput] = chip.querySelectorAll("input");
-      if (!box.checked) continue;
-      species.push(chip.dataset.id);
-      const moles = Number(feedInput.value);
-      if (feedInput.value.trim() !== "" && Number.isFinite(moles) && moles !== 0) feed[chip.dataset.id] = moles;
-    }
+  /* ------------------------------------------------------------- calculations */
+  function payload(withSweep) {
+    const { species, feed } = readSystem();
     const sweep = $("#nw-sweep").value;
-    const payload = { species, feed, T: TS.readNumber("nw-T"), P: TS.readNumber("nw-P"), model: $("#nw-model").value, sweep };
-    payload[sweep === "T" ? "T_min" : "P_min"] = TS.readNumber("nw-min");
-    payload[sweep === "T" ? "T_max" : "P_max"] = TS.readNumber("nw-max");
-    return TS.run($("#nw-run"), $("#nw-out"), async () => {
-      render(await TS.engine.call("network", payload));
-    });
+    const body = { species, feed, T: TS.readNumber("nw-T"), P: TS.readNumber("nw-P"), model: $("#nw-model").value,
+      sweep: withSweep ? sweep : "none" };
+    if (withSweep) {
+      body[sweep === "T" ? "T_min" : "P_min"] = TS.readNumber("nw-min");
+      body[sweep === "T" ? "T_max" : "P_max"] = TS.readNumber("nw-max");
+    }
+    return body;
   }
+
+  const point = TS.latest(async () => {
+    try {
+      renderLive(await TS.engine.call("network", payload(false)));
+    } catch (err) {
+      showError(err);
+    }
+  });
+
+  const full = TS.latest(async () => {
+    const button = $("#nw-run");
+    button.disabled = true;
+    try {
+      const r = await TS.engine.call("network", payload(true));
+      renderLive(r);
+      renderPlots(r);
+    } catch (err) {
+      showError(err);
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   let started = false;
   TS.tabs.push({
@@ -144,21 +296,26 @@
       buildChips();
       const preset = $("#nw-preset");
       preset.innerHTML = TS.library.networks.map((n) => `<option value="${esc(n.id)}">${esc(n.name)}</option>`).join("");
-      preset.addEventListener("change", () => { loadPreset(preset.value); calculate(); });
+      preset.addEventListener("change", () => { loadPreset(preset.value); full(); });
+      TS.bindSlider("nw-T", point, full);
+      TS.bindSlider("nw-P", point, full);
+      TS.bindSlider("nw-ratio", () => { applyRatio(); point(); }, () => { applyRatio(); full(); });
       $("#nw-sweep").addEventListener("change", () => {
         const isT = $("#nw-sweep").value === "T";
-        $("#nw-min").value = isT ? 400 : 1;
-        $("#nw-max").value = isT ? 900 : 300;
+        const system_ = TS.library.networks.find((n) => n.id === preset.value);
+        $("#nw-min").value = isT ? (system_ ? system_.T_range[0] : 400) : 1;
+        $("#nw-max").value = isT ? (system_ ? system_.T_range[1] : 900) : 300;
+        full();
       });
-      $("#nw-run").addEventListener("click", calculate);
-      for (const id of ["nw-T", "nw-P", "nw-min", "nw-max"]) {
-        $("#" + id).addEventListener("keydown", (ev) => { if (ev.key === "Enter") calculate(); });
+      $("#nw-run").addEventListener("click", () => full());
+      for (const id of ["nw-min", "nw-max"]) {
+        $("#" + id).addEventListener("keydown", (ev) => { if (ev.key === "Enter") full(); });
       }
-      $("#nw-model").addEventListener("change", calculate);
+      $("#nw-model").addEventListener("change", () => full());
       loadPreset(TS.library.networks[0].id);
     },
     onShow() {
-      if (!started) { started = true; calculate(); }
+      if (!started) { started = true; full(); }
     },
   });
 })();

@@ -2,6 +2,8 @@
 
 What went wrong while building the solver, how it was found, and what was done about it. Kept honest on purpose: this is the raw material for the "AI Error Challenge" part of the report.
 
+Items 5, 11 and 13 concern the electrochemical lens, the first version of extra feature 2. It was replaced by the heat lab in Round 5 because the course had not covered electrochemistry. The items are kept as a record of what was found at the time.
+
 ## Round 1: first full run of the test-suite (8 of 137 tests failed)
 
 ### 1. Residual enthalpy and fugacity coefficient disagreed (virial model)
@@ -93,3 +95,36 @@ The full list is in [CODE_REVIEW.md](CODE_REVIEW.md). The three that mattered mo
 - **Actual:** with the rule "4 electrons per O₂", H₂ + O₂ → H₂O₂ would have been given n = 4 and a voltage half the true one.
 - **Root cause:** the rule assumes oxygen ends at oxidation state −2. In a peroxide it is −1.
 - **Fix:** when H₂O₂ takes part, n is 2 per H₂, or 2 per O₂ if there is no H₂. Found before release, while adding the species.
+
+## Round 5: replacing the electrochemical lens by the heat lab
+
+Extra feature 2 was rebuilt on course material only: an energy balance on a reactor (flame temperature and heat duty, SVN Chapter 4) and a virtual bomb calorimeter that follows the lab handout. The product slate became a live reactor with sliders.
+
+### 14. A heat capacity that turns negative could have produced a meaningless flame temperature
+
+- **Risk found while designing the solver:** the outlet temperature is the root of H_out(T) = H_in + Q. The Cp polynomial of methane becomes negative above about 4400 K and that of graphite below about 210 K, both far outside their fitted ranges. There the enthalpy falls with temperature, so a plain root search can land on a second, meaningless root or report an outlet of several thousand kelvin.
+- **Fix:** the search is confined to the interval around 298.15 K in which the summed heat capacity of the outlet stream is positive. If the balance has no solution there, the solver says so and suggests what to change (excess air, less conversion, heat removal).
+- **Prevention:** `test_search_stays_where_the_heat_capacity_is_positive` and `test_flames_hotter_than_the_correlations_are_refused_with_advice`.
+
+### 15. A test expected the impossible
+
+- **Actual:** my own test asked for the adiabatic outlet temperature when half of an ethane feed at 1000 K is cracked to ethylene, and expected a number below 1000 K. The solver returned an error instead.
+- **Investigation:** the feed carries 64.4 kJ/mol of sensible heat above 298.15 K, and cracking half of it absorbs 68.2 kJ/mol. The energy balance would put the outlet near 235 K, below anything the correlations describe. The solver was right to refuse.
+- **Fix:** the test now uses a conversion of 20 % for the number, and separately checks that the 50 % case is refused with advice to preheat.
+
+### 16. The calorimeter identified a gas as the unknown sample
+
+- **Actual:** in "identify" mode a temperature rise of 2.31 °C for 1 g of sample returned ethylene oxide gas (29.56 MJ/kg) ahead of liquid ethanol (29.62 MJ/kg), the fuel the rise had been calculated from.
+- **Root cause:** two things. The rise had been rounded to two decimals, which is honest, since a thermometer does no better. And the comparison ran over every combustible species, although a sample weighed into a crucible cannot be a gas.
+- **Fix:** only liquids and solids are compared unless the user ticks "also compare with gases". The page also states that fuels with nearly equal calorific values cannot be told apart by this measurement.
+
+### 17. Small display faults found in the browser
+
+| What was seen | Cause | Fix |
+|---|---|---|
+| "CO 2 (g)" with gaps inside the product switches and in "79 % N 2" | The label was a flex container, so the text and each subscript became separate flex items with a gap between them | The label text is wrapped in one element |
+| Four separate warnings for one flame (O₂, N₂, CO₂ and H₂O each above 2000 K) | One warning per species | Merged into one sentence on the page; the solver still returns them one by one |
+| "feed, 298 K → 298.15 K" in the path | The inlet temperature was rounded to whole kelvin | Temperatures the user sets are shown with their decimals |
+| A hidden checkbox stayed visible | `.form label { display: flex }` overrode the `hidden` attribute | `[hidden] { display: none !important }` |
+| "Coke risk: yes" with a carbon activity of 10⁷ when methane is switched off at 523 K | Correct thermodynamics for a gas held away from full equilibrium, but alarming without context | The card now reads "can form", and the explanation says why the value is so large and that carbon, like methane, is a product a selective catalyst has to avoid |
+

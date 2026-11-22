@@ -122,7 +122,7 @@ def image_xml(rel_id: str, path: str, width_in: float) -> str:
     cy = int(cx * h_px / w_px)
     drawing = (
         f'<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="{cx}" cy="{cy}"/>'
-        '<wp:docPr id="1" name="Figure" descr="Product slate and electrochemical lens results"/>'
+        '<wp:docPr id="1" name="Figure" descr="Product slate and heat lab results"/>'
         '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
         '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
         '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'

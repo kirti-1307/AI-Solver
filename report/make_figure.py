@@ -5,7 +5,8 @@
 Left:  where the carbon of a CO2 + 3 H2 feed goes at equilibrium, 50 bar,
        when methane is not allowed to form, and (dashed) the methane share
        when it is allowed.
-Right: ideal efficiency of a hydrogen fuel cell against the Carnot limit.
+Right: flame temperature of methane burned in air against the excess air,
+       for a cold and a preheated feed, with the textbook example marked.
 """
 
 import os
@@ -16,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PIL import Image, ImageDraw, ImageFont
 
 from thermosolver import Reaction
-from thermosolver.electrochem import electrochemistry_sweep
+from thermosolver import heatbalance as hb
 from thermosolver.equilibrium import atom_distribution, gibbs_minimize
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "figure.png")
@@ -124,25 +125,39 @@ def main():
     a.legend([("CH₃OH (methane blocked)", BLUE, "box"), ("CO (methane blocked)", ORANGE, "box"),
               ("unreacted CO₂", GREY, "box"), ("CH₄ if methane is allowed", INK, "dash")], 462, 188)
 
-    # ---- (b) electrochemical lens --------------------------------------------
-    rxn = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
-    T2 = [400 + 10 * i for i in range(141)]
-    sw = electrochemistry_sweep(rxn, T2)
-    b = Axes(draw, (880, 62, 1530, 388), (400, 1800), (20, 100))
-    b.frame([400, 600, 800, 1000, 1200, 1400, 1600, 1800], [20, 40, 60, 80, 100], "Temperature (K)",
-            "Maximum efficiency (%)", "(b) Electrochemical lens: H₂ + ½ O₂ → H₂O(g)")
-    Tx = sw["crossover_T"]
-    px, _ = b.px(Tx, 20)
-    for k in range(int(b.y0), int(b.y1), 9 * S):
-        draw.line([(px, k), (px, k + 4 * S)], fill=PURPLE, width=2 * S)
-    b.line(T2, [100 * v for v in sw["carnot_efficiency"]], MUTED, 3, dash=(4, 2))
-    b.line(T2, [100 * v for v in sw["efficiency"]], BLUE, 4)
-    draw.text((px + 10 * S, b.y1 - 96 * S), f"break-even at {Tx:.0f} K", font=F_LEG, fill=PURPLE, anchor="lm")
-    b.legend([("Ideal fuel cell, ΔG/ΔH", BLUE, "line"), ("Carnot engine, 1 − 298/T", MUTED, "dash")], 1250, 330)
+    # ---- (b) heat lab: flame temperature ---------------------------------------
+    rxn = Reaction.parse("CH4 + 2 O2 -> CO2 + 2 H2O(g)")
+
+    def flame(excess, T_in):
+        return hb.solve(hb.build_case(rxn, excess=excess, air=True), T_in, "adiabatic")["T_out"]
+
+    xs = [3.0 * i / 120 for i in range(121)]                 # 0 to 300 % excess air
+    cold = [flame(x, 298.15) for x in xs]
+    hot = [flame(x, 600.0) for x in xs]
+    b = Axes(draw, (880, 62, 1530, 388), (0, 300), (800, 2800))
+    b.frame([0, 50, 100, 150, 200, 250, 300], [800, 1200, 1600, 2000, 2400, 2800], "Excess air (%)",
+            "Outlet temperature (K)", "(b) Heat lab: CH₄ burned in air, no heat loss")
+    limit = 1500.0
+    need = hb.excess_for_outlet_temperature(rxn, limit, 298.15, air=True)["excess"]
+    _, py = b.px(0, limit)
+    for k in range(int(b.x0), int(b.x1), 9 * S):
+        draw.line([(k, py), (k + 4 * S, py)], fill=PURPLE, width=2 * S)
+    b.line([100 * x for x in xs], hot, ORANGE, 3, dash=(4, 2))
+    b.line([100 * x for x in xs], cold, BLUE, 4)
+    book = flame(0.2, 298.15)
+    cx, cy = b.px(20, book)
+    draw.ellipse([cx - 6 * S, cy - 6 * S, cx + 6 * S, cy + 6 * S], fill=INK)
+    draw.text((cx + 12 * S, cy - 4 * S), f"20 % excess air: {book:.0f} K", font=F_LEG, fill=INK, anchor="lm")
+    nx, _ = b.px(100 * need, limit)
+    draw.ellipse([nx - 5 * S, py - 5 * S, nx + 5 * S, py + 5 * S], fill=PURPLE)
+    lx, _ = b.px(6, limit)
+    draw.text((lx, py + 15 * S), f"{limit:.0f} K limit needs {100 * need:.0f} % excess air", font=F_LEG, fill=PURPLE, anchor="lm")
+    b.legend([("feed at 298 K", BLUE, "line"), ("feed preheated to 600 K", ORANGE, "dash")], 1290, 96)
 
     img = img.resize((W, H), Image.LANCZOS)
     img.save(OUT, dpi=(220, 220))
-    print("wrote", OUT, f"(break-even {Tx:.0f} K; methanol share at 523 K = {meoh[Ts.index(525)]:.1f} %)")
+    print("wrote", OUT, f"(flame {book:.1f} K at 20 % excess air; {100 * need:.1f} % excess for {limit:.0f} K; "
+          f"methanol share at 523 K = {meoh[Ts.index(525)]:.1f} %)")
 
 
 if __name__ == "__main__":

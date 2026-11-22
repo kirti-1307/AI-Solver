@@ -13,10 +13,10 @@ The page needs no installation. The first visit takes about ten seconds while th
 | 1 · Reaction | ΔH°, ΔS°, ΔG° and K at any temperature for 45 predefined reactions or your own. Elemental balance check, exothermic/endothermic label, sensible heat of each species, step-by-step working, plots against temperature, plain-language explanation. |
 | 2 · Pressure & real gas | How pressure changes ΔH at constant temperature, through residual enthalpies: ΔH(T,P) = ΔH°(T) + Σ νᵢHᵢᴿ. Five real-gas models (generalized virial, van der Waals, Redlich/Kwong, SRK, Peng/Robinson), fugacity coefficients, and ideal against real equilibrium conversion. |
 | 3 · Combine reactions | Add and subtract two or more reactions with multipliers (Hess's law). The net reaction is evaluated two ways and the difference is shown. |
-| 4 · Product slate (extra feature) | Equilibrium of competing reactions by Gibbs-energy minimisation. You choose which species may exist; the solver finds the mixture. Includes a coke-formation check. |
-| 5 · Electrochemical lens (extra feature) | The same ΔG and ΔH as cell voltages: reversible and thermoneutral voltage, ideal fuel-cell efficiency against the Carnot limit, electricity against heat demand for electrolysis. |
+| 4 · Product slate (extra feature) | A live equilibrium reactor: competing reactions by Gibbs-energy minimisation. Drag temperature, pressure and feed ratio and the mixture follows; switch a product off to mimic a selective catalyst. Includes a coke-formation check. |
+| 5 · Heat lab (extra feature) | An energy balance around the reactor, Q = ΔH. Flame temperature and adiabatic temperature rise, or the heat duty for a chosen outlet temperature, with excess air, preheat, partial conversion and side reactions. A second view is a virtual bomb calorimeter that follows the course lab: ΔU, ΔH, HHV and LHV, and it can name an unknown fuel from its temperature rise. |
 | 6 · Species data | The full database (57 species) with the source of every entry, and a sensible-heat calculator for one species. |
-| 7 · Validation | The solver against the textbook's worked examples, the assignment's five AI-error stress tests, and published research values, all computed live. |
+| 7 · Validation | The solver against the textbook's worked examples, the course slides and the lab handout, the assignment's five AI-error stress tests, and published research values, all computed live. |
 
 ## Why you can trust the numbers
 
@@ -75,9 +75,9 @@ thermosolver/           the solver, pure Python, standard library only
     realgas.py          virial and cubic equations of state, residual properties
     combine.py          Hess's-law combination of reactions
     equilibrium.py      single-reaction equilibrium and Gibbs minimisation
-    electrochem.py      electrochemical lens
+    heatbalance.py      heat lab: reactor energy balance and bomb calorimeter
     audit.py            consistency checks
-    benchmarks.py       textbook values the solver must reproduce
+    benchmarks.py       reference values the solver must reproduce
     literature.py       published research values for comparison
     api.py              JSON interface used by the page
 tests/                  automated tests (unittest)
@@ -93,6 +93,7 @@ The web page runs the *same* Python files in the browser through [Pyodide](https
 - No phase change is applied automatically. Water as liquid and water as vapour are separate species that you choose.
 - Pressure effects use pure-species residual properties (ideal-solution mixing). Solids and liquids are taken as incompressible.
 - Hydrogen peroxide is available as a gas only (NIST data) and, having no critical constants in SVN Table B.1, is treated as an ideal gas under pressure. Liquid acetic acid has a constant heat capacity that is valid from 290 to 320 K only, and acetic acid vapour is the ideal-gas monomer (the real vapour is partly dimerised).
+- The heat lab takes the reaction to the conversion you set and ignores dissociation, so flame temperatures above about 2000 K are higher than real ones.
 - Equilibrium results say where a reaction can go, not how fast.
 
 ## Data sources

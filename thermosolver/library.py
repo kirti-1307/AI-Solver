@@ -1,4 +1,5 @@
-"""Predefined reactions and ready-made examples for the two extra features.
+"""Predefined reactions and ready-made examples for the two extra features
+(the product slate and the heat lab).
 
 Every species used here is in the SVN-based database, and the test-suite
 checks that every equation is balanced and can be evaluated.
@@ -44,9 +45,9 @@ REACTIONS = [
     ("methane_combustion_l", "Methane combustion, water as liquid (HHV)", "CH4 + 2 O2 -> CO2 + 2 H2O(l)", "Combustion", 298.15,
      "Higher heating value. Compare with the vapour case."),
     ("hydrogen_combustion_g", "Hydrogen oxidation, water as vapour", "H2 + 1/2 O2 -> H2O(g)", "Combustion", 1073.15,
-     "The hydrogen fuel-cell reaction. SVN fuel-cell section: 1.184 V at 25 C."),
+     "Water leaves as vapour: the lower heating value of hydrogen."),
     ("hydrogen_combustion_l", "Hydrogen oxidation, water as liquid", "H2 + 1/2 O2 -> H2O(l)", "Combustion", 298.15,
-     "With liquid water the reversible voltage at 25 C is 1.229 V."),
+     "Water leaves as liquid: the higher heating value of hydrogen."),
     ("co_oxidation", "CO oxidation", "CO + 1/2 O2 -> CO2", "Combustion", 800.0, ""),
     ("propane_combustion", "Propane combustion", "C3H8 + 5 O2 -> 3 CO2 + 4 H2O(g)", "Combustion", 298.15, ""),
     ("ethanol_combustion", "Ethanol combustion", "C2H5OH(g) + 3 O2 -> 2 CO2 + 3 H2O(g)", "Combustion", 298.15, ""),
@@ -138,7 +139,7 @@ NETWORKS = [
         "feed": {"CO2(g)": 1, "H2(g)": 3},
         "T_range": [400, 900], "P": 50,
         "optional": ["CH4(g)"],
-        "note": "Untick CH4 to see what a catalyst that cannot make methane is limited to.",
+        "note": "Switch CH4 off to see what a catalyst that cannot make methane is limited to.",
     },
     {
         "id": "steam_reforming",
@@ -183,7 +184,7 @@ NETWORKS = [
         "feed": {"H2(g)": 1, "O2(g)": 1},
         "T_range": [300, 1200], "P": 1,
         "optional": ["H2O(g)"],
-        "note": "Untick H2O to see what a catalyst that stops at the peroxide could reach. H2O2 uses NIST data.",
+        "note": "Switch H2O off to see what a catalyst that stops at the peroxide could reach. H2O2 uses NIST data.",
     },
     {
         "id": "nox",
@@ -196,16 +197,88 @@ NETWORKS = [
     },
 ]
 
-# Reactions that make good examples for the electrochemical lens.
-ELECTRO_EXAMPLES = [
-    ("hydrogen_combustion_g", "Hydrogen fuel cell / steam electrolysis"),
-    ("hydrogen_combustion_l", "Low-temperature hydrogen fuel cell (liquid water)"),
-    ("co_oxidation", "CO fuel cell / CO2 electrolysis"),
-    ("methane_combustion_g", "Direct methane fuel cell"),
-    ("ammonia", "Electrochemical ammonia synthesis"),
-    ("co2_methanol", "CO2 electro-reduction to methanol"),
-    ("h2o2_synthesis", "Two-electron oxygen reduction to H2O2"),
+# Ready-made cases for the heat lab (reactor energy balance).
+# Fractions: excess 0.2 = 20 % excess; conversion 1.0 = complete.
+HEAT_EXAMPLES = [
+    {
+        "id": "methane_burner",
+        "name": "Methane burner with 20 % excess air (flame temperature)",
+        "equation": "CH4 + 2 O2 -> CO2 + 2 H2O(g)",
+        "mode": "adiabatic", "T_in": 298.15, "conversion": 1.0,
+        "excess_species": "O2(g)", "excess": 0.2, "air": True, "side": [],
+        "note": "Methane and air enter at 25 C and burn completely with no heat loss. "
+                "This is the theoretical flame temperature example of SVN Chapter 4.",
+    },
+    {
+        "id": "hydrogen_burner",
+        "name": "Hydrogen burner with 20 % excess air",
+        "equation": "H2 + 1/2 O2 -> H2O(g)",
+        "mode": "adiabatic", "T_in": 298.15, "conversion": 1.0,
+        "excess_species": "O2(g)", "excess": 0.2, "air": True, "side": [],
+        "note": "Compare with methane: no carbon, so no CO2 in the flue gas.",
+    },
+    {
+        "id": "propane_burner",
+        "name": "Propane burner with 50 % excess air",
+        "equation": "C3H8 + 5 O2 -> 3 CO2 + 4 H2O(g)",
+        "mode": "adiabatic", "T_in": 298.15, "conversion": 1.0,
+        "excess_species": "O2(g)", "excess": 0.5, "air": True, "side": [],
+        "note": "Drag the excess air: every extra mole of air has to be heated too, so the flame cools.",
+    },
+    {
+        "id": "reformer_duty",
+        "name": "Steam reformer: heat that the furnace must supply",
+        "equation": "CH4 + H2O(g) -> CO + 3 H2",
+        "mode": "duty", "T_in": 600.0, "T_out": 1300.0, "conversion": 1.0,
+        "excess_species": "H2O(g)", "excess": 1.0, "air": False,
+        "side": [{"equation": "CO + H2O(g) -> CO2 + H2", "extent": 0.13}],
+        "note": "2 mol steam per mol methane enter at 600 K, the products leave at 1300 K and part of the CO "
+                "is shifted to CO2 (17.4 mol-% CO in the product). The reformer example of SVN Chapter 4.",
+    },
+    {
+        "id": "ammonia_converter",
+        "name": "Ammonia converter: temperature rise over one adiabatic bed",
+        "equation": "N2 + 3 H2 -> 2 NH3",
+        "mode": "adiabatic", "T_in": 673.15, "conversion": 0.15,
+        "excess_species": "H2(g)", "excess": 0.0, "air": False, "side": [],
+        "note": "Only part of the feed reacts in one pass. Drag the conversion to see how fast the bed heats up.",
+    },
+    {
+        "id": "so2_converter",
+        "name": "SO2 oxidation bed (contact process)",
+        "equation": "SO2 + 1/2 O2 -> SO3(g)",
+        "mode": "adiabatic", "T_in": 693.15, "conversion": 0.7,
+        "excess_species": "O2(g)", "excess": 1.0, "air": True, "side": [],
+        "note": "The nitrogen of the air soaks up heat and limits the temperature rise.",
+    },
+    {
+        "id": "ethane_cracker",
+        "name": "Ethane cracker: heat duty of the furnace coil",
+        "equation": "C2H6 -> C2H4 + H2",
+        "mode": "duty", "T_in": 900.0, "T_out": 1100.0, "conversion": 0.6,
+        "excess_species": None, "excess": 0.0, "air": False, "side": [],
+        "note": "An endothermic reaction: the furnace supplies both the heat of reaction and the sensible heat.",
+    },
+    {
+        "id": "lime_kiln",
+        "name": "Lime kiln: heat needed to calcine limestone",
+        "equation": "CaCO3 -> CaO + CO2",
+        "mode": "duty", "T_in": 298.15, "T_out": 1173.15, "conversion": 1.0,
+        "excess_species": None, "excess": 0.0, "air": False, "side": [],
+        "note": "Cold limestone in, hot lime and CO2 out at 900 C.",
+    },
 ]
+
+# Calibration run of the course bomb-calorimeter handout (benzoic acid standard).
+# Energies in calories as printed there; the solver converts with 4.184 J/cal.
+CALORIMETER_HANDOUT = {
+    "standard": "benzoic acid",
+    "calorific_value_cal_per_g": 6319.0,
+    "mass_g": 1.1942,
+    "dT": 2.48,
+    "corrections_cal": 41.0,          # cotton thread 20.1 cal + nichrome wire 20.9 cal
+    "C_cal_cal_per_K": 3059.33,
+}
 
 
 def reaction_by_id(rid: str):

@@ -103,16 +103,12 @@ class TestPublishedValues(unittest.TestCase):
             self.assertLess(abs(row["dG_equivalent"]), 1200.0, f"{row['name']} at {row['T']} K")
             self.assertLess(abs(row["solver"] / row["published"] - 1.0), 0.25, f"{row['name']} at {row['T']} K")
 
-    def test_janaf_and_voltages(self):
+    def test_janaf_values(self):
         rows = {r["name"]: r for r in self.lit["other"]}
         g = rows["H2 + 1/2 O2 -> H2O(g): standard Gibbs energy change at 1000 K"]
         self.assertAlmostEqual(g["solver"], g["published"], delta=0.05)          # kJ/mol
         h = rows["H2 + 1/2 O2 -> H2O(g): standard heat of reaction at 1000 K"]
         self.assertAlmostEqual(h["solver"], h["published"], delta=0.1)
-        for name in ("Water electrolysis at 25 C: reversible voltage",
-                     "Water electrolysis at 25 C: thermoneutral voltage",
-                     "Steam electrolysis at 700 C: thermoneutral voltage"):
-            self.assertAlmostEqual(rows[name]["solver"], rows[name]["published"], delta=0.006, msg=name)
 
     def test_pressure_effect_against_nist_reference_equations(self):
         rows = {r["name"]: r for r in self.lit["other"]}
@@ -126,7 +122,7 @@ class TestEndpoints(unittest.TestCase):
     def test_database(self):
         db = ok("database")
         self.assertGreaterEqual(db["count"], 30)
-        self.assertEqual(db["constants"], {"R": 8.314, "T0": 298.15, "P0": 1.0, "F": 96485.0})
+        self.assertEqual(db["constants"], {"R": 8.314, "T0": 298.15, "P0": 1.0})
         water = next(s for s in db["species"] if s["id"] == "H2O(g)")
         self.assertEqual(water["dHf"], -241818.0)
         self.assertEqual(water["critical"]["Tc"], 647.1)
@@ -182,12 +178,19 @@ class TestEndpoints(unittest.TestCase):
         nh3 = res["sweep"]["y"]["NH3(g)"]
         self.assertTrue(all(b > a for a, b in zip(nh3, nh3[1:])))
 
-    def test_electro_every_example(self):
-        for rid, _ in library.ELECTRO_EXAMPLES:
-            row = library.reaction_by_id(rid)
-            res = ok("electro", {"equation": row[2], "T": row[4]})
-            self.assertGreater(res["point"]["n_electrons"], 0)
+    def test_heat_balance_every_example(self):
+        self.assertGreaterEqual(len(library.HEAT_EXAMPLES), 6)
+        for ex in library.HEAT_EXAMPLES:
+            payload = {k: v for k, v in ex.items() if k not in ("id", "name", "note")}
+            res = ok("heat_balance", dict(payload, n_points=9))
+            self.assertTrue(all(c["passed"] for c in res["point"]["audit"]), ex["id"])
+            self.assertEqual(len(res["sweep"]["x"]), 9)
+            self.assertEqual(res["mode"], ex["mode"])
             assert_json_safe(self, res)
+
+    def test_the_removed_endpoint_is_gone(self):
+        out = call("electro", {"equation": "H2 + 1/2 O2 -> H2O(g)"})
+        self.assertEqual(out["error"]["kind"], "input_error")
 
     def test_sensible(self):
         res = ok("sensible", {"species": "CH4", "T1": 533.15, "T2": 873.15, "moles": 1})
@@ -228,7 +231,8 @@ class TestErrorHandling(unittest.TestCase):
         self.expect("pressure", {"equation": "N2 + 3 H2 -> 2 NH3", "T": 700, "P": 10, "model": "x"}, "input_error")
         self.expect("combine", {"steps": [{"equation": "CO + H2O(g) -> CO2 + H2", "multiplier": 1}]}, "input_error")
         self.expect("network", {"species": ["N2", "H2", "NH3"], "feed": {}}, "input_error")
-        self.expect("electro", {"equation": "CaCO3 -> CaO + CO2", "T": 1000}, "input_error")
+        self.expect("heat_balance", {"equation": "CH4 + 2 O2 -> CO2 + 2 H2O(g)", "mode": "x"}, "input_error")
+        self.expect("calorimeter", {"fuel": "CO2", "mass": 1, "C_cal": 10000}, "input_error")
         self.expect("nonsense", {}, "input_error")
 
     def test_nist_species_through_the_api(self):
@@ -266,7 +270,7 @@ class TestErrorHandling(unittest.TestCase):
         pieces = ["CH4", "O2", "CO2", "H2O", "H2", "N2", "NH3", "->", "+", "=", "2", "1/2", "0", "-1", "(g)",
                   "(l)", "(s)", "(", ")", "xyz", "", " ", "→", "1e400", "C(s)", "CaCO3", "CH3COOH", "3.5", "/0",
                   "*", "💥", "<script>", "'; DROP", "H2O(l)", "Fe", "1-butene", ",", "..", "++"]
-        endpoints = ("analyze", "pressure", "electro", "balance", "equilibrium")
+        endpoints = ("analyze", "pressure", "heat_balance", "balance", "equilibrium")
         for _ in range(1500):
             text = " ".join(rng.choice(pieces) for _ in range(rng.randint(1, 9)))
             payload = {"equation": text, "T": rng.choice([300, 700, 2500, 0, -1, "a", None, 1e9]),

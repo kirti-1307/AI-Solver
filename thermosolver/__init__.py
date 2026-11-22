@@ -10,7 +10,7 @@ Quick start::
     rxn.K(523.15)        # equilibrium constant at 250 C
 """
 
-from .constants import FARADAY, P0, R, T0
+from .constants import P0, R, T0
 from .errors import (
     ConvergenceError,
     DataUnavailableError,
@@ -26,7 +26,7 @@ __version__ = "1.0.0"
 
 __all__ = [
     "Reaction", "Species", "SPECIES", "find_species",
-    "R", "T0", "P0", "FARADAY",
+    "R", "T0", "P0",
     "SolverError", "InputError", "UnknownSpeciesError", "UnbalancedReactionError",
     "DataUnavailableError", "ConvergenceError",
 ]

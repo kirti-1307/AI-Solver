@@ -55,9 +55,9 @@ def _validate() -> int:
     for r in rows:
         mark = "PASS" if r["passed"] else "FAIL"
         got = "error" if r["computed"] is None else f"{r['computed']:.6g}"
-        print(f"  {mark}  {r['description']:<78} book {r['expected']:<12g} solver {got}")
+        print(f"  {mark}  {r['description']:<82} ref {r['expected']:<12g} solver {got}")
     s = benchmarks.summary(rows)
-    print(f"\n  {s['passed']} of {s['total']} textbook values reproduced.\n")
+    print(f"\n  {s['passed']} of {s['total']} reference values reproduced.\n")
     return 0 if s["passed"] == s["total"] else 1
 
 
