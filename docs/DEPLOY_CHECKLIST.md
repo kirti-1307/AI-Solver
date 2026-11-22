@@ -97,7 +97,9 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.5.1 (no fugacity symbol on tab 4):**
 
-- [ ] v1.5.1: the gas-model menu of tab 4 reads "Peng/Robinson (real gas)", and with that model the method line shows G^R/RT and no φ
+- [x] v1.5.1: the gas-model menu of tab 4 reads "Peng/Robinson (real gas)", and with that model the method line shows G^R/RT and no φ
+
+**v1.5.1 checked on the live page, 22 November 2026, commit `1df7a95`, version tag 1.5.1:** both workflows green. The gas-model menu of tab 4 reads "Peng/Robinson (real gas)"; with that model the method line shows the term G^R/RT, and with the ideal gas it does not. None of the seven tabs shows the word "fugacity" or the symbol φ. No console errors.
 
 ## Before the classroom demonstration
 
