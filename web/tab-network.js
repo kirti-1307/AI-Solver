@@ -238,8 +238,11 @@
     }
     lines.push("This is the composition the system would reach with unlimited time and a catalyst that can make every species that is switched on. " +
       "Switch a product off to model a catalyst that cannot form it; the difference between the two answers is what catalyst selectivity has to fight against.");
-    lines.push(`Method: minimise G/RT = Σ n<sub>i</sub>[G<sub>i</sub>°/RT + ln(y<sub>i</sub>φ<sub>i</sub>P/P°)] subject to the element balances ` +
-      `(Lagrange multipliers). Converged in ${r.iterations} Newton iterations; largest residual of the equilibrium conditions ${sig(r.kkt_residual, 2)}.`);
+    // With a real-gas model each pure species also carries its residual Gibbs energy from the equation of state.
+    const realGas = r.model !== "ideal";
+    lines.push(`Method: minimise G/RT = Σ n<sub>i</sub>[G<sub>i</sub>°/RT + ln(y<sub>i</sub>P/P°)${realGas ? " + G<sub>i</sub><sup>R</sup>/RT" : ""}] subject to the element balances ` +
+      `(Lagrange multipliers)${realGas ? ", where G<sup>R</sup> is the residual Gibbs energy of the pure species" : ""}. ` +
+      `Converged in ${r.iterations} Newton iterations; largest residual of the equilibrium conditions ${sig(r.kkt_residual, 2)}.`);
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 

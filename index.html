@@ -9,17 +9,17 @@
     // Apply a saved light/dark choice before the first paint.
     try { const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-  <link rel="stylesheet" href="web/styles.css?v=1.5.0">
+  <link rel="stylesheet" href="web/styles.css?v=1.5.1">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.5.0" defer></script>
-  <script src="web/tab-reaction.js?v=1.5.0" defer></script>
-  <script src="web/tab-pressure.js?v=1.5.0" defer></script>
-  <script src="web/tab-combine.js?v=1.5.0" defer></script>
-  <script src="web/tab-network.js?v=1.5.0" defer></script>
-  <script src="web/tab-heat.js?v=1.5.0" defer></script>
-  <script src="web/tab-data.js?v=1.5.0" defer></script>
-  <script src="web/tab-validation.js?v=1.5.0" defer></script>
-  <script src="web/main.js?v=1.5.0" defer></script>
+  <script src="web/ui.js?v=1.5.1" defer></script>
+  <script src="web/tab-reaction.js?v=1.5.1" defer></script>
+  <script src="web/tab-pressure.js?v=1.5.1" defer></script>
+  <script src="web/tab-combine.js?v=1.5.1" defer></script>
+  <script src="web/tab-network.js?v=1.5.1" defer></script>
+  <script src="web/tab-heat.js?v=1.5.1" defer></script>
+  <script src="web/tab-data.js?v=1.5.1" defer></script>
+  <script src="web/tab-validation.js?v=1.5.1" defer></script>
+  <script src="web/main.js?v=1.5.1" defer></script>
 </head>
 <body>
 <header class="top">
@@ -244,7 +244,7 @@
         <label>Gas model
           <select id="nw-model">
             <option value="ideal">Ideal gas</option>
-            <option value="pr">Peng/Robinson (φ of pure species)</option>
+            <option value="pr">Peng/Robinson (real gas)</option>
             <option value="srk">Soave/Redlich/Kwong</option>
             <option value="virial">Generalized virial</option>
           </select>

@@ -156,6 +156,33 @@ class TestOverview(unittest.TestCase):
             self.assertEqual(row[key], c[key], key)
 
 
+class TestNoFugacityAnywhereOnThePage(unittest.TestCase):
+    """Fugacity was taken off tab 2 first and off tab 4 afterwards. The solver
+    still uses it inside the equilibrium calculation; the page and the guide
+    do not show it or name it."""
+
+    WORDS = re.compile(r"fugacity|φ|\bphi\b|K_phi|lnphi", re.IGNORECASE)
+
+    def test_no_script_markup_or_guide_names_it(self):
+        files = [os.path.join(ROOT, "index.html"), os.path.join(ROOT, "guide.html"),
+                 os.path.join(ROOT, "docs", "LEARNERS_GUIDE.md")]
+        files += [os.path.join(ROOT, "web", f) for f in sorted(os.listdir(os.path.join(ROOT, "web"))) if f.endswith(".js")]
+        self.assertGreater(len(files), 10)
+        for path in files:
+            with open(path, encoding="utf-8") as fh:
+                found = self.WORDS.search(fh.read())
+            self.assertIsNone(found, f"{os.path.basename(path)}: {found.group(0) if found else ''}")
+
+    def test_texts_tab_4_receives_with_a_real_gas_model(self):
+        res = ok("network", {"species": ["CO2", "H2", "CH3OH(g)", "CO", "H2O(g)", "CH4"], "feed": {"CO2": 1, "H2": 3},
+                             "T": 523, "P": 45, "model": "pr", "sweep": "none", "switches": True})
+        texts = [n["message"] for n in res["notes"]] + [w["message"] for w in res["warnings"]]
+        self.assertGreater(len(texts), 0)                       # water would condense as a pure species: there is a note
+        for text in texts:
+            self.assertIsNone(self.WORDS.search(text), text)
+        self.assertEqual(res["model"], "pr")                    # the page words its method line from this
+
+
 class TestNoFugacityOnTab2(unittest.TestCase):
     WORDS = re.compile(r"fugacity|φ|\bphi\b|K_phi|lnphi", re.IGNORECASE)
 
