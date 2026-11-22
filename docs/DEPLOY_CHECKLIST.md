@@ -89,9 +89,11 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.5 (tab 4: switches that show what they do):**
 
-- [ ] v1.5: tab 4 opens on CO₂ hydrogenation with the methanol and CO switches faded ("no effect now"), water "needed" and methane showing its share
-- [ ] v1.5: "Try this" step 2 (Methane off) gives the methanol and CO switches their shares and one line with the change in conversion
-- [ ] v1.5: a click on a faded switch does nothing; a click on methane changes the bars
+- [x] v1.5: tab 4 opens on CO₂ hydrogenation with the methanol and CO switches faded ("no effect now"), water "needed" and methane showing its share
+- [x] v1.5: "Try this" step 2 (Methane off) gives the methanol and CO switches their shares and one line with the change in conversion
+- [x] v1.5: a click on a faded switch does nothing; a click on methane changes the bars
+
+**v1.5 checked on the live page, 22 November 2026, commit `f0f2a0a`, version tag 1.5.0:** both workflows green. Tab 4 opens at 523 K and 50 bar with methanol and CO faded ("no effect now"), water "needed" and methane at 74.8 % of C. A click on the faded methanol switch changed nothing. "Methane off" gave methanol 17.3 % and CO 7.9 % of C, conversion 25.2 %, with the line of the step under the switches. Switching methane back on reported "conversion of CO2(g) went from 25.2 % to 74.9 %". Four plots drawn. Tab 7: 57 of 57. No console errors.
 
 ## Before the classroom demonstration
 
