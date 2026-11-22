@@ -79,6 +79,12 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.3 checked on the live page, 22 November 2026, commit `b75fddb`, version tag 1.3.0:** both workflows green. Tab 1 at 250 K: ΔH° = −46.77 kJ/mol, "Products favoured", K = 8.76, the NIST note and no extrapolation warning, plots from 200 K. At 523.15 K: −57.94 kJ/mol and "Reactants favoured ... Some product still forms". Tab 6 lists the 47 species with heat capacities below 298.15 K. Tab 7: 57 of 57, the six new rows among them. `guide.html` shows the rewritten section 3 with the stylesheet of this release. No console errors.
 
+**v1.4 (tab 2: ideal gas against real gas, no fugacity):**
+
+- [ ] v1.4: tab 2, ammonia at 723.15 K and 200 bar shows "Ideal gas: −106.50 kJ/mol", "Real gas: −111.66 kJ/mol", "Difference: −5.16 kJ/mol" and the three-step path
+- [ ] v1.4: the overview lists six reactions, CO₂ hydrogenation to methanol first (10.6 %), and a click on it loads the case
+- [ ] v1.4: the words "fugacity" and "φ" do not appear anywhere on tab 2
+
 ## Before the classroom demonstration
 
 - [ ] Open the live page once on the presentation laptop while on a good connection, so the Python runtime (about 10 MB) is already cached

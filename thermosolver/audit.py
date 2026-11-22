@@ -103,18 +103,19 @@ def audit_residuals(rxn, T: float, P: float, model: str) -> List[dict]:
         # for a gas-phase calculation.
         if res.state == "liquid_like":
             continue
-        checks.append(_check(f"{sid}: G^R identity", "H^R - T S^R = R T ln(phi)",
+        # res.lnphi is G^R/(R T), obtained from the equation of state by its own formula
+        checks.append(_check(f"{sid}: G^R identity", "H^R - T S^R = G^R from the equation of state",
                              res.HR - T * res.SR, R * T * res.lnphi, 1e-9, 1e-6))
         hT = 1e-4 * T
         slope_T = (residual(sp, T + hT, P, model).lnphi - residual(sp, T - hT, P, model).lnphi) / (2 * hT)
         # Tolerances: the finite difference itself is only good to about 1e-5
         # relative, and near a sign change of H^R the slope is close to zero,
         # hence the small absolute allowance.
-        checks.append(_check(f"{sid}: Gibbs-Helmholtz", "d(ln phi)/dT at constant P = -H^R/(R T^2)",
+        checks.append(_check(f"{sid}: Gibbs-Helmholtz", "d(G^R/RT)/dT at constant P = -H^R/(R T^2)",
                              slope_T, -res.HR / (R * T * T), 1e-4, 1e-10))
         hP = 1e-4 * P
         slope_P = (residual(sp, T, P + hP, model).lnphi - residual(sp, T, P - hP, model).lnphi) / (2 * hP)
-        checks.append(_check(f"{sid}: volume relation", "d(ln phi)/dP at constant T = (Z - 1)/P",
+        checks.append(_check(f"{sid}: volume relation", "d(G^R/RT)/dP at constant T = (Z - 1)/P",
                              slope_P, (res.Z - 1.0) / P, 1e-4, 1e-10))
     return checks
 

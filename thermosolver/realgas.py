@@ -403,7 +403,7 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
                     "level": "warning", "species": sp.id, "kind": "condensation",
                     "message": (
                         f"{sp.id}: at {T:g} K and {P:g} bar the pure species would be a liquid "
-                        f"(the {MODEL_NAMES[model]} equation gives the liquid the lower fugacity). "
+                        f"(the {MODEL_NAMES[model]} equation gives the liquid the lower Gibbs energy). "
                         f"The values shown are for the metastable vapour root, which is the "
                         f"hypothetical state of a species that stays in a gas mixture."
                     ),

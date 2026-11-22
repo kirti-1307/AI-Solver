@@ -52,7 +52,7 @@
     if (Math.abs(dn) > 1e-9) {
       lines.push(`Pressure: K itself does not depend on pressure, but the equilibrium composition does. ` +
         `With Δν(gas) = ${signed(dn, 2).replace(".00", "")}, raising the pressure shifts the equilibrium towards the ` +
-        `${dn < 0 ? "products" : "reactants"} (see the Pressure tab).`);
+        `${dn < 0 ? "products" : "reactants"} (tab 4, Product slate, shows the composition at any pressure).`);
     } else {
       lines.push("Pressure: with no change in gas moles, pressure has almost no effect on the ideal-gas equilibrium.");
     }

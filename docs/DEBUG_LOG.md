@@ -202,3 +202,12 @@ These were not found by a test. They were raised as questions about the page and
 
 - A trapezium estimate of the methanol enthalpy ignored the curvature of its heat capacity, a count of species was off by two, and a tolerance on the H₂S entropy was 0.0006 too tight. The solver values were right in all three; the expectations were corrected. Same lesson as items 6 and 15.
 
+## Round 9: tab 2 rebuilt around one question (v1.4)
+
+### 28. Tab 2 answered two questions at once and hid the one that mattered
+
+- **Actual:** the tab showed the residual part of the heat of reaction, and next to it ΔG(T,P), the fugacity-coefficient ratio K_φ and the equilibrium conversion of the real gas. A reader could not tell what the tab was for, and the comparison "ideal gas against real gas" was one dashed line in one plot.
+- **Root cause:** everything the backend could calculate at pressure had been put on the page. Fugacity also belongs to a part of the course that the project does not build on.
+- **Fix:** the tab now answers one question: how far is the heat of reaction of the real gas from the ideal-gas value, and why? It shows the two values and their difference as the headline, the three-step path (real reactants to ideal gas, reaction as ideal gases, ideal products to real gas), the contribution of each species, the gap against pressure and against temperature, and six industrial reactions sorted by the size of the effect. Fugacity, K_φ, ΔG(T,P) and the conversion are no longer shown here; the composition at pressure stays on tab 4. A test fails if the word comes back into the tab.
+- **Numbers that show the point:** 10.6 % for CO₂ hydrogenation to methanol at 523 K and 50 bar, 4.8 % for ammonia at 723 K and 200 bar, 0.2 % for steam reforming at 1100 K and 30 bar.
+

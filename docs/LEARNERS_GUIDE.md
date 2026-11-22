@@ -134,13 +134,24 @@ A grey band on a plot means the Cp formula is being used outside the temperature
 
 ### Tab 2: Pressure and real gas
 
-**It answers:** what does pressure change?
+**It answers:** how different is a real gas from an ideal gas, and what does that do to the heat of reaction?
 
-**You read:** the ideal-gas ΔH, the residual part, and their sum.
+**You read:**
 
-Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.16 kJ/mol. The conversion at equilibrium rises from 39.8 % to 42.8 %.
+- The headline: the ideal-gas ΔH, the real-gas ΔH and the difference between them.
+- The three steps: take the real reactants to the ideal-gas state, let them react as ideal gases, take the ideal-gas products to the real state. The three add up to the real-gas ΔH.
+- The first plot: the ideal gas is a flat line, the real gas is a curve. The shaded gap between them is the residual part. It grows with pressure.
+- The list of bars at the top: six industrial reactions, sorted by how much pressure matters. Click one to load it.
 
-Why pressure helps here: N₂ + 3 H₂ → 2 NH₃ turns 4 gas molecules into 2. Squeezing the gas pushes the reaction towards the side with fewer molecules.
+Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.16 kJ/mol, so the real gas releases 4.8 % more heat. Most of it comes from NH₃.
+
+When does it matter?
+
+- **A lot** for cold, dense gases such as methanol, water and ammonia. CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K and 50 bar: 10.6 %.
+- **Hardly at all** for hot, light gases. Steam reforming at 1100 K and 30 bar: 0.2 %.
+- **Less as the gas gets hotter.** For ammonia at 200 bar the residual part is −11.8 kJ/mol at 500 K and only −3.4 kJ/mol at 900 K.
+
+This tab is about the heat of reaction only. How far a reaction goes at high pressure is shown on tab 4, which has a pressure slider.
 
 ### Tab 3: Combine reactions
 
@@ -228,7 +239,7 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | Liquid water was treated as a gas at high pressure | It predicted 48 % conversion, which is far too high | The solver notices when a gas would really be a liquid and refuses to give a gas value |
 | An old data value for ammonia | The AI remembered a number from an older edition of the book | Every number was compared with the printed tables |
 | Two rounded constants in a formula | Two results that should agree differed slightly | The exact constants are used |
-| "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now gives a separate verdict at your pressure |
+| "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now says that K belongs to 1 bar, and tab 4 shows the conversion at your pressure |
 | The calorimeter named a gas as the unknown sample | A gas cannot be weighed into a crucible | Only liquids and solids are compared |
 | The "excess air for a temperature limit" search gave a wrong value | It never checked its own answer | It now solves again with its answer before showing it |
 | "Standard state" was explained as 298.15 K and 1 bar | Standard state fixes only the pressure (1 bar). 298.15 K is just where the tables list the data | The guide and the page now keep the two apart |
@@ -269,7 +280,6 @@ This is why the first visit takes about ten seconds: the browser downloads Pytho
 | Excess air | Air beyond what the reaction needs |
 | Adiabatic | No heat goes in or out through the walls |
 | Residual property, Hᴿ | Real-gas value minus ideal-gas value |
-| Fugacity coefficient, φ | How far a real gas is from ideal; 1 for an ideal gas |
 | Equation of state | A formula linking pressure, volume and temperature of a gas |
 | Hess's law | Adding reactions adds their ΔH |
 | Gibbs minimisation | Finding the mixture with the lowest total Gibbs energy |
@@ -300,7 +310,7 @@ Try to answer before you read the answer.
 
 1. Open the **Start** page and click "Try to break it". The unbalanced reaction is rejected.
 2. Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.
-3. Click "What does pressure change?" Show that the residual part is −5.16 kJ/mol at 200 bar.
+3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.66 kJ/mol at 200 bar. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
 4. Click "What actually forms?" Switch methane off and on. Drag the temperature slider.
 5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool.
 6. Click "Bomb calorimeter" and press Ignite.

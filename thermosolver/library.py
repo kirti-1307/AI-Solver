@@ -197,6 +197,19 @@ NETWORKS = [
     },
 ]
 
+# Industrial reactions at their usual conditions, for the overview on the
+# pressure tab: how far the real-gas heat of reaction is from the ideal-gas one.
+# Each entry is a reaction of REACTIONS (by id) with a temperature in K and a
+# pressure in bar that are typical of the industrial process.
+PRESSURE_CASES = [
+    {"id": "co2_methanol", "T": 523.15, "P": 50.0},
+    {"id": "methanol_synthesis", "T": 523.15, "P": 80.0},
+    {"id": "ethylene_hydration", "T": 573.15, "P": 70.0},
+    {"id": "ammonia", "T": 723.15, "P": 200.0},
+    {"id": "smr", "T": 1100.0, "P": 30.0},
+    {"id": "so2_oxidation", "T": 700.0, "P": 10.0},
+]
+
 # Ready-made cases for the heat lab (reactor energy balance).
 # Fractions: excess 0.2 = 20 % excess; conversion 1.0 = complete.
 HEAT_EXAMPLES = [

@@ -358,6 +358,102 @@ def analyze(payload: dict) -> dict:
 # ---------------------------------------------------------------------------
 # 2. pressure effect at constant temperature (residual properties)
 # ---------------------------------------------------------------------------
+def _percent_change(dH_ideal: float, dH_real: Optional[float]) -> Optional[float]:
+    """By how many percent the size of the real-gas heat of reaction differs
+    from the ideal-gas one. Positive: more heat is released (or absorbed)."""
+    if dH_real is None or abs(dH_ideal) < 1e-9:
+        return None
+    return 100.0 * (abs(dH_real) - abs(dH_ideal)) / abs(dH_ideal)
+
+
+def _effect_size(percent: Optional[float]) -> Optional[str]:
+    """A word for how much the pressure changes the heat of reaction."""
+    if percent is None:
+        return None
+    size = abs(percent)
+    if size < 0.5:
+        return "negligible"
+    if size < 2.0:
+        return "small"
+    if size < 10.0:
+        return "significant"
+    return "large"
+
+
+def _real_against_ideal(at_P: dict) -> dict:
+    """The heat of reaction of the real gas next to the ideal-gas value.
+
+    The residual enthalpy H^R is the enthalpy of the real gas minus that of
+    the ideal gas at the same T and P. Enthalpy is a state function, so the
+    real-gas heat of reaction can be walked in three steps (SVN Ch. 6):
+
+        1. real reactants -> ideal-gas reactants      -sum over reactants |nu_i| H_i^R
+        2. reaction in the ideal-gas state             dH0(T)
+        3. ideal-gas products -> real products         +sum over products nu_i H_i^R
+
+    and the three add up to dH(T,P) = dH0(T) + sum nu_i H_i^R.
+    """
+    ok = at_P["gas_phase_valid"]
+    dH_ideal = at_P["dH_std"]
+    rows = at_P["species"]
+    step1 = sum(r["nu"] * r["HR"] for r in rows if r["nu"] < 0)      # nu < 0, so this is -|nu| H^R
+    step3 = sum(r["nu"] * r["HR"] for r in rows if r["nu"] > 0)
+    dH_real = at_P["dH_P"] if ok else None
+    percent = _percent_change(dH_ideal, dH_real)
+    if percent is None:
+        effect = None
+    elif dH_ideal * dH_real < 0:
+        effect = "changes the sign of the heat of reaction"
+    elif abs(percent) < 1e-9:
+        effect = "no change"
+    else:
+        verb = "released" if dH_ideal < 0 else "absorbed"
+        effect = f"{'more' if percent > 0 else 'less'} heat {verb}"
+    real_gases = [r for r in rows if r["phase"] == "g" and not r["treated_ideal"]]
+    largest = max(real_gases, key=lambda r: abs(r["nu"] * r["HR"]), default=None)
+    return {
+        "dH_ideal": dH_ideal,
+        "residual": at_P["sum_HR"] if ok else None,
+        "dH_real": dH_real,
+        "percent": percent,
+        "effect": effect,
+        "size": _effect_size(percent),
+        "path": {
+            "reactants_to_ideal": step1 if ok else None,
+            "ideal_reaction": dH_ideal,
+            "products_to_real": step3 if ok else None,
+            "total": (step1 + dH_ideal + step3) if ok else None,
+        },
+        "contributions": [{"species": r["species"], "nu": r["nu"], "HR": r["HR"],
+                           "contribution": r["nu"] * r["HR"],
+                           "role": "product" if r["nu"] > 0 else "reactant"} for r in rows],
+        "largest": None if largest is None or not ok else {
+            "species": largest["species"], "contribution": largest["nu"] * largest["HR"],
+            "Tr": largest["Tr"], "Pr": largest["Pr"], "Z": largest["Z"]},
+    }
+
+
+def _residual_T_sweep(rxn: Reaction, P: float, model: str, n: int = 61) -> Optional[dict]:
+    """The heat of reaction of the ideal and of the real gas along an isobar,
+    to show at which temperatures the pressure effect matters."""
+    rng = rxn.valid_range()
+    if rng is None or rng[1] <= rng[0]:
+        return None
+    out: Dict[str, list] = {k: [] for k in ("T", "dH_ideal", "dH_real", "residual", "percent")}
+    for T in _grid(rng[0], rng[1], n):
+        point = reaction_at_pressure(rxn, T, P, model)
+        ok = point["gas_phase_valid"]
+        out["T"].append(T)
+        out["dH_ideal"].append(point["dH_std"])
+        out["dH_real"].append(point["dH_P"] if ok else None)
+        out["residual"].append(point["sum_HR"] if ok else None)
+        out["percent"].append(_percent_change(point["dH_std"], point["dH_P"] if ok else None))
+    usable = [T for T, value in zip(out["T"], out["residual"]) if value is not None]
+    out["P"] = P
+    out["first_valid_T"] = usable[0] if usable else None
+    return out
+
+
 def pressure(payload: dict) -> dict:
     rxn = _reaction(payload)
     T = _temperature(payload)
@@ -399,6 +495,7 @@ def pressure(payload: dict) -> dict:
             "sum_HR": point["sum_HR"] if ok else None, "dH_P": point["dH_P"] if ok else None,
             "sum_SR": point["sum_SR"] if ok else None, "dG_P": point["dG_P"] if ok else None,
             "K_phi": point["K_phi"] if ok else None,
+            "percent": _percent_change(point["dH_std"], point["dH_P"] if ok else None),
         })
 
     try:
@@ -409,7 +506,9 @@ def pressure(payload: dict) -> dict:
     result = {
         "equation": rxn.equation, "T": T, "P": P, "model": model,
         "at_P": at_P,
+        "comparison": _real_against_ideal(at_P),
         "sweep": sweep,
+        "sweep_T": _residual_T_sweep(rxn, P, model),
         "models": models,
         "equilibrium_ideal": reaction_equilibrium(rxn, T, P, model="ideal"),
         "equilibrium_real": eq_real,
@@ -417,6 +516,28 @@ def pressure(payload: dict) -> dict:
         "warnings": rxn.range_warnings(T),
     }
     return _safe(result)
+
+
+def pressure_overview(payload: Optional[dict] = None) -> dict:
+    """The ideal-gas and the real-gas heat of reaction for a few industrial
+    reactions at their usual conditions, largest pressure effect first. It
+    shows at a glance where residual properties matter and where they do not."""
+    rows = []
+    for case in library.PRESSURE_CASES:
+        _, name, equation, *_ = library.reaction_by_id(case["id"])
+        rxn = Reaction.parse(equation)
+        point = reaction_at_pressure(rxn, case["T"], case["P"], "pr")
+        cmp_ = _real_against_ideal(point)
+        rows.append({
+            "id": case["id"], "name": name, "equation": rxn.equation,
+            "T": case["T"], "P": case["P"], "model": "pr", "model_name": MODEL_NAMES["pr"],
+            "gas_phase_valid": point["gas_phase_valid"],
+            "dH_ideal": cmp_["dH_ideal"], "residual": cmp_["residual"], "dH_real": cmp_["dH_real"],
+            "percent": cmp_["percent"], "effect": cmp_["effect"], "size": cmp_["size"],
+            "largest": cmp_["largest"]["species"] if cmp_["largest"] else None,
+        })
+    rows.sort(key=lambda r: -abs(r["percent"] or 0.0))
+    return _safe({"rows": rows})
 
 
 def species_residual(payload: dict) -> dict:
@@ -934,6 +1055,7 @@ ENDPOINTS: Dict[str, Callable[[dict], dict]] = {
     "library": get_library,
     "analyze": analyze,
     "pressure": pressure,
+    "pressure_overview": pressure_overview,
     "species_residual": species_residual,
     "combine": combine,
     "formation": formation,

@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.3.0");
+      this.worker = new Worker("web/worker.js?v=1.4.0");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -416,8 +416,14 @@ TS.theme = {
 /* A small "i" next to the label of a result card opens a one-line explanation
  * in plain words. The first entry whose pattern matches the label is used. */
 TS.GLOSSARY = [
-  [/^Σ ν H/, "Residual part of the heat of reaction",
+  [/^Residual part|^Σ ν H/, "Residual part of the heat of reaction",
     "At high pressure gas molecules attract each other, so a real gas holds a little less enthalpy than an ideal gas. This is that difference, added up over the reaction."],
+  [/^Residual entropy/, "Residual part of the entropy change",
+    "The entropy of the real gas minus the entropy of the ideal gas at the same temperature and pressure, added up over the reaction. Attraction between molecules orders a gas a little, so it is usually negative for a dense gas."],
+  [/^Change caused by pressure/, "Change caused by pressure",
+    "How much bigger or smaller the heat of reaction of the real gas is than the ideal-gas value, in percent. Below about half a percent the gas can be treated as ideal."],
+  [/^Largest contribution/, "Largest contribution",
+    "The species whose residual enthalpy, times its stoichiometric number, is the biggest. It is usually the one closest to its critical point."],
   [/^ΔH\(T,P\)/, "Heat of reaction of the real gas",
     "The ideal-gas heat of reaction plus the residual part. This is the value that holds at your pressure."],
   [/^ΔH°298|Heat of reaction at 298/, "Heat of reaction at 298.15 K",
@@ -428,8 +434,6 @@ TS.GLOSSARY = [
     "The change in disorder. It is positive when the reaction makes more gas molecules and negative when it makes fewer."],
   [/^ΔG/, "Gibbs energy change",
     "ΔG = ΔH − T·ΔS. A negative value means the products are favoured (K above 1). A positive value means the reactants are favoured (K below 1); some product still forms, only less."],
-  [/^Kφ/, "Fugacity-coefficient ratio",
-    "It collects how far each gas is from ideal behaviour. It is 1 for ideal gases; any other value shifts the equilibrium at high pressure."],
   [/Equilibrium constant|^K = /, "Equilibrium constant",
     "It tells where the reaction stops. Much bigger than 1 means mostly products, much smaller than 1 means mostly reactants."],
   [/conversion/i, "Conversion",

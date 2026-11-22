@@ -27,7 +27,7 @@ The same benchmarks can be printed as a table with `python -m thermosolver --val
 | 9. Review regressions | Do the bugs found in review stay fixed? | `tests/test_review_regressions.py`, `tests/test_heatbalance.py` | One test per finding of the independent code reviews, plus a structured fuzz: 6,000 random combinations of JSON types on every parameter of every endpoint |
 | 10. Browser | Does the hosted page work? | manual, see below | Pyodide runs the same Python files, so layers 1 to 9 already cover the numbers |
 
-In total: 244 tests in eight files, about 20 seconds. Five of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist and carry the same version tag, the guide page must match its Markdown source, and no thermodynamic constant may appear in the JavaScript.
+In total: 259 tests in nine files, about 20 seconds. Five of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist and carry the same version tag, the guide page must match its Markdown source, and no thermodynamic constant may appear in the JavaScript.
 
 ## What is deliberately not tested
 
@@ -48,8 +48,9 @@ In total: 244 tests in eight files, about 20 seconds. Five of them guard the dep
 3. The start page shows nine question cards; each opens its tab with a result. Then open each of the seven tabs: no red error box, plots drawn.
 4. Type `CH4 + O2 -> CO2 + H2O` on tab 1: it must be rejected and offer the balanced form.
 5. On tab 4, drag the temperature slider: the bars must follow.
-6. On tab 5, the methane burner must show 2,066 K, and "Ignite" on the bomb calorimeter must draw the temperature rise.
-7. Tab 7 must report every reference value as "pass".
+6. On tab 2, ammonia at 200 bar must show the ideal gas (−106.50 kJ/mol) next to the real gas (−111.66 kJ/mol), and the word "fugacity" must not appear.
+7. On tab 5, the methane burner must show 2,066 K, and "Ignite" on the bomb calorimeter must draw the temperature rise.
+8. Tab 7 must report every reference value as "pass".
 
 ## Bugs the tests have caught so far
 

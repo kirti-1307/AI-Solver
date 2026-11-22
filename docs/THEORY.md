@@ -103,6 +103,14 @@ For a reaction, taking each reactant and product as the pure species at T and P 
 
 Sums run over the gaseous species. Solids and liquids are taken as incompressible, with negligible pressure dependence and unit activity.
 
+**What tab 2 shows.** Only the first of these three lines: the heat of reaction of the ideal gas next to that of the real gas (`api._real_against_ideal`). Enthalpy is a state function, so the same sum can be written as a path of three steps at constant T and P:
+
+    1. real reactants → ideal-gas reactants        −Σ_reactants |νᵢ| Hᵢᴿ
+    2. reaction in the ideal-gas state              ΔH°(T)
+    3. ideal-gas products → real products           +Σ_products νᵢ Hᵢᴿ
+
+The tab reports the three steps, the contribution νᵢ·Hᵢᴿ of each species, the difference in percent, 100·(|ΔH(T,P)| − |ΔH°(T)|)/|ΔH°(T)|, and the residual part along the isotherm and along the isobar. The Gibbs-energy line and the fugacity coefficients are used by the equilibrium calculations (Sections 6 and 7), not by this tab.
+
 ### 5.1 Generalized virial-coefficient correlation (SVN Eq. 3.61, 3.62 and 6.70, 6.71)
 
     B⁰ = 0.083 − 0.422/Tr^1.6          dB⁰/dTr = 0.675/Tr^2.6
