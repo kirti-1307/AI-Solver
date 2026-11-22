@@ -72,10 +72,12 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.3 (heat capacities below 298.15 K, standard-state wording, headline):**
 
-- [ ] v1.3: tab 1, CO₂ + 3 H₂ → CH₃OH + H₂O at 250 K shows ΔH° = −46.77 kJ/mol, "Products favoured", K = 8.76, no extrapolation warning, and plots that start at 200 K
-- [ ] v1.3: the same reaction at 523.15 K shows "Reactants favoured ... Some product still forms" and −57.94 kJ/mol as before
-- [ ] v1.3: tab 6 lists "Heat capacities below 298.15 K (47 species ...)"
-- [ ] v1.3: tab 7 reports 57 of 57
+- [x] v1.3: tab 1, CO₂ + 3 H₂ → CH₃OH + H₂O at 250 K shows ΔH° = −46.77 kJ/mol, "Products favoured", K = 8.76, no extrapolation warning, and plots that start at 200 K
+- [x] v1.3: the same reaction at 523.15 K shows "Reactants favoured ... Some product still forms" and −57.94 kJ/mol as before
+- [x] v1.3: tab 6 lists "Heat capacities below 298.15 K (47 species ...)"
+- [x] v1.3: tab 7 reports 57 of 57
+
+**v1.3 checked on the live page, 22 November 2026, commit `b75fddb`, version tag 1.3.0:** both workflows green. Tab 1 at 250 K: ΔH° = −46.77 kJ/mol, "Products favoured", K = 8.76, the NIST note and no extrapolation warning, plots from 200 K. At 523.15 K: −57.94 kJ/mol and "Reactants favoured ... Some product still forms". Tab 6 lists the 47 species with heat capacities below 298.15 K. Tab 7: 57 of 57, the six new rows among them. `guide.html` shows the rewritten section 3 with the stylesheet of this release. No console errors.
 
 ## Before the classroom demonstration
 
