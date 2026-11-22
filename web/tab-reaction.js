@@ -58,10 +58,14 @@
     }
     const eq = r.equilibrium;
     if (eq && eq.conversion !== null && eq.conversion !== undefined && eq.limiting_reactant) {
-      const what = eq.status === "complete" ? "goes to completion"
-        : eq.status === "no_forward_reaction" ? "does not proceed"
-        : `reaches ${pct(eq.conversion)} conversion of ${chem(eq.limiting_reactant)}`;
-      lines.push(`With a stoichiometric feed at 1 bar and ${fix(T, 0)} K (ideal gas), the reaction ${what} at equilibrium.`);
+      const what = (x) => (x.status === "complete" ? "goes to completion"
+        : x.status === "no_forward_reaction" ? "does not proceed"
+        : `reaches ${pct(x.conversion)} conversion of ${chem(x.limiting_reactant)}`);
+      const eqP = r.equilibrium_P;
+      const other = r.P !== 1 && eqP && eqP.conversion !== null && eqP.conversion !== undefined;
+      lines.push(`Favourability at a given pressure: with a stoichiometric feed at ${fix(T, 0)} K (ideal-gas mixture), the reaction ` +
+        `${what(eq)} at 1 bar` + (other ? `, and ${what(eqP)} at <strong>${fix(r.P, 1)} bar</strong>.` : ".") +
+        (other ? "" : " Type another pressure in the form to see what it does."));
     }
     lines.push("Thermodynamics fixes where the equilibrium lies, not how fast it is reached. A favourable ΔG° can still need a catalyst.");
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
@@ -73,7 +77,7 @@
       <td>${s.nu > 0 ? "+" : "−"}${coeff(s.nu)}</td>
       <td>${int(s.dHf)}</td><td>${int(s.dGf)}</td>
       <td>${fix(s.cp_T, 2)}</td><td>${int(s.sensible_dH)}</td><td>${int(s.nu_sensible_dH)}</td>
-      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}${s.cp_from_low_T_table ? ' <span class="badge neutral" title="Below 298.15 K the heat capacity is from NIST tables">NIST</span>' : ""}</td>
+      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}${s.cp_from_low_T_table ? ' <span class="badge neutral" title="Below 298.15 K the heat capacity is from NIST tables">NIST</span>' : ""}${s.cp_from_high_T_equation ? ' <span class="badge neutral" title="Above the SVN range the heat capacity is from the NIST Shomate equation">NIST</span>' : ""}</td>
     </tr>`).join("");
     const total = r.species.reduce((a, s) => a + (s.nu_sensible_dH || 0), 0);
     return `<div class="table-scroll"><table><thead><tr>
@@ -140,6 +144,15 @@
         marker: { size: 9, color: ["#c2410c", "#0b5cad"], line: { width: 1.5, color: "#fff" } }, showlegend: false },
     ], TS.layout("Energy changes versus temperature", "Temperature (K)", "kJ per mol of reaction", { shapes }));
 
+    // Equilibrium conversion against temperature, at 1 bar and at the chosen pressure.
+    if (s.conversion_1bar && s.conversion_1bar.some((v) => v !== null)) {
+      const percent = (arr) => arr.map((v) => (v === null ? null : 100 * v));
+      const traces = [{ x: s.T, y: percent(s.conversion_1bar), name: "1 bar", mode: "lines", line: { width: 2, dash: "dash", color: "#475569" } }];
+      if (r.P !== 1) traces.push({ x: s.T, y: percent(s.conversion_P), name: `${fix(r.P, 1)} bar`, mode: "lines", line: { width: 2.5, color: "#0b5cad" } });
+      TS.plot("rx-plot-X", traces, TS.layout("Equilibrium conversion (stoichiometric feed, ideal-gas mixture)", "Temperature (K)",
+        "Conversion of the limiting reactant (%)", { shapes: TS.rangeShapes(s.T, r.valid_range).concat([TS.vline(r.T)]), yaxis: { range: [0, 100] } }));
+    }
+
     const kShapes = TS.rangeShapes(s.T, r.valid_range).concat([TS.vline(r.T), TS.hline(0)]);
     const annotations = (r.crossover || []).filter((x) => x >= s.T[0] && x <= s.T[s.T.length - 1]).map((x) => ({
       x, y: 0, text: `K = 1 at ${fix(x, 0)} K`, showarrow: true, arrowhead: 2, ax: 40, ay: -34, font: { size: 11 } }));
@@ -170,6 +183,7 @@
     const exo = e.dH < 0 ? "exo" : "endo";
     const fav = e.favourability;
     const eq = r.equilibrium || {};
+    const eqP = r.equilibrium_P || eq;
     let html = `<div class="panel">
       <div class="eqn">${chem(r.equation)}</div>
       <div class="verdict">
@@ -188,15 +202,19 @@
         <div class="card"><div class="k">ΔS°(${fix(r.T, 0)} K)</div><div class="v">${fix(e.dS, 2)} <span class="u">J/(mol·K)</span></div><div class="s">${fix(e.dS0, 2)} at 298.15 K</div></div>
         <div class="card"><div class="k">ΔG°(${fix(r.T, 0)} K)</div><div class="v">${kJ(e.dG)} <span class="u">kJ/mol</span></div><div class="s">${kJ(e.dG0)} at 298.15 K</div></div>
         <div class="card"><div class="k">Equilibrium constant K</div><div class="v">${fmtK(e.lnK)}</div><div class="s">ln K = ${fix(e.lnK, 3)}</div></div>
-        <div class="card"><div class="k">Equilibrium conversion, 1 bar</div><div class="v">${eq.conversion === null || eq.conversion === undefined ? "–" : pct(eq.conversion)}</div><div class="s">${eq.limiting_reactant ? "of " + chem(eq.limiting_reactant) + ", stoichiometric feed" : ""}</div></div>
+        <div class="card"><div class="k">Equilibrium conversion at ${fix(r.P, 1)} bar</div><div class="v">${eqP.conversion === null || eqP.conversion === undefined ? "–" : pct(eqP.conversion)}</div><div class="s">${eqP.limiting_reactant ? "of " + chem(eqP.limiting_reactant) + ", stoichiometric feed" : ""}${r.P !== 1 && eq.conversion !== null && eq.conversion !== undefined ? ` (${pct(eq.conversion)} at 1 bar)` : ""}</div></div>
       </div>
       <h3>What the numbers mean</h3>${explain(r)}
     </div>`;
 
     if (r.sweep) {
+      const hasX = r.sweep.conversion_1bar && r.sweep.conversion_1bar.some((v) => v !== null);
       html += `<div class="panel"><div class="grid two">
-        <div id="rx-plot-energy" class="plot"></div><div id="rx-plot-K" class="plot"></div>
-        <div id="rx-plot-sensible" class="plot"></div><div id="rx-plot-cp" class="plot"></div></div>
+        ${TS.fig("rx-plot-energy", "orange is ΔH° (the heat of reaction), blue is ΔG° (which side is favoured), green is T·ΔS°. At every temperature blue = orange − green. Where the blue line crosses zero, K = 1. The thin dashed and dotted lines are what the shortcuts on C<sub>p</sub> would give. The dots mark your temperature.")}
+        ${TS.fig("rx-plot-K", "the higher the line, the more the products are favoured. Above the dotted line K is larger than 1, below it smaller. A line that falls to the right belongs to a reaction that gives out heat; one that rises, to a reaction that takes in heat.")}
+        ${hasX ? TS.fig("rx-plot-X", "how much of the limiting reactant has reacted when the reaction comes to rest. The dashed grey line is at 1 bar, the blue line at the pressure you typed. If the reaction makes fewer gas molecules, the blue line lies above the grey one: pressure helps.") : ""}
+        ${TS.fig("rx-plot-cp", "ΔC<sub>p</sub>° is the heat capacity of the products minus that of the reactants. It is the slope of the ΔH° line: where it is negative, ΔH° falls as the temperature rises. The dashed line is its value at 298.15 K, which the constant-C<sub>p</sub> shortcut uses everywhere.")}
+        ${TS.fig("rx-plot-sensible", "one bar per species: the heat it takes up between 298.15 K and your temperature, times its stoichiometric number (blue for products, orange for reactants). Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.")}</div>
         <p class="hint" style="margin:8px 0 0">Shaded bands mark temperatures outside the validity range of at least one
           heat-capacity correlation (valid ${r.valid_range ? `${fix(r.valid_range[0], 0)} to ${fix(r.valid_range[1], 0)} K` : "at 298.15 K only"} for this reaction).
           The dotted vertical line is the selected temperature.${r.valid_range && r.valid_range[0] < 298 ? ` Below 298.15 K the heat capacities
@@ -219,6 +237,7 @@
       const result = await TS.engine.call("analyze", {
         equation: $("#rx-equation").value,
         T: TS.readNumber("rx-T"),
+        P: TS.readNumber("rx-P"),
         T_min: TS.readNumber("rx-Tmin"),
         T_max: TS.readNumber("rx-Tmax"),
       });
@@ -241,7 +260,7 @@
       });
       $("#rx-T").addEventListener("input", showCelsius);
       $("#rx-run").addEventListener("click", calculate);
-      for (const id of ["rx-equation", "rx-T", "rx-Tmin", "rx-Tmax"]) {
+      for (const id of ["rx-equation", "rx-T", "rx-P", "rx-Tmin", "rx-Tmax"]) {
         $("#" + id).addEventListener("keydown", (ev) => { if (ev.key === "Enter") calculate(); });
       }
       TS.pickReaction(select, input, "co2_methanol", (rxn) => { $("#rx-T").value = rxn.T; });

@@ -156,6 +156,54 @@ class TestOverview(unittest.TestCase):
             self.assertEqual(row[key], c[key], key)
 
 
+class TestWhenASpeciesIsALiquid(unittest.TestCase):
+    """At 523 K water is a liquid above about 90 bar. A gas-phase heat of
+    reaction does not exist there; the tab must say so and offer a way out."""
+
+    WET = {"equation": "CO2 + 3 H2 -> CH3OH + H2O", "T": 523.15, "model": "pr"}
+
+    def test_highest_pressure_with_a_gas_phase_value(self):
+        res = ok("pressure", dict(self.WET, P=200))
+        self.assertFalse(res["at_P"]["gas_phase_valid"])
+        limit = res["gas_limit"]
+        self.assertAlmostEqual(limit["P_max"], 90.4, delta=0.5)
+        self.assertEqual(limit["P_suggest"], 88.0)
+        # the limit really is the limit, and the suggested pressure really works
+        self.assertTrue(ok("pressure", dict(self.WET, P=limit["P_max"] - 0.01))["at_P"]["gas_phase_valid"])
+        self.assertFalse(ok("pressure", dict(self.WET, P=limit["P_max"] + 0.01))["at_P"]["gas_phase_valid"])
+        again = ok("pressure", dict(self.WET, P=limit["P_suggest"]))
+        self.assertTrue(again["at_P"]["gas_phase_valid"])
+        self.assertIsNone(again["gas_limit"])
+        self.assertIsNotNone(again["comparison"]["dH_real"])
+        # the temperature at which 200 bar would work
+        self.assertTrue(630.0 < res["sweep_T"]["first_valid_T"] < 680.0)
+
+    def test_no_limit_when_nothing_is_a_gas_at_any_pressure(self):
+        # at 300 K water has no vapour-like state even at half the pressure asked for
+        res = ok("pressure", dict(self.WET, T=300.0, P=1.5))
+        if not res["at_P"]["gas_phase_valid"]:
+            self.assertIn("P_max", res["gas_limit"])
+
+    def test_a_species_that_would_condense_alone_gets_a_note_not_a_warning(self):
+        res = ok("pressure", dict(self.WET, P=50))
+        self.assertTrue(res["at_P"]["gas_phase_valid"])
+        notes = [n for n in res["at_P"]["notes"] if n["kind"] == "condensation"]
+        self.assertEqual([n["level"] for n in notes], ["info"])
+        self.assertIn("stays a vapour", notes[0]["message"])
+        self.assertEqual([n for n in res["at_P"]["notes"] if n["level"] in ("warning", "error")], [])
+
+    def test_the_overview_cases_all_have_a_gas_phase_value(self):
+        # a reaction picked from the list opens at these conditions, so none may start with the blue box
+        for row in ok("pressure_overview", {})["rows"]:
+            res = ok("pressure", {"equation": library.reaction_by_id(row["id"])[2], "T": row["T"], "P": row["P"], "model": "pr"})
+            self.assertTrue(res["at_P"]["gas_phase_valid"], row["id"])
+            self.assertEqual([n for n in res["at_P"]["notes"] if n["level"] in ("warning", "error")], [], row["id"])
+        with open(os.path.join(ROOT, "web", "tab-pressure.js"), encoding="utf-8") as fh:
+            script = fh.read()
+        for word in ("limitBox", "pr-fix", "gas_limit", "known.P"):
+            self.assertIn(word, script)
+
+
 class TestNoFugacityAnywhereOnThePage(unittest.TestCase):
     """Fugacity was taken off tab 2 first and off tab 4 afterwards. The solver
     still uses it inside the equilibrium calculation; the page and the guide

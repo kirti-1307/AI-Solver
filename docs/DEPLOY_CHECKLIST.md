@@ -57,7 +57,7 @@ Boxes are ticked only for what has actually been verified.
 | Tab 2, ammonia, 723.15 K, 200 bar | Σ ν Hᴿ = −5.158 kJ/mol |
 | Tab 3 | "the two routes agree" |
 | Tab 4, CH₄ switched off, 50 bar | CO₂ conversion 25.2 % at 523 K; moving the slider to 600 K changed it to 27.6 % without a reload; four plots drawn on release |
-| Tab 5, methane, 20 % excess air | 2,066 K |
+| Tab 5, methane, 20 % excess air | 2,069 K since v1.6 (2,066 K before, and still the value named in the note as the textbook's) |
 | Tab 5, steam reformer | +328.0 kJ per mol CH₄ |
 | Tab 5, bomb calorimeter, 1 g ethanol | rise 2.31 °C, calorific value 29.62 MJ/kg |
 | Tab 7 | "57 of 57 reference values reproduced" (51 of 51 before v1.3), no "FAIL" |
@@ -100,6 +100,13 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 - [x] v1.5.1: the gas-model menu of tab 4 reads "Peng/Robinson (real gas)", and with that model the method line shows G^R/RT and no φ
 
 **v1.5.1 checked on the live page, 22 November 2026, commit `1df7a95`, version tag 1.5.1:** both workflows green. The gas-model menu of tab 4 reads "Peng/Robinson (real gas)"; with that model the method line shows the term G^R/RT, and with the ideal gas it does not. None of the seven tabs shows the word "fugacity" or the symbol φ. No console errors.
+
+**v1.6 (data above 2000 K, pressure on tab 1, tab 2 without the liquid error, graph captions):**
+
+- [ ] v1.6: tab 5, methane burner shows 2,069 K, no warning, and a note that names 2,066 K as the textbook's value
+- [ ] v1.6: tab 2, picking CO₂ hydrogenation opens at 50 bar with a result; at 200 bar a blue box offers "Use 88 bar" and the button works
+- [ ] v1.6: tab 1 has a pressure box; CO₂ hydrogenation at 523.15 K and 50 bar shows 21.3 % conversion (0.6 % at 1 bar) and five graphs, each with "How to read it"
+- [ ] v1.6: tab 6 lists "Heat capacities above the SVN range (8 gases ...)"; tab 7 still reports 57 of 57
 
 ## Before the classroom demonstration
 

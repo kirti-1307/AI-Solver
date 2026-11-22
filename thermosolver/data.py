@@ -298,6 +298,42 @@ LOW_T_NOT_COVERED = {
 LOW_T_ENTROPY_EXCEPTIONS = {"H2S(g)": "tabulated S(200 K) is 0.26 J/(mol K) off the table's own heat capacities"}
 
 # ---------------------------------------------------------------------------
+# Heat capacities ABOVE the SVN range (not from SVN)
+#
+# SVN Table C.1 stops at 2000 K for the gases of a flame (N2, O2, CO2, H2O),
+# and an adiabatic flame is hotter than that. Above its last temperature the
+# SVN formula keeps rising in a straight line while the real heat capacity
+# levels off (at 2000 K it is already 2 to 4 % too high for these gases). So
+# from the SVN limit up to 6000 K the solver uses the Shomate equations of
+# the NIST Chemistry WebBook (fits of the NIST-JANAF tables, Chase 1998):
+#
+#       Cp [J/(mol K)] = A + B t + C t^2 + D t^3 + E / t^2,      t = T / 1000
+#
+# They are converted term by term into the solver's own form; nothing is
+# refitted. F, G and H belong to NIST's enthalpy and entropy functions; the
+# solver does not use them, the test-suite does, to check the transcription:
+#       H(T) - H(298.15) [kJ/mol] = A t + B t^2/2 + C t^3/3 + D t^4/4 - E/t + F - H
+#       S(T) [J/(mol K)]          = A ln t + B t + C t^2/2 + D t^3/3 - E/(2 t^2) + G
+#
+# Only the gases of combustion are covered. For every other species the SVN
+# limit stays the limit, and the solver warns beyond it as before.
+# Read on 22 November 2026.
+# ---------------------------------------------------------------------------
+HIGH_T_MAX = 6000.0   # K, upper limit of the NIST equations
+
+# id: (WebBook species ID, (Tmin, Tmax) of the NIST equation, (A, B, C, D, E), (F, G, H))
+NIST_HIGH_T = {
+    "N2(g)": ("C7727379", (2000.0, 6000.0), (35.51872, 1.128728, -0.196103, 0.014662, -4.553760), (-18.97091, 224.9810, 0.0)),
+    "O2(g)": ("C7782447", (2000.0, 6000.0), (20.91111, 10.72071, -2.020498, 0.146449, 9.245722), (5.337651, 237.6185, 0.0)),
+    "CO2(g)": ("C124389", (1200.0, 6000.0), (58.16639, 2.720074, -0.492289, 0.038844, -6.447293), (-425.9186, 263.6125, -393.5224)),
+    "H2O(g)": ("C7732185", (1700.0, 6000.0), (41.96426, 8.622053, -1.499780, 0.098119, -11.15764), (-272.1797, 219.7809, -241.8264)),
+    "CO(g)": ("C630080", (1300.0, 6000.0), (35.15070, 1.300095, -0.205921, 0.013550, -3.282780), (-127.8375, 231.7120, -110.5271)),
+    "H2(g)": ("C1333740", (2500.0, 6000.0), (43.413560, -4.293079, 1.272428, -0.096876, -20.533862), (-38.515158, 162.081354, 0.0)),
+    "SO2(g)": ("C7446095", (1200.0, 6000.0), (57.48188, 1.009328, -0.076290, 0.005174, -4.045401), (-324.4140, 302.7798, -296.8422)),
+    "NO(g)": ("C10102439", (1200.0, 6000.0), (35.99169, 0.957170, -0.148032, 0.009974, -3.004088), (73.10787, 246.1619, 90.29114)),
+}
+
+# ---------------------------------------------------------------------------
 # Table C.2 + Table C.4: solids
 # Cp/R = A + B*T + D*T^-2, valid from 298 K to Tmax
 # columns: id, name, formula, Tmax, Cp298/R (printed), A, 1e3*B, 1e-5*D, dHf298, dGf298
@@ -483,4 +519,6 @@ SOURCES = {
                     "(Chase 1998), janaf.nist.gov"),
     "low_T_webbook": ("Heat capacities from 200 K to 298.15 K: NIST Chemistry WebBook, recommended ideal-gas "
                       "heat capacities (webbook.nist.gov)"),
+    "high_T_webbook": ("Heat capacities above the SVN range, up to 6000 K: NIST Chemistry WebBook, Shomate equation "
+                       "fitted to the NIST-JANAF tables (Chase 1998)"),
 }

@@ -57,16 +57,21 @@ def audit_reaction(rxn, T: float) -> List[dict]:
     # The constants that apply at T: SVN from 298.15 K upwards, the NIST
     # low-temperature set below it.
     d = rxn.delta_coeffs(T)
+    off_H, off_S = rxn.delta_offsets(T)
     closed = (rxn.dH0 - (T / T0) * (rxn.dH0 - rxn.dG0)
-              + R * icph(T0, T, d) - R * T * icps(T0, T, d))
+              + R * (icph(T0, T, d) + off_H) - R * T * (icps(T0, T, d) + off_S))
     by_species = sum(nu * SPECIES[s].G(T) for s, nu in rxn.stoich.items())
     checks.append(_check("Two routes to dG(T)",
                          "closed form (dH0, dG0, IDCPH, IDCPS) = sum nu_i G_i(T)",
                          closed, by_species, 1e-10, 1e-6))
 
-    # The heat capacity changes its source at 298.15 K, so the step of the
-    # numerical derivatives must not reach across that temperature.
-    h = min(0.01, abs(T - T0))
+    # The heat capacity changes its source at 298.15 K, and for some species
+    # again at the end of the SVN range, so the step of the numerical
+    # derivatives must not reach across such a temperature.
+    gap = min(abs(T - b) for b in [T0] + rxn.breakpoints())
+    if gap < 1e-6:
+        return checks
+    h = min(0.01, gap)
     dH_slope = (rxn.dH(T + h) - rxn.dH(T - h)) / (2 * h)
     checks.append(_check("Kirchhoff's law", "d(dH)/dT = dCp",
                          dH_slope, rxn.dCp(T), 1e-6, 1e-6))
@@ -79,12 +84,20 @@ def audit_reaction(rxn, T: float) -> List[dict]:
     checks.append(_check("Gibbs-Helmholtz relation", "d(dG)/dT = -dS",
                          dG_slope, -rxn.dS(T), 1e-6, 1e-6))
 
-    num_H = R * simpson(lambda t: cp_over_r(d, t), T0, T)
+    # Numerical integration, piece by piece between the temperatures where a
+    # species changes its set of constants.
+    lo, hi = min(T0, T), max(T0, T)
+    cuts = [lo] + [b for b in rxn.breakpoints() if lo < b < hi] + [hi]
+    num_H = num_S = 0.0
+    for a, b in zip(cuts, cuts[1:]):
+        piece = rxn.delta_coeffs(0.5 * (a + b))
+        num_H += R * simpson(lambda t: cp_over_r(piece, t), a, b)
+        num_S += R * simpson(lambda t: cp_over_r(piece, t) / t, a, b)
+    sign = 1.0 if T >= T0 else -1.0
     checks.append(_check("Enthalpy integral", "analytical integral of dCp dT = Simpson quadrature",
-                         R * icph(T0, T, d), num_H, 1e-8, 1e-6))
-    num_S = R * simpson(lambda t: cp_over_r(d, t) / t, T0, T)
+                         R * rxn.idcph(T), sign * num_H, 1e-8, 1e-6))
     checks.append(_check("Entropy integral", "analytical integral of dCp dT/T = Simpson quadrature",
-                         R * icps(T0, T, d), num_S, 1e-8, 1e-8))
+                         R * rxn.idcps(T), sign * num_S, 1e-8, 1e-8))
     return checks
 
 

@@ -18,7 +18,7 @@ from . import benchmarks, heatbalance, library
 from .audit import audit_reaction, audit_residuals
 from .combine import combine_reactions, formation_decomposition, formation_reaction
 from .constants import P0, R, T0
-from .data import LOW_T_MIN, LOW_T_NOT_COVERED, SOURCES
+from .data import HIGH_T_MAX, LOW_T_MIN, LOW_T_NOT_COVERED, SOURCES
 from .equilibrium import atom_distribution, gibbs_minimize, reaction_equilibrium
 from .errors import InputError, SolverError, UnbalancedReactionError
 from .heatcap import mcph, mcps
@@ -143,8 +143,21 @@ def _safe(obj: Any) -> Any:
     return obj
 
 
+def _join_points(lo: float, hi: float, breakpoints: List[float]) -> set:
+    """Two points right at every temperature inside (lo, hi) where a heat
+    capacity changes its source. They let a plot show the small step in Cp
+    honestly instead of smearing it over one grid spacing."""
+    points = set()
+    for b in breakpoints:
+        if lo < b < hi:
+            # the lower set applies up to and including the end of the SVN range,
+            # and strictly below 298.15 K
+            points |= {b - 1e-6, b} if abs(b - T0) < 1e-9 else {b, b + 1e-6}
+    return points
+
+
 def _sweep_range(rxn: Reaction, payload: dict):
-    rng = rxn.valid_range()
+    rng = rxn.plot_range()
     if rng is None:
         return None
     lo = _num(payload, "T_min", None, 1.0, T_ABS_MAX, "Minimum temperature")
@@ -178,6 +191,9 @@ def database(payload: Optional[dict] = None) -> dict:
             "T_min": LOW_T_MIN, "covered": sum(1 for sp in SPECIES.values() if sp.cp_low is not None),
             "not_covered": LOW_T_NOT_COVERED,
         },
+        "high_T": {
+            "T_max": HIGH_T_MAX, "covered": sum(1 for sp in SPECIES.values() if sp.cp_high is not None),
+        },
         "data_notes": [
             {"species": "Below 298.15 K", "reason": (
                 "SVN's heat-capacity tables start at 298 K, and extrapolating them downwards is not safe "
@@ -188,6 +204,13 @@ def database(payload: Optional[dict] = None) -> dict:
                 "values. The formation data at 298.15 K and everything above 298.15 K are unchanged. Liquids keep "
                 "the SVN range of 273.15 to 373.15 K. Not covered below 298.15 K: H2O2(g) (its NIST-JANAF table is "
                 "not consistent with itself there), CaCO3(s) and CaC2(s) (not in NIST-JANAF).")},
+            {"species": "Above the SVN range", "reason": (
+                "SVN's formula for the gases of a flame ends at 2000 K, and a flame is hotter. Beyond its range the "
+                "formula keeps rising while the real heat capacity levels off, so it must not be stretched. For "
+                "N2, O2, CO2, H2O, CO, H2, SO2 and NO the heat capacity above the SVN limit, up to 6000 K, is "
+                "therefore taken from the Shomate equations of the NIST Chemistry WebBook (fits of the NIST-JANAF "
+                "tables). The equations are used as published. Inside the SVN range nothing is changed. Every other "
+                "species keeps its SVN limit, and the solver warns beyond it.")},
             {"species": "Step at 298.15 K", "reason": (
                 "The SVN correlation and the NIST value do not give exactly the same heat capacity at 298.15 K. "
                 "For 25 of the 47 species the two agree within 1 %. The largest differences: SVN's constants are "
@@ -262,9 +285,16 @@ def _derivation(rxn: Reaction, ev: dict) -> List[dict]:
     if ev.get("dA") is None:
         return steps
     low = bool(ev.get("low_T_species"))
+    high = ev.get("high_T_species") or []
+    title = "Heat-capacity change of reaction"
+    if low:
+        title += " (constants for 200 to 298.15 K, from NIST tables)"
+    elif high:
+        title += f" (above the SVN range the constants of {', '.join(high)} are NIST's)"
+    # above the SVN range of a species the integral is taken in two pieces
+    pieces = ",  in two pieces: SVN constants up to their limit, NIST's above it" if high else ""
     steps += [
-        {"title": ("Heat-capacity change of reaction (constants for 200 to 298.15 K, from NIST tables)"
-                   if low else "Heat-capacity change of reaction"),
+        {"title": title,
          "formula": ("ΔCp°/R = ΔA + ΔB·T + ΔC·T² + ΔD·T⁻²"
                      + (" + ΔE·T³" if ev["dE"] else "") + ",  Δ = Σ νᵢ (…)ᵢ"),
          "work": (f"ΔA = {ev['dA']:.4g},  ΔB = {ev['dB']:.4e},  "
@@ -272,11 +302,11 @@ def _derivation(rxn: Reaction, ev: dict) -> List[dict]:
                   + (f",  ΔE = {ev['dE']:.4e}" if ev["dE"] else "")),
          "value": ev["dCp"], "unit": f"J/(mol·K) at {T:g} K"},
         {"title": f"Standard heat of reaction at {T:g} K",
-         "formula": "ΔH°(T) = ΔH°₂₉₈ + R ∫ (ΔCp°/R) dT",
+         "formula": "ΔH°(T) = ΔH°₂₉₈ + R ∫ (ΔCp°/R) dT" + pieces,
          "work": f"{ev['dH0']:,.0f} + 8.314 × ({ev['IDCPH']:,.3f} K)",
          "value": ev["dH"], "unit": "J/mol"},
         {"title": f"Standard entropy change at {T:g} K",
-         "formula": "ΔS°(T) = ΔS°₂₉₈ + R ∫ (ΔCp°/R) dT/T",
+         "formula": "ΔS°(T) = ΔS°₂₉₈ + R ∫ (ΔCp°/R) dT/T" + pieces,
          "work": f"{ev['dS0']:,.3f} + 8.314 × ({ev['IDCPS']:,.5f})",
          "value": ev["dS"], "unit": "J/(mol·K)"},
         {"title": f"Standard Gibbs energy change at {T:g} K",
@@ -292,12 +322,7 @@ def _derivation(rxn: Reaction, ev: dict) -> List[dict]:
 
 
 def _T_sweep(rxn: Reaction, lo: float, hi: float, n: int) -> dict:
-    Ts = _grid(lo, hi, n)
-    if lo < T0 < hi and rxn.uses_low_T_data(lo):
-        # The heat capacity changes its source at 298.15 K. Two points right
-        # at that temperature let a plot show the small step in dCp honestly
-        # instead of smearing it over one grid spacing.
-        Ts = sorted(set(Ts) | {T0 - 1e-6, T0})
+    Ts = sorted(set(_grid(lo, hi, n)) | _join_points(lo, hi, rxn.breakpoints()))
     rng = rxn.valid_range()
     out: Dict[str, list] = {k: [] for k in (
         "T", "dH", "dS", "dG", "TdS", "lnK", "log10K", "dCp",
@@ -326,6 +351,7 @@ def analyze(payload: dict) -> dict:
     temperature sweep, warnings, written-out steps and consistency audit."""
     rxn = _reaction(payload)
     T = _temperature(payload)
+    P = _pressure(payload)          # only for the equilibrium conversion; the standard values are at 1 bar
     ev = rxn.evaluate(T)
     result = {
         "equation": rxn.equation,
@@ -333,6 +359,7 @@ def analyze(payload: dict) -> dict:
         "notes": rxn.notes,
         "stoich": rxn.stoich,
         "T": T,
+        "P": P,
         "at_T": ev,
         "species": rxn.species_table(T),
         "warnings": rxn.range_warnings(T),
@@ -348,10 +375,23 @@ def analyze(payload: dict) -> dict:
     rng = _sweep_range(rxn, payload)
     if rng:
         result["sweep"] = _T_sweep(rxn, rng[0], rng[1], _points(payload, 81))
-    try:
-        result["equilibrium"] = reaction_equilibrium(rxn, T, P0, model="ideal")
-    except SolverError as exc:
-        result["equilibrium"] = {"error": exc.message}
+    # How far the reaction goes with a stoichiometric feed treated as an
+    # ideal-gas mixture: at 1 bar, and at the pressure the user chose. K
+    # depends on temperature only; the pressure enters through the mole
+    # fractions, K = prod(y_i^nu_i) * (P/P0)^(sum of nu of the gases).
+    def conversion(t: float, p: float) -> Optional[dict]:
+        try:
+            return reaction_equilibrium(rxn, t, p, model="ideal")
+        except SolverError as exc:
+            return {"error": exc.message, "conversion": None, "limiting_reactant": None}
+
+    result["equilibrium"] = conversion(T, P0)
+    result["equilibrium_P"] = conversion(T, P)
+    if result["sweep"]:
+        Ts = result["sweep"]["T"]
+        at_1 = [conversion(t, P0)["conversion"] for t in Ts]
+        result["sweep"]["conversion_1bar"] = at_1
+        result["sweep"]["conversion_P"] = at_1 if abs(P - P0) < 1e-12 else [conversion(t, P)["conversion"] for t in Ts]
     return _safe(result)
 
 
@@ -436,7 +476,7 @@ def _real_against_ideal(at_P: dict) -> dict:
 def _residual_T_sweep(rxn: Reaction, P: float, model: str, n: int = 61) -> Optional[dict]:
     """The heat of reaction of the ideal and of the real gas along an isobar,
     to show at which temperatures the pressure effect matters."""
-    rng = rxn.valid_range()
+    rng = rxn.plot_range()
     if rng is None or rng[1] <= rng[0]:
         return None
     out: Dict[str, list] = {k: [] for k in ("T", "dH_ideal", "dH_real", "residual", "percent")}
@@ -452,6 +492,29 @@ def _residual_T_sweep(rxn: Reaction, P: float, model: str, n: int = 61) -> Optio
     out["P"] = P
     out["first_valid_T"] = usable[0] if usable else None
     return out
+
+
+def _gas_limit(rxn: Reaction, T: float, P: float, model: str) -> dict:
+    """When a species has no vapour-like state at T and P: the highest
+    pressure at this temperature at which every species still has one, and a
+    round pressure a little below it to offer to the user."""
+    def valid(p: float) -> bool:
+        return reaction_at_pressure(rxn, T, p, model)["gas_phase_valid"]
+
+    lo = min(1.0, P / 2.0)
+    if not valid(lo):
+        return {"P_max": None, "P_suggest": None}
+    hi = P
+    for _ in range(50):
+        mid = 0.5 * (lo + hi)
+        if valid(mid):
+            lo = mid
+        else:
+            hi = mid
+    suggest = float(math.floor(0.98 * lo)) if lo >= 10.0 else round(0.95 * lo, 2)
+    if suggest <= 0.0 or not valid(suggest):
+        suggest = None
+    return {"P_max": lo, "P_suggest": suggest}
 
 
 def pressure(payload: dict) -> dict:
@@ -507,6 +570,8 @@ def pressure(payload: dict) -> dict:
         "equation": rxn.equation, "T": T, "P": P, "model": model,
         "at_P": at_P,
         "comparison": _real_against_ideal(at_P),
+        # only when no gas-phase value exists at this pressure: where one does
+        "gas_limit": None if at_P["gas_phase_valid"] else _gas_limit(rxn, T, P, model),
         "sweep": sweep,
         "sweep_T": _residual_T_sweep(rxn, P, model),
         "models": models,
@@ -752,7 +817,7 @@ def network(payload: dict) -> dict:
     # Sweep along temperature (default) or pressure
     variable = payload.get("sweep") or "T"
     lo_default = max(SPECIES[s].cp_Tmin for s in ids)
-    hi_default = min(SPECIES[s].cp_Tmax for s in ids)
+    hi_default = min(SPECIES[s].cp_main_Tmax for s in ids)      # a plot stops where the SVN formulas stop
     sweep = None
     if variable == "none":
         xs = []
@@ -1021,6 +1086,12 @@ def sensible(payload: dict) -> dict:
             "message": (f"Below {T0} K the heat capacity of {sp.id} is not from SVN, whose tables start at 298 K. "
                         f"{sp.cp_low_source}."),
         })
+    if sp.cp_high is not None and max(T1, T2) > sp.cp_main_Tmax:
+        warnings.append({
+            "level": "info", "species": sp.id, "kind": "high_T_data",
+            "message": (f"Above {sp.cp_main_Tmax:g} K the heat capacity of {sp.id} is not from SVN, whose formula ends there. "
+                        f"{sp.cp_high_source}."),
+        })
     for T in (T1, T2):
         if not sp.in_cp_range(T):
             warnings.append({
@@ -1029,8 +1100,7 @@ def sensible(payload: dict) -> dict:
                             f"correlation of {sp.id} ({sp.cp_Tmin:g} to {sp.cp_Tmax:g} K)."),
             })
     Ts = _grid(min(T1, T2), max(T1, T2), 61) if not same else [T1]
-    if sp.cp_low is not None and min(T1, T2) < T0 < max(T1, T2):
-        Ts = sorted(set(Ts) | {T0 - 1e-6, T0})     # show the change of source at 298.15 K
+    Ts = sorted(set(Ts) | _join_points(min(T1, T2), max(T1, T2), sp.breakpoints()))
     return _safe({
         "species": sp.to_dict(), "note": note, "T1": T1, "T2": T2, "moles": moles,
         "dH_molar": dH, "dS_molar": dS, "Q": moles * dH, "dS_total": moles * dS,

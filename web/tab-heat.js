@@ -180,7 +180,7 @@
         `${fix(p.T_out, 0)} K would convert ${pct(r.work.carnot_at_T_out, 1)}; the stream does less because its temperature falls as it gives up heat.`);
     }
     if (r.mode === "adiabatic" && p.T_out > 1800) {
-      lines.push("The reaction is taken to go to the stated conversion. Above about 2000 K real flames are cooler than this, because CO<sub>2</sub> and H<sub>2</sub>O partly dissociate.");
+      lines.push("The reaction is taken to go to the stated conversion; the energy balance does not ask whether equilibrium would allow it.");
     }
     lines.push("Assumptions: every species stays in the phase written, the gases are ideal, and nothing limits the conversion you set.");
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
@@ -221,7 +221,8 @@
     const adiabatic = r.mode === "adiabatic";
 
     $("#hb-eqn").innerHTML = chem(r.equation) + r.settings.side.map((s) => `<br><small>side reaction:</small> ${chem(s.equation)}`).join("");
-    $("#hb-notes").innerHTML = TS.notes(r.notes.map((m) => ({ level: "info", message: m }))) + rangeNotes(p.warnings);
+    // p.notes: where the heat capacities come from above the SVN range, and that dissociation is not included
+    $("#hb-notes").innerHTML = TS.notes(r.notes.map((m) => ({ level: "info", message: m }))) + rangeNotes(p.warnings) + TS.notes(p.notes);
     $("#hb-basis").innerHTML = key;
 
     const thermicity = p.path.dH_298 < -0.5 ? "exo" : (p.path.dH_298 > 0.5 ? "endo" : "");

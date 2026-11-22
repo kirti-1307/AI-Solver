@@ -40,6 +40,13 @@ which adds (E/4)(T⁴ − T₀⁴) to the first integral and (E/3)(T³ − T₀�
 
 computed from NIST tables (see [DATA_SOURCES.md](DATA_SOURCES.md); `species.low_temperature_sets`, `heatcap.quadratic_with_integral`, `heatcap.quadratic_through`). `Species.coeffs_at(T)` returns the set that applies at T. Because every integral in this file runs from T₀ = 298.15 K to T, and the two sets meet exactly at T₀, an integral never crosses from one set to the other, and all formulas below hold unchanged with the constants of the side T lies on. A sensible heat between two temperatures on opposite sides of T₀ is taken in two parts. H, S and G are continuous at T₀; Cp itself has a small step there, the difference between the two sources.
 
+**Above the SVN range.** For eight gases of combustion (N₂, O₂, CO₂, H₂O, CO, H₂, SO₂, NO) a third set of constants applies above the last temperature of Table C.1 (2000 K; 2500 K for CO, 3000 K for H₂) up to 6000 K: the Shomate equation of the NIST Chemistry WebBook, converted term by term into the form with E above. This join is not at T₀, so the integral from T₀ to a temperature T above the join Tj is taken in two pieces,
+
+    ∫(T₀→T) = ∫(T₀→Tj, SVN constants) + ∫(Tj→T, NIST constants)
+            = ∫(T₀→T, NIST constants) + [∫(T₀→Tj, SVN constants) − ∫(T₀→Tj, NIST constants)]
+
+The bracket does not depend on T. It is computed once per species (`Species.offsets_at`), for the enthalpy integral and for the entropy integral, and added to the closed-form integral taken with the NIST constants. For a reaction the constants and the offsets of the species are summed with their stoichiometric numbers (`Reaction.delta_coeffs(T)`, `Reaction.delta_offsets(T)`), so ΔH°(T) and ΔS°(T) keep their one-line form at any temperature. H, S and G are continuous at the join; Cp has a small step, because SVN's formula runs 2 to 8 % high at the upper end of its range.
+
 Mean heat capacities (`heatcap.mcph`, `heatcap.mcps`), in the form used on the course slides:
 
     ⟨Cp⟩_H / R = A + (B/2)(T + T₀) + (C/3)(T² + T₀² + T·T₀) + D/(T·T₀)

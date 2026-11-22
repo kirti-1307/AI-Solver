@@ -280,7 +280,8 @@
       pending = null;
     }
 
-    $("#nw-live-notes").innerHTML = TS.notes(r.warnings) + TS.notes(r.notes.filter((n) => n.level !== "info"));
+    $("#nw-live-notes").innerHTML = TS.notes(r.warnings) +
+      TS.notes(r.notes.filter((n) => n.level !== "info" || n.kind === "condensation"));
     $("#nw-live-title").innerHTML = `Where the ${esc(el)} atoms go at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar`;
 
     // Rows keep the order of the system so the bars do not jump around while dragging.

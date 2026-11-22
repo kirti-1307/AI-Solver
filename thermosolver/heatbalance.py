@@ -38,6 +38,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from .constants import R, T0
 from .errors import DataUnavailableError, InputError
+from .data import HIGH_T_MAX
 from .heatcap import combine, cp_over_r, icph, icps, simpson
 from .reaction import Reaction
 from .species import SPECIES
@@ -72,26 +73,38 @@ class Stream:
         self.without_cp = [s for s in self.moles if SPECIES[s].cp is None]
         self.coeffs = combine((n, SPECIES[s].cp) for s, n in self.moles.items()
                               if SPECIES[s].cp is not None)
-        # Below 298.15 K each species contributes its low-temperature
-        # constants (NIST tables) where it has them.
-        if any(SPECIES[s].cp_low is not None for s in self.moles):
-            self.coeffs_low = combine((n, SPECIES[s].cp_low or SPECIES[s].cp) for s, n in self.moles.items()
-                                      if SPECIES[s].cp is not None)
-        else:
-            self.coeffs_low = self.coeffs
+        # Temperatures at which a species of the stream changes the source of
+        # its heat capacity (298.15 K, and the end of the SVN range for the
+        # gases that have NIST data above it).
+        self.breakpoints = sorted({b for s in self.moles for b in SPECIES[s].breakpoints()})
+        self._sets: Dict[int, Tuple[tuple, float, float]] = {}
         self._window: Optional[Tuple[float, float]] = None
+
+    def _set(self, T: float) -> Tuple[tuple, float, float]:
+        """(summed constants, enthalpy offset, entropy offset) that apply at T.
+        Between two breakpoints they do not change, so they are kept."""
+        key = sum(1 for b in self.breakpoints if T > b) if T >= T0 else -1
+        if key not in self._sets:
+            with_cp = [(n, SPECIES[s]) for s, n in self.moles.items() if SPECIES[s].cp is not None]
+            coeffs = combine((n, sp.coeffs_at(T)) for n, sp in with_cp)
+            off_H = sum(n * sp.offsets_at(T)[0] for n, sp in with_cp)
+            off_S = sum(n * sp.offsets_at(T)[1] for n, sp in with_cp)
+            self._sets[key] = (coeffs, off_H, off_S)
+        return self._sets[key]
 
     def coeffs_at(self, T: float):
         """The summed constants that apply at T (see Species.coeffs_at)."""
-        return self.coeffs_low if T < T0 else self.coeffs
+        return self._set(T)[0]
 
-    def _integral(self, integral, T1: float, T2: float) -> float:
-        """An integral of the heat capacity from T1 to T2, taken in two parts
-        when the temperatures lie on different sides of 298.15 K."""
-        c1, c2 = self.coeffs_at(T1), self.coeffs_at(T2)
-        if c1 is c2:
-            return integral(T1, T2, c1)
-        return integral(T1, T0, c1) + integral(T0, T2, c2)
+    def _integral(self, integral, which: int, T1: float, T2: float) -> float:
+        """An integral of the heat capacity from T1 to T2 (``which``: 0 for
+        enthalpy, 1 for entropy). When the two temperatures use different sets
+        of constants, each end is taken from 298.15 K with its own set and
+        offset (see Species.offsets_at)."""
+        s1, s2 = self._set(T1), self._set(T2)
+        if s1 is s2:
+            return integral(T1, T2, s1[0])
+        return (integral(T0, T2, s2[0]) + s2[1 + which]) - (integral(T0, T1, s1[0]) + s1[1 + which])
 
     def _need_cp(self) -> None:
         if self.without_cp:
@@ -105,7 +118,7 @@ class Stream:
         if abs(T1 - T2) < 1e-12:
             return 0.0
         self._need_cp()
-        return R * self._integral(icph, T1, T2)
+        return R * self._integral(icph, 0, T1, T2)
 
     def H(self, T: float) -> float:
         """Enthalpy of the stream at T on the formation scale, in J."""
@@ -122,7 +135,7 @@ class Stream:
         if abs(T1 - T2) < 1e-12:
             return 0.0
         self._need_cp()
-        return R * self._integral(icps, T1, T2)
+        return R * self._integral(icps, 1, T1, T2)
 
     def window(self) -> Tuple[float, float]:
         """Temperature interval around 298.15 K in which the total heat
@@ -157,6 +170,35 @@ class Stream:
         raise InputError(
             f"The {what} temperature of {T:g} K is outside the range in which the heat capacities of this "
             f"stream can be used ({lo:.0f} to {hi:.0f} K).{hint}", {"limit": "below" if T < lo else "above"})
+
+
+class SvnStream(Stream):
+    """The same mixture with the main (SVN) heat-capacity formulas used at
+    every temperature from 298.15 K upwards, extrapolated beyond their range.
+
+    This is what SVN's own flame-temperature example does: it ends at 2066 K
+    with formulas that are valid to 2000 K. The solver itself uses NIST data
+    above the SVN range (class Stream); this class exists to reproduce the
+    textbook number and to show how far the two answers are apart.
+    """
+
+    def __init__(self, moles: Dict[str, float]):
+        super().__init__(moles)
+        self.breakpoints = [T0] if any(SPECIES[s].cp_low is not None for s in self.moles) else []
+
+    def _set(self, T: float) -> Tuple[tuple, float, float]:
+        key = 0 if T >= T0 else -1
+        if key not in self._sets:
+            with_cp = [(n, SPECIES[s]) for s, n in self.moles.items() if SPECIES[s].cp is not None]
+            coeffs = combine((n, sp.cp if (T >= T0 or sp.cp_low is None) else sp.cp_low) for n, sp in with_cp)
+            self._sets[key] = (coeffs, 0.0, 0.0)
+        return self._sets[key]
+
+
+# Above this temperature the products of a flame dissociate noticeably, which
+# the energy balance does not include.
+T_DISSOCIATION = 2000.0
+T_DISSOCIATION_STRONG = 2500.0
 
 
 # ---------------------------------------------------------------------------
@@ -337,8 +379,28 @@ def solve(case: dict, T_in: float, mode: str = "adiabatic", T_out: Optional[floa
 
     reacting = {sid for rxn, _ in case["reactions"] for sid in rxn.stoich}
     key = SPECIES[case["key"]]
+
+    # Species whose heat capacity comes from the NIST equations because the
+    # stream is hotter than the SVN range, and the answer the SVN formulas
+    # alone would give if they were extrapolated (as the textbook example does).
+    high = [sid for moles, T in ((case["feed"], T_in), (case["outlet"], T_out)) for sid, n in moles.items()
+            if n > _TINY and SPECIES[sid].cp_high is not None and T > SPECIES[sid].cp_main_Tmax]
+    high = sorted(set(high), key=high.index)
+    svn_only = None
+    if high:
+        try:
+            feed_svn, outlet_svn = SvnStream(case["feed"]), SvnStream(case["outlet"])
+            if mode == "adiabatic":
+                svn_only = {"T_out": outlet_temperature(feed_svn, outlet_svn, T_in, Q), "Q": Q}
+            else:
+                svn_only = {"T_out": T_out, "Q": outlet_svn.H(T_out) - feed_svn.H(T_in)}
+        except InputError:
+            svn_only = None
+
     return {
         "mode": mode, "key": case["key"], "T_in": T_in, "T_out": T_out, "Q": Q,
+        "high_T_species": high, "svn_only": svn_only,
+        "notes": temperature_notes(high, svn_only, mode, T_in, T_out),
         # fed species that take part in no reaction: they only carry sensible heat
         "inert": [s for s, n in case["feed"].items() if n > _TINY and s not in reacting],
         "Q_per_kg": Q / (key.molar_mass / 1000.0),
@@ -355,6 +417,39 @@ def solve(case: dict, T_in: float, mode: str = "adiabatic", T_out: Optional[floa
         "warnings": range_warnings(case, T_in, T_out),
         "audit": audit(case, T_in, T_out, Q),
     }
+
+
+def temperature_notes(high: List[str], svn_only: Optional[dict], mode: str, T_in: float, T_out: float) -> List[dict]:
+    """Notes for a hot stream: where the heat capacities come from above the
+    SVN range, and that dissociation is not part of the energy balance."""
+    notes: List[dict] = []
+    if high:
+        text = (f"Above the range of SVN's formula the heat capacities of {', '.join(high)} are taken from the "
+                f"Shomate equations of the NIST Chemistry WebBook (valid to {HIGH_T_MAX:,.0f} K), so nothing is extrapolated.")
+        if svn_only is not None and mode == "adiabatic":
+            text += (f" With SVN's formula stretched beyond its range, as the textbook's own flame example does, "
+                     f"the outlet would be {svn_only['T_out']:,.0f} K instead of {T_out:,.0f} K.")
+        elif svn_only is not None:
+            text += (f" With SVN's formula stretched beyond its range the heat duty would be "
+                     f"{svn_only['Q'] / 1000.0:,.1f} kJ.")
+        notes.append({"level": "info", "kind": "high_T_data", "species": ", ".join(high), "message": text})
+    hottest = max(T_in, T_out)
+    if hottest > T_DISSOCIATION:
+        strong = hottest > T_DISSOCIATION_STRONG
+        notes.append({
+            "level": "warning" if strong else "info", "kind": "dissociation",
+            "message": (
+                f"Above about {T_DISSOCIATION:,.0f} K the hot products of a real flame partly break apart "
+                f"(CO2 into CO and O2, H2O into H2 and O2), and that takes up heat. This energy balance does not "
+                f"include it, so a real flame is {'much ' if strong else 'somewhat '}cooler than {hottest:,.0f} K."),
+        })
+    return notes
+
+
+def svn_outlet_temperature(case: dict, T_in: float, Q: float = 0.0) -> float:
+    """The adiabatic outlet temperature with the SVN formulas only,
+    extrapolated beyond their range: the number a textbook example gives."""
+    return outlet_temperature(SvnStream(case["feed"]), SvnStream(case["outlet"]), T_in, Q)
 
 
 def range_warnings(case: dict, T_in: float, T_out: float) -> List[dict]:
@@ -416,7 +511,15 @@ def audit(case: dict, T_in: float, T_out: float, Q: float) -> List[dict]:
     # Near absolute zero the D/T^2 term makes the integrand too steep for a
     # fixed-step quadrature, so the numerical cross-check stops at 50 K.
     if abs(T_out - T0) > 1e-9 and T_out >= 50.0:
-        numeric = R * simpson(lambda t: cp_over_r(outlet.coeffs_at(T_out), t), T0, T_out)
+        # piece by piece between the temperatures where a species changes its constants
+        lo, hi = min(T0, T_out), max(T0, T_out)
+        cuts = [lo] + [b for b in outlet.breakpoints if lo < b < hi] + [hi]
+        numeric = 0.0
+        for a, b in zip(cuts, cuts[1:]):
+            piece = outlet.coeffs_at(0.5 * (a + b))
+            numeric += R * simpson(lambda t: cp_over_r(piece, t), a, b)
+        if T_out < T0:
+            numeric = -numeric
         checks.append(_check("Sensible heat of the products",
                              "analytical integral of sum n_i Cp_i dT = Simpson quadrature",
                              outlet.sensible(T0, T_out), numeric, 1e-8, 1e-6))

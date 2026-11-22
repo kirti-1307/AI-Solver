@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.5.1");
+      this.worker = new Worker("web/worker.js?v=1.6.0");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -214,6 +214,10 @@ TS.vline = (x, color) => ({ type: "line", xref: "x", yref: "paper", x0: x, x1: x
 
 TS.hline = (y, color) => ({ type: "line", xref: "paper", yref: "y", x0: 0, x1: 1, y0: y, y1: y,
   line: { color: color || TS.css("--muted"), width: 1, dash: "dot" } });
+
+/* A plot with one line underneath that says how to read it. */
+TS.fig = (id, caption, cls = "") => `<figure class="fig"><div id="${id}" class="plot ${cls}"></div>
+  <figcaption><strong>How to read it:</strong> ${caption}</figcaption></figure>`;
 
 /* ------------------------------------------------------- shared UI pieces */
 TS.tabs = [{ id: "home", init() {}, onShow() {} }];   // each tab file registers { id, init, onShow }

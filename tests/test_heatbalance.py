@@ -40,8 +40,15 @@ class TestTextbookExamples(unittest.TestCase):
         self.assertAlmostEqual(case["outlet"]["H2O(g)"], 2.0)
         self.assertNotIn("CH4(g)", hb.Stream(case["outlet"]).moles)
 
+        # The book reaches 2066 K with formulas that are valid to 2000 K. With the
+        # SVN formulas alone, extrapolated in the same way, the solver gives the book's number ...
+        self.assertAlmostEqual(hb.svn_outlet_temperature(case, T0), 2066.0, delta=1.0)
+        # ... and with NIST data above 2000 K, which is what the page shows, a little more,
+        # because the SVN formula overestimates the heat capacity beyond its range.
         res = hb.solve(case, T0)
-        self.assertAlmostEqual(res["T_out"], 2066.0, delta=1.0)
+        self.assertAlmostEqual(res["T_out"], 2068.8, delta=0.5)
+        self.assertAlmostEqual(res["svn_only"]["T_out"], 2066.4, delta=0.5)
+        self.assertEqual(res["high_T_species"], ["O2(g)", "N2(g)", "CO2(g)", "H2O(g)"])
         self.assertAlmostEqual(res["path"]["dH_298"], -802625.0, delta=1e-6)
         self.assertEqual(res["path"]["dH_R"], 0.0)                 # the feed is already at 298.15 K
         self.assertAlmostEqual(res["Q"], 0.0, delta=1e-9)
@@ -188,10 +195,23 @@ class TestEnergyBalance(unittest.TestCase):
             hb.outlet_temperature(stream, stream, T0, Q=1e9)
 
     def test_extrapolation_is_reported(self):
-        res = flame(excess=0.2, air=True)                          # 2066 K, correlations end at 2000 K
-        flagged = {w["species"] for w in res["warnings"]}
-        self.assertEqual(flagged, {"O2(g)", "N2(g)", "CO2(g)", "H2O(g)"})
-        self.assertEqual(flame(excess=2.0, air=True)["warnings"], [])
+        # 2069 K: above the SVN range of the four product gases, but they have NIST data
+        # up to 6000 K, so nothing is extrapolated. Two notes say where the data come from
+        # and that dissociation is not included.
+        res = flame(excess=0.2, air=True)
+        self.assertEqual(res["warnings"], [])
+        self.assertEqual([(n["kind"], n["level"]) for n in res["notes"]], [("high_T_data", "info"), ("dissociation", "info")])
+        self.assertIn("2,066 K instead of 2,069 K", res["notes"][0]["message"])
+        cool = flame(excess=2.0, air=True)
+        self.assertEqual((cool["warnings"], cool["notes"], cool["svn_only"]), ([], [], None))
+        # far above 2500 K the dissociation note becomes a warning
+        pure = hb.solve(hb.build_case(Reaction.parse("H2 + 1/2 O2 -> H2O(g)")), T0)
+        self.assertGreater(pure["T_out"], 4000.0)
+        self.assertEqual(pure["warnings"], [])
+        self.assertEqual([n["level"] for n in pure["notes"] if n["kind"] == "dissociation"], ["warning"])
+        # a species without high-temperature data is still flagged: unburnt methane at 2100 K
+        rich = hb.solve(hb.build_case(Reaction.parse(METHANE), conversion=0.9, excess=0.0, air=True), T0, "duty", T_out=2100.0)
+        self.assertEqual({w["species"] for w in rich["warnings"]}, {"CH4(g)"})
         liquid = hb.solve(hb.build_case(Reaction.parse("CH4 + 2 O2 -> CO2 + 2 H2O(l)"), excess=3.0, air=True), T0)
         self.assertTrue(any("no phase change" in w["message"] for w in liquid["warnings"]))
 
@@ -214,6 +234,7 @@ class TestEnergyBalance(unittest.TestCase):
         self.assertGreater(work["fraction"], 0.0)
         # independent route: integral of (1 - T0/T) * Cp dT
         outlet = hb.Stream(case["outlet"])
+        self.assertLess(res["T_out"], 2000.0)                      # inside the SVN range: one set of constants
         numeric = R * simpson(lambda t: (1.0 - T0 / t) * cp_over_r(outlet.coeffs, t), T0, res["T_out"])
         self.assertAlmostEqual(-work["W_ideal"], numeric, delta=1e-6 * numeric)
         self.assertIsNone(hb.work_potential(case, T0))
@@ -519,7 +540,13 @@ class TestSecondReview(unittest.TestCase):
         def run(key):
             return ok("heat_balance", {k: v for k, v in examples[key].items() if k not in ("id", "name", "note")})
 
-        self.assertAlmostEqual(run("methane_burner")["point"]["T_out"], 2066.0, delta=1.0)
+        burner = run("methane_burner")["point"]
+        self.assertAlmostEqual(burner["T_out"], 2068.8, delta=0.5)
+        self.assertAlmostEqual(burner["svn_only"]["T_out"], 2066.0, delta=1.0)     # the textbook's number
+        self.assertEqual(burner["warnings"], [])
+        hydrogen = run("hydrogen_burner")["point"]
+        self.assertAlmostEqual(hydrogen["T_out"], 2263.5, delta=0.5)
+        self.assertEqual(hydrogen["warnings"], [])
         reformer = run("reformer_duty")["point"]
         self.assertAlmostEqual(reformer["Q"], 328010.0, delta=5.0)
         self.assertAlmostEqual(reformer["outlet"]["CO(g)"] / reformer["outlet_total"], 0.174, places=6)
@@ -534,7 +561,7 @@ class TestSecondReview(unittest.TestCase):
 class TestApi(unittest.TestCase):
     def test_heat_balance_point_sweep_and_goal(self):
         res = ok("heat_balance", {"equation": METHANE, "excess": 0.2, "air": True, "target_T": 1500})
-        self.assertAlmostEqual(res["point"]["T_out"], 2066.0, delta=1.0)
+        self.assertAlmostEqual(res["point"]["T_out"], 2068.8, delta=0.5)
         self.assertEqual(res["key"], "CH4(g)")
         self.assertEqual(res["excess_species"], "O2(g)")
         self.assertTrue(res["has_o2"])

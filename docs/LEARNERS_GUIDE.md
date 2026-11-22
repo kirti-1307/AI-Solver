@@ -102,6 +102,12 @@ Example: CO₂ + 3 H₂ → CH₃OH + H₂O has ΔH° = −46.77 kJ/mol at 250 K
 
 One thing to remember: at 250 K and 1 bar, real methanol and water are not gases. The solver still treats them as ideal gases, because that is what the standard state of a gas means. It tells you so in a note.
 
+### Above 2000 K
+
+The textbook's Cp formula for the gases of a flame (N₂, O₂, CO₂, H₂O) ends at 2000 K. A flame is hotter than that. Beyond 2000 K the textbook formula keeps climbing, while the real Cp levels off, so it must not be stretched upwards either.
+
+So above the textbook limit, up to 6000 K, the solver uses NIST equations for eight flame gases (N₂, O₂, CO₂, H₂O, CO, H₂, SO₂, NO). Inside the textbook range nothing changes. For every other substance the textbook limit stays, and the solver warns beyond it.
+
 ### Not favourable does not mean no ΔH
 
 ΔH is the enthalpy of the products minus the enthalpy of the reactants. Both are properties of the substances, so ΔH exists for any balanced reaction, whether it goes by itself or not.
@@ -120,15 +126,25 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 
 **It answers:** how much heat, and which side is favoured?
 
-**You do:** pick a reaction or type one, set the temperature, press Calculate.
+**You do:** pick a reaction or type one, set the temperature, press Calculate. The pressure box is only for the equilibrium conversion; ΔH°, ΔS°, ΔG° and K are standard values at 1 bar.
 
 **You read:**
 
 - The headline at the top: "Gives out heat" or "Takes in heat", and "Products favoured" or "Reactants favoured". The second one compares K with 1. It never means that nothing reacts.
-- The cards: ΔH, ΔS, ΔG and K at your temperature.
+- The cards: ΔH, ΔS, ΔG and K at your temperature, and how much reacts at your pressure.
 - "What the numbers mean": the same result in sentences.
-- The plots: how ΔH, ΔG and K change with temperature.
+- The graphs (explained below).
 - The step-by-step calculation, if you want to follow the arithmetic.
+
+**Favourable at which pressure?** K only depends on temperature. But how far a reaction goes also depends on pressure. Example: CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K converts 0.6 % at 1 bar and 21.3 % at 50 bar. Four gas molecules become two, so squeezing the gas helps.
+
+**The five graphs of tab 1.** Each has a line under it that says how to read it. In short:
+
+1. **Energy changes versus temperature.** Orange is ΔH° (heat), blue is ΔG° (which side is favoured), green is T·ΔS°. Blue is always orange minus green. Where the blue line crosses zero, K = 1. The dots show your temperature.
+2. **Equilibrium constant.** The higher the line, the more the products are favoured. Above the dotted line K is bigger than 1. If the line falls to the right, the reaction gives out heat.
+3. **Equilibrium conversion.** How much has reacted when the reaction comes to rest. Grey dashed is at 1 bar, blue is at your pressure.
+4. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
+5. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
 
 A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens. For gases the range now starts at 200 K, so the plots start there too.
 
@@ -151,7 +167,16 @@ When does it matter?
 - **Hardly at all** for hot, light gases. Steam reforming at 1100 K and 30 bar: 0.2 %.
 - **Less as the gas gets hotter.** For ammonia at 200 bar the residual part is −11.8 kJ/mol at 500 K and only −3.4 kJ/mol at 900 K.
 
-This tab is about the heat of reaction only. How far a reaction goes at high pressure is shown on tab 4, which has a pressure slider.
+**The four graphs of tab 2.** Each has a line under it that says how to read it. In short:
+
+1. **Heat of reaction against pressure.** The grey dashed line is the ideal gas; it is flat. The orange line is the real gas. The shaded gap between them is the residual part.
+2. **Where the difference comes from.** One bar per substance. The tallest bar is the gas that is furthest from ideal.
+3. **Residual part against temperature.** The same gap at your pressure, at other temperatures. It shrinks as the gas gets hotter.
+4. **Residual enthalpy of each pure gas.** A line near zero is an almost ideal gas. A line that falls steeply is a gas close to its critical point.
+
+**"No gas-phase value".** If a substance would be a liquid at your temperature and pressure, there is no gas reaction to calculate. The tab says so in a blue box and offers a pressure, or a temperature, where it works. Example: at 523 K water is a liquid above about 90 bar, so CO₂ hydrogenation at 200 bar has no gas-phase value. This is a limit of the conditions, not an error.
+
+This tab is about the heat of reaction only. How far a reaction goes at high pressure is shown on tab 1 (the pressure box) and on tab 4 (the pressure slider).
 
 ### Tab 3: Combine reactions
 
@@ -205,8 +230,10 @@ If no heat is added or removed, the three steps must add up to zero. The solver 
 
 Examples:
 
-- Methane with 20 % excess air, entering at 25 °C: the flame is at 2066 K.
-- With no excess air it is 2311 K. With 100 % excess air it is 1486 K. Extra air cools the flame, because the extra air has to be heated too.
+- Methane with 20 % excess air, entering at 25 °C: the flame is at 2069 K.
+- The textbook's answer for this example is 2066 K. The textbook uses its Cp formula 66 K beyond its 2000 K limit; the solver uses NIST data up there, which gives 3 K more. A note on the page shows both numbers.
+- With no excess air it is 2326 K. With 100 % excess air it is 1486 K. Extra air cools the flame, because the extra air has to be heated too.
+- A real flame above 2000 K is a little cooler than these numbers, because the hot CO₂ and H₂O partly break apart. The page says so in a note.
 - To stay below 1500 K you need 97 % excess air.
 - A steam reformer fed at 600 K with products at 1300 K needs 328 kJ per mole of methane (−34.4 + 200.5 + 161.9 kJ for the three steps).
 
@@ -258,6 +285,9 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | "Standard state" was explained as 298.15 K and 1 bar | Standard state fixes only the pressure (1 bar). 298.15 K is just where the tables list the data | The guide and the page now keep the two apart |
 | Below 298 K the textbook Cp formulas were simply stretched | They are valid from 298 K only. For CO₂ at 200 K the stretched formula is 29 % too low | NIST table values are used from 200 K to 298.15 K |
 | The headline said "Not favourable" | It read as if the reaction could not happen, so its ΔH looked meaningless | It now says "Reactants favoured" and adds that some product still forms |
+| Tab 2 showed a red error for CO₂ hydrogenation | The pressure was still 200 bar from the ammonia example. Water is a liquid there, so there is no gas value | The example opens at its own conditions (50 bar), and a blue box offers a pressure that works |
+| The two burner examples showed an "extrapolated" warning | The flame is hotter than the 2000 K limit of the textbook Cp formula | NIST data are used above the limit. The answer moves from 2066 K to 2069 K, and a note shows both |
+| After tab 2 was narrowed down to the heat of reaction, no tab said how pressure changes favourability | The assignment asks for favourability at a given pressure and temperature | Tab 1 has a pressure box and shows the equilibrium conversion at that pressure |
 
 The five stress tests of the assignment:
 
@@ -319,6 +349,8 @@ Try to answer before you read the answer.
 13. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
 14. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
 15. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 17.3 %; now its switch matters.
+16. **Why is the methane flame 2069 K on the page and 2066 K in the textbook?** The textbook stretches its Cp formula 66 K beyond its 2000 K limit. The solver uses NIST data above 2000 K. Stretched, the formula gives a Cp that is a little too high, so the textbook's flame comes out 3 K cooler.
+17. **A reaction is favoured at 50 bar but not at 1 bar. Did K change?** No. K depends on temperature only. Pressure changes how far the reaction goes when the number of gas molecules changes.
 
 ## 10. A five-minute tour
 

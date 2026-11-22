@@ -400,12 +400,12 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
             if lnphi_liq < lnphi:
                 res.state = "hypothetical_vapour"
                 res.notes.append({
-                    "level": "warning", "species": sp.id, "kind": "condensation",
+                    "level": "info", "species": sp.id, "kind": "condensation",
                     "message": (
-                        f"{sp.id}: at {T:g} K and {P:g} bar the pure species would be a liquid "
-                        f"(the {MODEL_NAMES[model]} equation gives the liquid the lower Gibbs energy). "
-                        f"The values shown are for the metastable vapour root, which is the "
-                        f"hypothetical state of a species that stays in a gas mixture."
+                        f"{sp.id}: on its own this species would be a liquid at {T:g} K and {P:g} bar "
+                        f"(the {MODEL_NAMES[model]} equation gives its liquid the lower Gibbs energy). "
+                        f"In a reactor it is diluted by the other gases and stays a vapour, so the "
+                        f"values shown are for the vapour-like state of the equation."
                     ),
                 })
         elif T < crit.Tc and Z * res.Tr / res.Pr < eos.Zc:
@@ -428,11 +428,12 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
     if psat is not None and P > psat and not already:
         res.state = "hypothetical_vapour"
         res.notes.append({
-            "level": "warning", "species": sp.id, "kind": "condensation",
+            "level": "info", "species": sp.id, "kind": "condensation",
             "message": (
                 f"{sp.id}: {P:g} bar is above its estimated vapour pressure at {T:g} K "
-                f"(about {psat:.3g} bar, Lee/Kesler correlation), so the pure species would be "
-                f"a liquid. The values shown are for a hypothetical vapour state."
+                f"(about {psat:.3g} bar, Lee/Kesler correlation), so on its own it would be a liquid. "
+                f"In a reactor it is diluted by the other gases and stays a vapour, so the values "
+                f"shown are for that vapour-like state."
             ),
         })
     return res

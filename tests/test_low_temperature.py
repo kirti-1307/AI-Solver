@@ -369,7 +369,8 @@ class TestApiBelow298K(unittest.TestCase):
         self.assertAlmostEqual(cold["path"]["dH_R"], by_species, places=6)
         # a stream of species without low-temperature data behaves as before
         liquid = hb.Stream({"H2O(l)": 2.0})
-        self.assertIs(liquid.coeffs_low, liquid.coeffs)
+        self.assertEqual(liquid.breakpoints, [])
+        self.assertEqual(liquid.coeffs_at(280.0), liquid.coeffs)
         self.assertAlmostEqual(liquid.sensible(280.0, 350.0), 2 * SPECIES["H2O(l)"].sensible_dH(280.0, 350.0), places=9)
 
     def test_product_slate_at_250_K_uses_the_same_gibbs_energies(self):

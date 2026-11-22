@@ -48,6 +48,13 @@ class Species:
     cp_low: Optional[Coeffs] = None       # (A, B, C, 0, 0) of Cp/R from cp_Tmin to 298.15 K
     cp_low_source: Optional[str] = None
     cp_main_Tmin: Optional[float] = None  # K, where the correlation ``cp`` itself starts
+    # Heat capacity above the range of ``cp`` (NIST Shomate equation); None when there is none.
+    cp_high: Optional[Coeffs] = None      # (A, B, C, D, E) of Cp/R from cp_main_Tmax to cp_Tmax
+    cp_high_source: Optional[str] = None
+    cp_main_Tmax: Optional[float] = None  # K, where the correlation ``cp`` itself ends
+    # What the integrals of ``cp_high`` from 298.15 K lack against the true
+    # ones, which follow ``cp`` up to cp_main_Tmax (see offsets_at): (K, dimensionless)
+    cp_high_offsets: Tuple[float, float] = (0.0, 0.0)
 
     @property
     def remark(self) -> Optional[str]:
@@ -98,21 +105,53 @@ class Species:
     def coeffs_at(self, T: float) -> Coeffs:
         """The constants of Cp/R that apply at T.
 
-        From 298.15 K upwards this is the main correlation (SVN for almost
-        every species). Below 298.15 K it is the low-temperature set from the
-        NIST tables when the species has one. The two meet at 298.15 K, which
-        is also the lower limit of every integral the solver takes, so an
-        integral from 298.15 K to T never crosses from one set to the other.
+        From 298.15 K up to the end of its range this is the main correlation
+        (SVN for almost every species). Below 298.15 K it is the
+        low-temperature set from the NIST tables when the species has one, and
+        above the range of the main correlation it is the NIST high-temperature
+        set when the species has one.
         """
         if self.cp_low is not None and T < T0:
             return self.cp_low
+        if self.cp_high is not None and T > self.cp_main_Tmax:
+            return self.cp_high
         return self.require_cp()
+
+    def offsets_at(self, T: float) -> Tuple[float, float]:
+        """Constants that go with coeffs_at(T) in the integrals from 298.15 K.
+
+        Every integral of the solver starts at 298.15 K. The low-temperature
+        set joins the main one exactly there, so below 298.15 K nothing has to
+        be added. The high-temperature set joins at Tj = cp_main_Tmax, and the
+        true integral up to T > Tj is
+
+            integral(298.15 -> Tj, main) + integral(Tj -> T, high)
+          = integral(298.15 -> T, high) + [integral(298.15 -> Tj, main) - integral(298.15 -> Tj, high)]
+
+        The bracket does not depend on T. It is returned here, for the
+        enthalpy integral (in K) and for the entropy integral, so that one
+        closed-form integral with one set of constants is enough at any T.
+        """
+        if self.cp_high is not None and T > self.cp_main_Tmax:
+            return self.cp_high_offsets
+        return (0.0, 0.0)
 
     def cp_source_at(self, T: float) -> str:
         """Where the heat capacity used at T comes from."""
         if self.cp_low is not None and T < T0:
             return self.cp_low_source or ""
+        if self.cp_high is not None and T > self.cp_main_Tmax:
+            return self.cp_high_source or ""
         return self.cp_source
+
+    def breakpoints(self) -> List[float]:
+        """Temperatures at which the source of the heat capacity changes."""
+        points = []
+        if self.cp_low is not None:
+            points.append(T0)
+        if self.cp_high is not None:
+            points.append(self.cp_main_Tmax)
+        return points
 
     def cp_R(self, T: float) -> float:
         """Cp/R at T."""
@@ -128,26 +167,27 @@ class Species:
         return self.cp_Tmin - 1e-9 <= T <= self.cp_Tmax + 1e-9
 
     # --- standard-state properties at T ----------------------------------------
-    def _integral(self, integral, T1: float, T2: float) -> float:
-        """An integral of the heat capacity from T1 to T2. If the two
-        temperatures lie on different sides of 298.15 K it is taken in two
-        parts, each with its own set of constants."""
+    def _integral(self, integral, which: int, T1: float, T2: float) -> float:
+        """An integral of the heat capacity from T1 to T2 (``which`` is 0 for
+        the enthalpy integral, 1 for the entropy integral). If the two
+        temperatures use different sets of constants, each end is taken from
+        298.15 K with its own set and its own offset."""
         c1, c2 = self.coeffs_at(T1), self.coeffs_at(T2)
         if c1 is c2:
             return integral(T1, T2, c1)
-        return integral(T1, T0, c1) + integral(T0, T2, c2)
+        return (integral(T0, T2, c2) + self.offsets_at(T2)[which]) - (integral(T0, T1, c1) + self.offsets_at(T1)[which])
 
     def sensible_dH(self, T1: float, T2: float) -> float:
         """Sensible enthalpy change, integral of Cp dT from T1 to T2, J/mol."""
         if abs(T1 - T2) < 1e-12:
             return 0.0
-        return R * self._integral(icph, T1, T2)
+        return R * self._integral(icph, 0, T1, T2)
 
     def sensible_dS(self, T1: float, T2: float) -> float:
         """Entropy change at constant pressure, integral of Cp dT/T, J/(mol K)."""
         if abs(T1 - T2) < 1e-12:
             return 0.0
-        return R * self._integral(icps, T1, T2)
+        return R * self._integral(icps, 1, T1, T2)
 
     def H(self, T: float) -> float:
         """Standard-state enthalpy at T on the formation scale, J/mol:
@@ -199,6 +239,16 @@ class Species:
             "cp298_main_J": R * cp_over_r(self.cp, T0) if self.cp else None,
             "cp298_step_percent": (100.0 * (cp_over_r(self.cp, T0) / cp_over_r(self.cp_low, T0) - 1.0)
                                    if self.cp_low else None),
+            # the same for the high-temperature data: where it takes over, and the two values there
+            "cp_high": list(self.cp_high) if self.cp_high else None,
+            "cp_high_source": self.cp_high_source,
+            "cp_main_Tmax": self.cp_main_Tmax,
+            "cp_join_main_J": R * cp_over_r(self.cp, self.cp_main_Tmax) if self.cp_high else None,
+            "cp_join_high_J": R * cp_over_r(self.cp_high, self.cp_main_Tmax) if self.cp_high else None,
+            "cp_join_step_percent": (100.0 * (cp_over_r(self.cp, self.cp_main_Tmax)
+                                              / cp_over_r(self.cp_high, self.cp_main_Tmax) - 1.0)
+                                     if self.cp_high else None),
+            "cp_high_at_Tmax_J": R * cp_over_r(self.cp_high, self.cp_Tmax) if self.cp_high else None,
             "cp_source": self.cp_source,
             "formation_source": self.formation_source,
             "from_svn": self.from_svn,
@@ -303,7 +353,28 @@ def _build() -> Dict[str, Species]:
     for sid, sp in list(db.items()):
         if sp.cp is not None and sp.cp_main_Tmin is None:
             db[sid] = replace(sp, cp_main_Tmin=sp.cp_Tmin)
+
+    # ---- heat capacities above the range of the main correlation (NIST Shomate) -----
+    for sid, sp in list(db.items()):
+        if sp.cp is not None:
+            db[sid] = replace(sp, cp_main_Tmax=sp.cp_Tmax)
+    for sid, (coeffs, source) in high_temperature_sets().items():
+        sp = db[sid]
+        join = sp.cp_Tmax
+        offsets = (icph(T0, join, sp.cp) - icph(T0, join, coeffs), icps(T0, join, sp.cp) - icps(T0, join, coeffs))
+        db[sid] = replace(sp, cp_high=coeffs, cp_high_source=source, cp_high_offsets=offsets,
+                          cp_Tmax=data.HIGH_T_MAX)
     return db
+
+
+def high_temperature_sets() -> Dict[str, Tuple[Coeffs, str]]:
+    """The NIST Shomate equations for the range above the SVN limit, converted
+    term by term into the solver's form (see the comment block in ``data``)."""
+    out: Dict[str, Tuple[Coeffs, str]] = {}
+    for sid, (webbook_id, (tmin, tmax), shomate, _) in data.NIST_HIGH_T.items():
+        out[sid] = (shomate_to_coeffs(*shomate, R=R),
+                    f"{data.SOURCES['high_T_webbook']}, species {webbook_id}, equation for {tmin:g} to {tmax:g} K")
+    return out
 
 
 def low_temperature_sets() -> Dict[str, Tuple[Coeffs, str]]:

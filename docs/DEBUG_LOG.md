@@ -222,3 +222,40 @@ These were not found by a test. They were raised as questions about the page and
 - **Afterwards (v1.5.1):** the last two places where tab 4 showed the fugacity symbol were removed as well: the gas-model menu now reads "Peng/Robinson (real gas)", and the method line writes the real-gas term as the residual Gibbs energy G^R/RT of each pure species. A test now fails if the word or the symbol appears anywhere on the page or in the guide.
 - **A bug on the way:** the first version failed for the ammonia example with "'N' is not in the species database". A variable named `candidates` already existed in the same function (the candidate key elements), and it overwrote the list of blocked products. Renamed.
 
+## Round 11: a check against the brief, the data and every example (v1.6)
+
+### 30. Tab 2 showed a red error for CO₂ hydrogenation
+
+- **Actual:** picking "CO₂ hydrogenation to methanol" on tab 2 gave "Error: H₂O(g) ... has only a liquid root" and no result.
+- **Root cause:** the tab kept the 200 bar of the ammonia example. At 523 K water is a liquid above about 90 bar, so a gas-phase heat of reaction does not exist there. The solver was right to refuse; the page was wrong to arrive at that state by itself and to call it an error.
+- **Fix:** a reaction of the overview list opens at its own industrial conditions (50 bar for this one). When a species is a liquid at the chosen conditions, a blue box says so in plain words, gives the highest pressure at which a gas-phase value exists (found by bisection, then verified) and offers it as a button, with a temperature as the alternative. The note that pure water would condense at 50 bar is now a note, not a warning.
+
+### 31. The two burner examples warned that the heat capacities were extrapolated
+
+- **Actual:** the methane and hydrogen burners of tab 5 end at 2066 K and 2252 K. SVN's formula for N₂, O₂, CO₂ and H₂O is valid to 2000 K, so both showed a warning.
+- **Root cause:** no data above 2000 K. The warning was correct, and the stress test of the brief asks for it. But a flame is exactly where the formula ends.
+- **Fix:** for eight flame gases the NIST Shomate equations are used above the SVN limit, up to 6000 K (DATA_SOURCES.md). The integrals stay closed-form through one constant per species (THEORY.md, Section 1). The warning still appears for every species without such data.
+- **What changed in the numbers:** the methane flame moves from 2066 K to 2069 K, the hydrogen flame from 2252 K to 2263 K, stoichiometric methane from 2311 K to 2326 K. SVN's formula overestimates Cp beyond its range, so the stretched formula gives a slightly cooler flame. The textbook's own example is computed with the stretched formula; the Validation tab reproduces it that way (2066.4 K), and the page names both numbers.
+- **What the new data must not suggest:** hydrogen burnt in pure oxygen now gives 4989 K without any extrapolation, and that is not a real flame temperature. A note says that dissociation is not included; above 2500 K it is a warning.
+
+### 32. A requirement of the brief had slipped: favourability at a given pressure
+
+- **Actual:** the brief asks the solver to "distinguish thermodynamic favorability of a specific reaction at certain pressure and temperature". Tab 2 used to give ΔG at pressure; that went when fugacity was taken off the tab (item 28). Only tab 4 still showed any pressure effect on the equilibrium.
+- **Fix:** tab 1 has a pressure box. K is still the standard value at 1 bar; next to it the tab gives the equilibrium conversion at the chosen pressure for a stoichiometric feed treated as an ideal-gas mixture, K = Π yᵢ^νᵢ · (P/P°)^Σν, and plots it against temperature at 1 bar and at that pressure. No fugacity is needed for this. For CO₂ + 3 H₂ at 523 K: 0.6 % at 1 bar, 21.3 % at 50 bar, the same number tab 4 gives with only this reaction allowed.
+- **Prevention:** `tests/test_assignment_brief.py` now has one test per requirement of the brief.
+
+### 33. Cross-check of the SVN tables against NIST-JANAF: no error found
+
+- The formation data of 22 species and the heat capacities of 27 over the whole SVN range were compared with NIST-JANAF rows. No transcription error was found. Three formation values differ by more than 1 kJ/mol and all three are differences between the sources (formaldehyde, Fe₂O₃, Fe₃O₄).
+- A side result explains the small steps in Cp: the SVN formula reproduces the enthalpy at 2000 K within 0.3 % although its heat capacity there is 2 to 4 % off. It was fitted for enthalpy changes.
+- For CO the SVN formula is kept to its stated limit of 2500 K, where its enthalpy is 1.3 % above JANAF. That is about 1 kJ/mol in a reaction of CO at 3000 K. It is noted in the tests, not corrected, because SVN is the primary source inside its own range.
+
+### 34. The graphs had titles but no explanation
+
+- **Actual:** the plots of tabs 1 and 2 could not be read without knowing in advance what each line was.
+- **Fix:** every graph of the two tabs has one line under it, "How to read it", in plain words, and the guide explains each graph in turn.
+
+### 35. A sweep of everything
+
+- 1,855 calculations through the API (every reaction at eleven temperatures and two pressures, six gas models, every example of tabs 3 to 5 with variations, every species) with checks on the audits, on Le Chatelier's principle, on continuity at the joins and on the warnings: no problem found. The same in the browser for every menu entry of every tab.
+

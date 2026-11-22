@@ -72,6 +72,33 @@ Both were read on 22 November 2026. The rows are stored as read in `data.py` (`J
 
 **A reminder about phases.** Below its boiling point a species is not a gas at 1 bar. The ideal-gas standard state is still well defined, and that is what "(g)" means in a reaction; the solver adds a note whenever a gas is used below its normal boiling point.
 
+## Heat capacities above the SVN range
+
+Table C.1 ends at 2000 K for N₂, O₂, CO₂, H₂O, SO₂ and NO, at 2500 K for CO and at 3000 K for H₂. An adiabatic flame is hotter. Beyond its last temperature the SVN formula (a straight line in T plus a D/T² term) keeps rising while the real heat capacity levels off: stretched to 3000 K it is 7 % too high for CO₂.
+
+For these eight gases the solver therefore uses, from the SVN limit up to 6000 K, the Shomate equations of the NIST Chemistry WebBook (fits of the NIST-JANAF tables, Chase 1998), read on 22 November 2026. The constants A to E are stored as published in `data.py` (`NIST_HIGH_T`) with the WebBook species ID, and converted term by term into the solver's form. Nothing is refitted.
+
+**How this was checked.** NIST publishes with each equation the constants F, G and H of its enthalpy and entropy functions. The solver does not use them; the tests do: the solver's integrals between two temperatures reproduce NIST's own H(T) and S(T) differences to one part in a million. As an outside check, rows of the NIST-JANAF tables themselves (2500 to 6000 K) are reproduced within 0.4 % in Cp and 0.2 % in the enthalpy and entropy gained above the join.
+
+**What is not changed.** Everything inside the SVN range. The SVN formula is used up to the last temperature the book states for it, and the NIST equation only beyond.
+
+**A consequence.** SVN's worked flame-temperature example (methane, 20 % excess air) ends at 2066 K, 66 K above the limit of the formulas it uses. With the SVN formulas stretched in the same way the solver gives 2066.4 K; with NIST data above 2000 K it gives 2068.8 K, and that is what the page shows, with a note that names both. The reference value on the Validation tab is the textbook's, computed the textbook's way.
+
+**Dissociation.** Having data up to 6000 K does not make a 4000 K flame real. Above about 2000 K the products of combustion partly dissociate, which the energy balance does not include. The page says so in a note, and as a warning above 2500 K.
+
+## Cross-check of the SVN tables against NIST-JANAF
+
+The heat-capacity checksum of the next section tests the SVN constants at 298.15 K only. As a second, independent check the formation data and the heat capacities over the whole SVN range were compared with rows of the NIST-JANAF tables for 21 gases and 6 solids (`tests/janaf_reference.py`, `tests/test_cross_check_janaf.py`). The two sources are not identical, so this is a search for typing errors, not a claim that they agree to the last digit.
+
+| Quantity | Result |
+|---|---|
+| ΔH°f and ΔG°f at 298.15 K | within 1 kJ/mol for 19 of 22 species. The three exceptions are source differences: formaldehyde (SVN −108.57, JANAF −115.90 kJ/mol; the JANAF table dates from 1961 and SVN has the modern value), Fe₂O₃ (1.3 kJ/mol) and Fe₃O₄ (2.5 kJ/mol) |
+| ΔG°f of ammonia | JANAF −16.367 kJ/mol, which supports the −16,400 J/mol of the 8th edition over the −16,450 of the 6th |
+| Cp of the SVN formula, 500 to 1500 K | within 5 % of JANAF for every gas |
+| H(T) − H(298.15 K) of the SVN formula | within 3.5 % for every gas, and within 0.3 % at 2000 K for N₂, O₂, CO₂, H₂O, SO₂ and SO₃ |
+
+The last line is worth a remark. At 2000 K the SVN heat capacity itself is 2 to 4 % above JANAF for these gases, and yet the enthalpy agrees to 0.3 %. The three-constant SVN formula was evidently fitted to reproduce enthalpy changes over its whole range, at the price of the heat capacity at its two ends. This is why the heat capacity shows a small step where a NIST set takes over (at 298.15 K and at the upper SVN limit) while the enthalpy does not. No transcription error was found.
+
 ## Species that SVN covers only in part
 
 | Species | Situation | What the solver does |
@@ -89,7 +116,7 @@ Both were read on 22 November 2026. The rows are stored as read in `data.py` (`J
 6. **Low-temperature rows.** See "How this was checked" in the section on heat capacities below 298.15 K.
 7. **Worked examples.** The solver reproduces 57 reference values: 44 from SVN's worked examples, four from course material (two cubic-equation roots from the slides and two results of the bomb-calorimeter handout), one hand calculation from Table C.4, two steam-table checks and six from NIST tables below 298.15 K (rows and columns that were not used for the fit). See [TESTING.md](TESTING.md) and the Validation tab of the web app.
 
-   **Not yet confirmed against a printed copy:** five of the 44 SVN values belong to the two heat-balance examples of Chapter 4 (flame temperature of methane with 20 % excess air, 2066 K; heat requirement of the steam reformer, −34,390 + 200,460 + 161,940 = 328,010 J). They were added together with the heat lab, when no copy of the book could be opened, and are quoted as remembered from the 7th and 8th editions. The solver reproduces all five to four significant figures without having been given them, which makes a wrong recollection unlikely, but they should be compared with the book before they are relied on.
+   **Not yet confirmed against a printed copy:** five of the 44 SVN values belong to the two heat-balance examples of Chapter 4 (flame temperature of methane with 20 % excess air, 2066 K, computed with the SVN formulas only, as in the book; heat requirement of the steam reformer, −34,390 + 200,460 + 161,940 = 328,010 J). They were added together with the heat lab, when no copy of the book could be opened, and are quoted as remembered from the 7th and 8th editions. The solver reproduces all five to four significant figures without having been given them, which makes a wrong recollection unlikely, but they should be compared with the book before they are relied on.
 
 ## Constants of the heat lab
 

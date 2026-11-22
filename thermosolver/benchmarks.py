@@ -155,9 +155,9 @@ def build() -> List[dict]:
         -226997.0, lambda: h2o.dG(333.15), "J/mol", 2e-5, "SVN, value quoted for 333.15 K")
 
     # --- Heat effects of industrial reactions (SVN Ch. 4) -------------------------
-    def flame():
+    def flame_case():
         burn = Reaction.parse("CH4 + 2 O2 -> CO2 + 2 H2O(g)")
-        return heatbalance.solve(heatbalance.build_case(burn, excess=0.2, air=True), T0, "adiabatic")
+        return heatbalance.build_case(burn, excess=0.2, air=True)
 
     def reformer():
         smr = Reaction.parse("CH4 + H2O(g) -> CO + 3 H2")
@@ -165,8 +165,14 @@ def build() -> List[dict]:
         case = heatbalance.build_case(smr, excess_species="H2O(g)", excess=1.0, side=[(wgs, 0.13)])
         return heatbalance.solve(case, 600.0, "duty", T_out=1300.0)
 
-    add("Reactor heat balance", "Methane burned with 20 % excess air, both entering at 25 C: flame temperature",
-        2066.0, lambda: flame()["T_out"], "K", 5e-4, "SVN Ch. 4 example (theoretical flame temperature)")
+    # The book reaches 2066 K with heat-capacity formulas that are valid to
+    # 2000 K. The benchmark does the same (SVN formulas only), so that it
+    # checks the method against the book. The page itself uses NIST data above
+    # 2000 K and gives 2069 K; a test pins that value too.
+    add("Reactor heat balance", "Methane burned with 20 % excess air, both entering at 25 C: flame temperature "
+        "(SVN formulas extrapolated above 2000 K, as in the book)",
+        2066.0, lambda: heatbalance.svn_outlet_temperature(flame_case(), T0), "K", 5e-4,
+        "SVN Ch. 4 example (theoretical flame temperature)")
     add("Reactor heat balance", "Steam reformer, feed at 600 K: heat to cool the reactants to 298.15 K",
         -34390.0, lambda: reformer()["path"]["dH_R"], "J", 2e-4, "SVN Ch. 4 example (reformer heat requirement)")
     add("Reactor heat balance", "Steam reformer: heat of the two reactions at 298.15 K",

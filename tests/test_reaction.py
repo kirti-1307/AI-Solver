@@ -314,8 +314,12 @@ class TestWarnings(unittest.TestCase):
         self.assertEqual([w for w in rxn.range_warnings(1400.0) if w["kind"] == "cp_extrapolation"], [])
         warned = {w["species"] for w in rxn.range_warnings(1600.0) if w["kind"] == "cp_extrapolation"}
         self.assertEqual(warned, {"CH4(g)"})
-        warned = {w["species"] for w in rxn.range_warnings(2600.0) if w["kind"] == "cp_extrapolation"}
-        self.assertEqual(warned, {"CH4(g)", "H2O(g)", "CO(g)"})
+        # At 2600 K water and carbon monoxide are above the SVN range too, but they have NIST
+        # data up to 6000 K (one note says so). Methane has none and is still flagged.
+        notes = rxn.range_warnings(2600.0)
+        self.assertEqual({w["species"] for w in notes if w["kind"] == "cp_extrapolation"}, {"CH4(g)"})
+        self.assertEqual([w["species"] for w in notes if w["kind"] == "high_T_data"], ["H2O(g), CO(g)"])
+        self.assertEqual([w for w in rxn.range_warnings(1400.0) if w["kind"] == "high_T_data"], [])
 
     def test_warning_below_the_low_temperature_tables(self):
         rxn = Reaction.parse("N2 + 3 H2 -> 2 NH3")

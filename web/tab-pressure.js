@@ -85,6 +85,22 @@
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 
+  /* No gas-phase value at this pressure: say why in plain words and offer conditions where there is one. */
+  function limitBox(r) {
+    const g = r.gas_limit || {};
+    const who = r.at_P.no_vapour_species.map(chem).join(", ");
+    const t = r.sweep_T ? r.sweep_T.first_valid_T : null;
+    const hot = t !== null && t > r.T ? Math.ceil(t / 10) * 10 : null;
+    let text = `<strong>No gas-phase value at ${fix(r.P, 0)} bar.</strong> At ${fix(r.T, 0)} K and ${fix(r.P, 0)} bar, ${who} ` +
+      `is a liquid, not a gas, so a gas-phase heat of reaction does not exist here. This is a limit of the conditions, not a fault of the solver.`;
+    if (g.P_max) text += ` At ${fix(r.T, 0)} K a gas-phase value exists up to about ${fix(g.P_max, 0)} bar.`;
+    if (hot) text += ` At ${fix(r.P, 0)} bar it exists above about ${fix(t, 0)} K.`;
+    const buttons = [];
+    if (g.P_suggest) buttons.push(`<button type="button" class="link pr-fix" data-p="${g.P_suggest}">Use ${fix(g.P_suggest, 0)} bar</button>`);
+    if (hot) buttons.push(`<button type="button" class="link pr-fix" data-t="${hot}">Use ${hot} K</button>`);
+    return TS.message("info", text + (buttons.length ? `<br>${buttons.join(" &nbsp;·&nbsp; ")}` : ""));
+  }
+
   function leg(title, detail, joule, extra = "") {
     const cls = joule < -0.5 ? "neg" : (joule > 0.5 ? "pos" : "");
     return `<div class="leg ${cls} ${extra}"><div class="t">${title}</div><div class="d">${detail}</div>
@@ -194,7 +210,12 @@
         <div class="v-item"><div class="v-big">Difference: ${ok ? signed(c.residual / 1000, 2) + " kJ/mol" : "–"}</div>
           <div class="v-sub">${ok && c.percent !== null ? `${fix(Math.abs(c.percent), 2)} %: ${esc(c.effect)} (${esc(c.size)})` : "no gas-phase value at this pressure"}</div></div>
       </div>`;
-    html += TS.notes(r.warnings.filter((w) => w.level !== "info")) + TS.notes(a.notes.filter((n) => n.level !== "info"));
+    // The "liquid root only" note is replaced by a plain box with a way out; a species that would
+    // condense on its own gets a note, not a warning.
+    html += TS.notes(r.warnings.filter((w) => w.level !== "info")) +
+      TS.notes(a.notes.filter((n) => n.level !== "info" && n.kind !== "no_vapour_root"));
+    if (!ok) html += limitBox(r);
+    html += TS.notes(a.notes.filter((n) => n.kind === "condensation"));
     html += `<div class="cards">
         <div class="card"><div class="k">Residual part, Σ ν H<sup>R</sup></div><div class="v">${ok ? signed(c.residual / 1000, 3) : "–"} <span class="u">kJ/mol</span></div><div class="s">real gas minus ideal gas</div></div>
         <div class="card"><div class="k">Change caused by pressure</div><div class="v">${ok && c.percent !== null ? signed(c.percent, 2) : "–"} <span class="u">%</span></div><div class="s">${ok && c.effect ? esc(c.effect) : ""}</div></div>
@@ -208,12 +229,25 @@
     if (r.sweep_T && r.sweep_T.first_valid_T !== null && r.sweep_T.first_valid_T > r.sweep_T.T[0]) {
       hints.push(`The temperature curve starts near ${fix(r.sweep_T.first_valid_T, 0)} K: below that, a species is a liquid at ${fix(r.P, 0)} bar.`);
     }
-    html += `<div class="panel"><div class="grid two"><div id="pr-plot-dH" class="plot"></div><div id="pr-plot-bars" class="plot"></div>
-      ${r.sweep_T ? '<div id="pr-plot-T" class="plot"></div>' : ""}<div id="pr-plot-HR" class="plot"></div></div>
+    html += `<div class="panel"><div class="grid two">
+      ${TS.fig("pr-plot-dH", "the dashed grey line is the ideal gas. It is flat, because pressure does not change the enthalpy of an ideal gas. The orange line is the real gas. The shaded gap between the two is the residual part, and it widens as the pressure rises. The dots mark your pressure.")}
+      ${TS.fig("pr-plot-bars", "one bar per species: its residual enthalpy times its stoichiometric number (blue for products, orange for reactants). Added together, the bars are the gap in the first plot. The tallest bar belongs to the gas that is furthest from ideal.")}
+      ${r.sweep_T ? TS.fig("pr-plot-T", "the same residual part at your pressure, but at other temperatures. It shrinks towards zero as the gas gets hotter, because a hot gas behaves almost ideally. The dot marks your temperature.") : ""}
+      ${TS.fig("pr-plot-HR", "the residual enthalpy of each pure gas against pressure. A line that stays near zero is an almost ideal gas. A line that falls steeply is a gas close to its critical point, where the molecules attract each other strongly.")}</div>
       ${hints.map((h) => `<p class="hint" style="margin:8px 0 0">${h}</p>`).join("")}</div>`;
     html += `<div class="panel"><h3>Residual properties of each species at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar</h3>
-      ${residualTable(r)}${TS.notes(a.notes.filter((n) => n.level === "info"))}${modelTable(r)}${TS.auditTable(r.audit)}</div>`;
+      ${residualTable(r)}${TS.notes(a.notes.filter((n) => n.level === "info" && n.kind !== "condensation"))}${modelTable(r)}${TS.auditTable(r.audit)}</div>`;
     $("#pr-out").innerHTML = html;
+    for (const button of $("#pr-out").querySelectorAll(".pr-fix")) {
+      button.addEventListener("click", () => {
+        if (button.dataset.p) {
+          $("#pr-P").value = button.dataset.p;
+          $("#pr-Pmax").value = Math.max(50, Math.round(Number(button.dataset.p) * 1.5));
+        }
+        if (button.dataset.t) $("#pr-T").value = button.dataset.t;
+        calculate();
+      });
+    }
     drawPlots(r);
   }
 
@@ -239,7 +273,20 @@
       const input = $("#pr-equation");
       TS.fillReactionSelect(select, input, {
         filter: (r) => r.valid_range !== null,
-        onPick: (rxn) => { $("#pr-T").value = Math.max(rxn.T, 350); calculate(); },
+        onPick: (rxn) => {
+          // A reaction of the overview list opens at its own industrial conditions; any other keeps the pressure.
+          const known = overview ? overview.rows.find((x) => x.id === rxn.id) : null;
+          if (known) {
+            $("#pr-T").value = known.T;
+            $("#pr-P").value = known.P;
+            $("#pr-Pmax").value = Math.max(50, Math.round(known.P * 1.5));
+          } else {
+            // at least 350 K, unless the heat capacities of this reaction end below that
+            const top = rxn.valid_range ? rxn.valid_range[1] : rxn.T;
+            $("#pr-T").value = top < 350 ? rxn.T : Math.max(rxn.T, 350);
+          }
+          calculate();
+        },
       });
       $("#pr-run").addEventListener("click", calculate);
       $("#pr-model").addEventListener("change", calculate);
