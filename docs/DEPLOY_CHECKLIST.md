@@ -103,10 +103,12 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.6 (data above 2000 K, pressure on tab 1, tab 2 without the liquid error, graph captions):**
 
-- [ ] v1.6: tab 5, methane burner shows 2,069 K, no warning, and a note that names 2,066 K as the textbook's value
-- [ ] v1.6: tab 2, picking CO₂ hydrogenation opens at 50 bar with a result; at 200 bar a blue box offers "Use 88 bar" and the button works
-- [ ] v1.6: tab 1 has a pressure box; CO₂ hydrogenation at 523.15 K and 50 bar shows 21.3 % conversion (0.6 % at 1 bar) and five graphs, each with "How to read it"
-- [ ] v1.6: tab 6 lists "Heat capacities above the SVN range (8 gases ...)"; tab 7 still reports 57 of 57
+- [x] v1.6: tab 5, methane burner shows 2,069 K, no warning, and a note that names 2,066 K as the textbook's value
+- [x] v1.6: tab 2, picking CO₂ hydrogenation opens at 50 bar with a result; at 200 bar a blue box offers "Use 88 bar" and the button works
+- [x] v1.6: tab 1 has a pressure box; CO₂ hydrogenation at 523.15 K and 50 bar shows 21.3 % conversion (0.6 % at 1 bar) and five graphs, each with "How to read it"
+- [x] v1.6: tab 6 lists "Heat capacities above the SVN range (8 gases ...)"; tab 7 still reports 57 of 57
+
+**v1.6 checked on the live page, 22 November 2026, commit `9296caf`, version tag 1.6.0:** both workflows green. Tab 5: methane burner 2,069 K and hydrogen burner 2,263 K, three notes each, no warning, the notes naming 2,066 K and 2,252 K as the stretched-formula values. Tab 2: picking CO2 hydrogenation opens at 523.15 K and 50 bar (-57.94 against -64.06 kJ/mol); at 200 bar the blue box offers "Use 88 bar", which gives a result. Tab 1 at 50 bar: 21.3 % conversion (0.6 % at 1 bar), five graphs with five captions. Tab 7: 57 of 57, the flame row at 2066.42 K. The guide has the graph sections and no forbidden word. No console errors.
 
 ## Before the classroom demonstration
 
