@@ -146,6 +146,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.8.5, 23 November 2026, commit `3a2e695`:** both workflows green. On both addresses the scripts carry 1.8.5. Tab 1 has three graphs, no pressure box and no conversion. Tab 2 writes step 1 as −[1 × 177 + 3 × 195] J for ammonia and no longer points to tab 4. The tab 4 bars are filled (they were 0 px wide before), with no method line and no solid-carbon graph. Stress test 2 on the Validation tab covers 40 of 45 reactions at 1000 K. 420 tests pass. No console errors.
 
+**v1.8.6, 23 November 2026, commit `0d3d614`:** both workflows green. On both addresses the scripts carry 1.8.6 and neither tab 2 nor tab 4 has a list of equations. Tab 2, ammonia at 200 bar: −106.50 kJ/mol ideal, −111.55 kJ/mol real, with Peng/Robinson for N₂, Redlich/Kwong for H₂ and Soave/Redlich/Kwong for NH₃ in the table. Tab 4 opens at 74.9 % methane with filled bars. The Validation tab shows the equations against NIST (SRK 14, PR 6, RK 4 of 24 gases). 435 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
