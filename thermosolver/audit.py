@@ -62,7 +62,7 @@ def audit_reaction(rxn, T: float) -> List[dict]:
               + R * (icph(T0, T, d) + off_H) - R * T * (icps(T0, T, d) + off_S))
     by_species = sum(nu * SPECIES[s].G(T) for s, nu in rxn.stoich.items())
     checks.append(_check("Two routes to dG(T)",
-                         "closed form (dH0, dG0, IDCPH, IDCPS) = sum nu_i G_i(T)",
+                         "from dH0, dG0 and the heat-capacity integrals = sum nu_i G_i(T)",
                          closed, by_species, 1e-10, 1e-6))
 
     # The heat capacity changes its source at 298.15 K, and for some species
@@ -73,7 +73,7 @@ def audit_reaction(rxn, T: float) -> List[dict]:
         return checks
     h = min(0.01, gap)
     dH_slope = (rxn.dH(T + h) - rxn.dH(T - h)) / (2 * h)
-    checks.append(_check("Kirchhoff's law", "d(dH)/dT = dCp",
+    checks.append(_check("Slope of ΔH° with temperature", "d(dH)/dT = dCp",
                          dH_slope, rxn.dCp(T), 1e-6, 1e-6))
 
     lnK_slope = (rxn.lnK(T + h) - rxn.lnK(T - h)) / (2 * h)
@@ -81,7 +81,7 @@ def audit_reaction(rxn, T: float) -> List[dict]:
                          lnK_slope, rxn.dH(T) / (R * T * T), 1e-6, 1e-10))
 
     dG_slope = (rxn.dG(T + h) - rxn.dG(T - h)) / (2 * h)
-    checks.append(_check("Gibbs-Helmholtz relation", "d(dG)/dT = -dS",
+    checks.append(_check("Slope of ΔG° with temperature", "d(dG)/dT = -dS",
                          dG_slope, -rxn.dS(T), 1e-6, 1e-6))
 
     # Numerical integration, piece by piece between the temperatures where a
@@ -94,9 +94,9 @@ def audit_reaction(rxn, T: float) -> List[dict]:
         num_H += R * simpson(lambda t: cp_over_r(piece, t), a, b)
         num_S += R * simpson(lambda t: cp_over_r(piece, t) / t, a, b)
     sign = 1.0 if T >= T0 else -1.0
-    checks.append(_check("Enthalpy integral", "analytical integral of dCp dT = Simpson quadrature",
+    checks.append(_check("Enthalpy integral", "integral of dCp dT from the formula = numerical integration",
                          R * rxn.idcph(T), sign * num_H, 1e-8, 1e-6))
-    checks.append(_check("Entropy integral", "analytical integral of dCp dT/T = Simpson quadrature",
+    checks.append(_check("Entropy integral", "integral of dCp dT/T from the formula = numerical integration",
                          R * rxn.idcps(T), sign * num_S, 1e-8, 1e-8))
     return checks
 
@@ -117,18 +117,21 @@ def audit_residuals(rxn, T: float, P: float, model: str) -> List[dict]:
         if res.state == "liquid_like":
             continue
         # res.lnphi is G^R/(R T), obtained from the equation of state by its own formula
-        checks.append(_check(f"{sid}: G^R identity", "H^R - T S^R = G^R from the equation of state",
+        checks.append(_check(f"{sid}: residual enthalpy, entropy and Gibbs energy fit together",
+                             "H^R - T S^R = G^R from the equation of state",
                              res.HR - T * res.SR, R * T * res.lnphi, 1e-9, 1e-6))
         hT = 1e-4 * T
         slope_T = (residual(sp, T + hT, P, model).lnphi - residual(sp, T - hT, P, model).lnphi) / (2 * hT)
         # Tolerances: the finite difference itself is only good to about 1e-5
         # relative, and near a sign change of H^R the slope is close to zero,
         # hence the small absolute allowance.
-        checks.append(_check(f"{sid}: Gibbs-Helmholtz", "d(G^R/RT)/dT at constant P = -H^R/(R T^2)",
+        checks.append(_check(f"{sid}: residual enthalpy from the temperature slope",
+                             "d(G^R/RT)/dT at constant P = -H^R/(R T^2)",
                              slope_T, -res.HR / (R * T * T), 1e-4, 1e-10))
         hP = 1e-4 * P
         slope_P = (residual(sp, T, P + hP, model).lnphi - residual(sp, T, P - hP, model).lnphi) / (2 * hP)
-        checks.append(_check(f"{sid}: volume relation", "d(G^R/RT)/dP at constant T = (Z - 1)/P",
+        checks.append(_check(f"{sid}: compressibility factor from the pressure slope",
+                             "d(G^R/RT)/dP at constant T = (Z - 1)/P",
                              slope_P, (res.Z - 1.0) / P, 1e-4, 1e-10))
     return checks
 

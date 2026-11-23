@@ -48,7 +48,7 @@ def solve_linear(matrix: List[List[float]], rhs: List[float]) -> List[float]:
     for col in range(n):
         pivot = max(range(col, n), key=lambda r: abs(a[r][col]))
         if abs(a[pivot][col]) < 1e-300:
-            raise ConvergenceError("Singular matrix in the equilibrium solver.")
+            raise ConvergenceError("The equilibrium calculation could not be solved for this set of species.")
         a[col], a[pivot] = a[pivot], a[col]
         pv = a[col][col]
         for r in range(col + 1, n):
@@ -232,8 +232,8 @@ def gibbs_minimize(species_ids: Sequence[str], feed: Dict[str, float], T: float,
     for sid in ids:
         if SPECIES[sid].phase != "g":
             raise InputError(
-                f"{sid} is not a gas. The Gibbs minimiser handles a single gas phase; "
-                f"condensed species are reported through the carbon-activity check instead."
+                f"{sid} is not a gas. The product slate works with a gas mixture only; "
+                f"for solid carbon it reports whether it can form."
             )
     if len(ids) < 2:
         raise InputError("Choose at least two species for an equilibrium calculation.")
@@ -325,8 +325,8 @@ def gibbs_minimize(species_ids: Sequence[str], feed: Dict[str, float], T: float,
 
     if not converged:
         raise ConvergenceError(
-            "The Gibbs-energy minimisation did not converge. Try a different temperature "
-            "or remove species that cannot realistically form.",
+            "The search for the mixture with the lowest Gibbs energy did not settle on an answer. "
+            "Try a different temperature or remove species that cannot realistically form.",
             {"iterations": iterations},
         )
 

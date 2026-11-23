@@ -45,7 +45,7 @@
     html += `<div class="cards">
         <div class="card ${exo}"><div class="k">ΔH°(${T} K)</div><div class="v">${kJ(d.dH)} <span class="u">kJ/mol</span></div><div class="s">${esc(d.thermicity)}</div></div>
         <div class="card"><div class="k">ΔS°(${T} K)</div><div class="v">${fix(d.dS, 2)} <span class="u">J/(mol·K)</span></div></div>
-        <div class="card"><div class="k">ΔG°(${T} K)</div><div class="v">${kJ(d.dG)} <span class="u">kJ/mol</span></div><div class="s">${esc(d.favourability.label)}</div></div>
+        <div class="card"><div class="k">ΔG°(${T} K)</div><div class="v">${kJ(d.dG)} <span class="u">kJ/mol</span></div><div class="s">${d.favourability.spontaneous_standard ? "products favoured" : "reactants favoured"}</div></div>
         <div class="card"><div class="k">K = Π K<sub>j</sub><sup>m<sub>j</sub></sup></div><div class="v">${fmtK(d.lnK)}</div><div class="s">ln K = ${fix(d.lnK, 3)}</div></div>
       </div>
       <div class="table-scroll"><table><thead><tr><th class="l">#</th><th>m<sub>j</sub></th><th class="l">Step as applied (m<sub>j</sub> × reaction j)</th>

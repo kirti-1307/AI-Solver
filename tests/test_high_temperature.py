@@ -266,7 +266,7 @@ class TestApi(unittest.TestCase):
         db = ok("database", {})
         self.assertEqual(db["high_T"], {"T_max": 6000.0, "covered": 8})
         notes = {n["species"]: n["reason"] for n in db["data_notes"]}
-        self.assertIn("Shomate", notes["Above the SVN range"])
+        self.assertIn("equations of the NIST Chemistry WebBook", notes["Above the SVN range"])
         n2 = next(s for s in db["species"] if s["id"] == "N2(g)")
         self.assertEqual((n2["cp_main_Tmax"], n2["cp_Tmax"]), (2000.0, 6000.0))
         self.assertAlmostEqual(n2["cp_join_high_J"], 35.971, delta=0.05)             # JANAF at 2000 K
@@ -313,7 +313,7 @@ class TestHeatLab(unittest.TestCase):
         res = hb.solve(case, T0, "duty", T_out=2400.0)
         self.assertIsNotNone(res["svn_only"])
         self.assertNotAlmostEqual(res["svn_only"]["Q"], res["Q"], delta=500.0)
-        self.assertIn("heat duty would be", res["notes"][0]["message"])
+        self.assertIn("heat Q would be", res["notes"][0]["message"])
         self.assertTrue(all(c["passed"] for c in res["audit"]))
 
 

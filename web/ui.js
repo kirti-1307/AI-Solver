@@ -148,7 +148,7 @@ TS.errorTitle = (kind) => ({
   input_error: "Check the input.",
   data_unavailable: "Data not available in SVN.",
   phase_error: "Not a gas at these conditions.",
-  convergence_error: "No convergence.",
+  convergence_error: "No answer found.",
   internal_error: "Solver error.",
   engine_error: "Engine error.",
 }[kind] || "Error.");
@@ -293,10 +293,10 @@ TS.auditTable = (checks) => {
       <td class="l">${TS.chem(c.name)}</td><td class="l mono">${TS.esc(c.relation)}</td>
       <td>${TS.sig(c.lhs, 7)}</td><td>${TS.sig(c.rhs, 7)}</td><td>${TS.sig(c.rel_error, 2)}</td>
       <td class="${c.passed ? "pass" : "fail"}">${c.passed ? "pass" : "FAIL"}</td></tr>`).join("");
-  return `<details><summary>Consistency audit: ${passed} of ${checks.length} identities satisfied</summary>
-    <p class="hint">Each result is re-derived by an independent route (numerical derivative or quadrature).
-      A wrong formula, sign or unit would break at least one of these.</p>
-    <div class="table-scroll"><table><thead><tr><th class="l">Check</th><th class="l">Identity</th><th>Left side</th>
+  return `<details><summary>Consistency checks: ${passed} of ${checks.length} passed</summary>
+    <p class="hint">Each result is worked out a second time by an independent route (a numerical slope or a numerical integration).
+      A wrong formula, sign or unit would make at least one of these checks fail.</p>
+    <div class="table-scroll"><table><thead><tr><th class="l">Check</th><th class="l">What must be equal</th><th>Left side</th>
       <th>Right side</th><th>Relative error</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
 };
 
@@ -442,12 +442,14 @@ TS.GLOSSARY = [
     "It tells where the reaction stops. Much bigger than 1 means mostly products, much smaller than 1 means mostly reactants."],
   [/conversion/i, "Conversion",
     "The fraction of a reactant that has reacted. 25 % means a quarter of what was fed is gone."],
-  [/carbon|coke/i, "Carbon activity",
-    "Whether solid carbon (soot, coke) could form from this gas. Above 1 it can; below 1 it cannot."],
+  [/^Solid carbon/, "Solid carbon (soot)",
+    "Whether solid carbon (soot) could form from this gas. It can form when making it would lower the total Gibbs energy; otherwise it cannot."],
   [/^Outlet temperature/, "Outlet temperature",
     "The temperature at which the heat released by the reaction is exactly used up in heating the products. For a burner with no heat loss this is the flame temperature."],
-  [/^Heat duty/, "Heat duty",
+  [/^Heat added/, "Heat added, Q",
     "The heat that has to be added (positive) or removed (negative) to bring the feed to the outlet state."],
+  [/^Water starts to condense/, "Where the water starts to condense",
+    "A gas can hold water vapour only up to the vapour pressure of water. This is the temperature at which the water vapour of the outlet becomes saturated. Colder than this, part of the water leaves as liquid."],
   [/^Mean C/, "Mean heat capacity of the products",
     "The heat needed to warm all the products by 1 K, averaged between 298.15 K and the outlet temperature."],
   [/^Heating value/, "Heating value",

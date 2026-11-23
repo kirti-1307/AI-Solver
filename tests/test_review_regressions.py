@@ -150,7 +150,7 @@ class TestShouldFix(unittest.TestCase):
         sweep = out["result"]["sweep"]
         self.assertGreater(len(sweep["skipped"]), 0)
         self.assertLess(max(sweep["skipped"]), 647.1)       # only below the critical temperature of water
-        self.assertIn("vapour", sweep["skipped_reason"])
+        self.assertIn("is a liquid, not a gas", sweep["skipped_reason"])
         missing = [x for x, y in zip(sweep["x"], sweep["y"]["CO2(g)"]) if y is None]
         self.assertEqual(missing, sweep["skipped"])
 

@@ -34,7 +34,7 @@ ENTHALPIES: List[tuple] = [
      "Helmi et al., Molecules 21 (2016) 376, doi:10.3390/molecules21030376"),
     ("Methane dry reforming", "CH4 + CO2 -> 2 CO + 2 H2", 247.0,
      "Wang et al., Nat. Commun. 15 (2024) 3765, doi:10.1038/s41467-024-48122-6"),
-    ("CO2 methanation (Sabatier)", "CO2 + 4 H2 -> CH4 + 2 H2O(g)", -165.0,
+    ("CO2 methanation", "CO2 + 4 H2 -> CH4 + 2 H2O(g)", -165.0,
      "Lavoie, Front. Chem. 2 (2014) 81, doi:10.3389/fchem.2014.00081"),
     ("Ammonia synthesis, per mol NH3", "1/2 N2 + 3/2 H2 -> NH3", -45.9,
      "Huang et al., Adv. Sci. 7 (2020) 1902390, doi:10.1002/advs.201902390"),
@@ -80,7 +80,7 @@ K_CORRELATIONS: List[tuple] = [
      "log10 K = -2073/T + 2.029, Graaf et al. (1986) as printed in da Silva Jr. et al., "
      "Front. Chem. Eng. 6 (2024) 1440657"),
     ("Ammonia synthesis, per mol NH3", "1/2 N2 + 3/2 H2 -> NH3", _k_ammonia_gillespie_beattie, (673.15, 723.15, 773.15),
-     "Gillespie & Beattie (1930) zero-pressure Ka as printed in Maansson & Andresen, "
+     "Gillespie & Beattie (1930) equilibrium constant at low pressure, as printed in Maansson & Andresen, "
      "Ind. Eng. Chem. Process Des. Dev. 25 (1986) 59; converted from atm to bar"),
     ("Methane steam reforming", "CH4 + H2O(g) -> CO + 3 H2", _k_smr, (900.0, 1000.0, 1100.0),
      "K = exp(-26830/T + 30.114), Wang et al., Energies 16 (2023) 4347"),

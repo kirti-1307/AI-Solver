@@ -183,11 +183,11 @@ NIST_USE_SVN_CRITICAL = {"Acetic acid"}
 
 # One-line remarks shown whenever a species is used.
 SPECIES_REMARKS = {
-    "H2O2(g)": "formation data and heat capacity are from the NIST Chemistry WebBook (NIST-JANAF), not from SVN.",
-    "CH3COOH(g)": ("formation data and heat capacity are from the NIST Chemistry WebBook, not from SVN. "
-                   "The values are for the ideal-gas monomer; real acetic acid vapour is partly dimerised."),
+    "H2O2(g)": "formation data and heat capacity are NIST data, not from SVN.",
+    "CH3COOH(g)": ("formation data and heat capacity are NIST data, not from SVN. "
+                   "The values are for single molecules; in real acetic acid vapour part of the molecules pair up."),
     "CH3COOH(l)": ("formation data are from SVN Table C.4; the heat capacity is a constant 123.1 J/(mol K) "
-                   "from the NIST Chemistry WebBook, valid near room temperature only."),
+                   "from NIST data, valid near room temperature only."),
 }
 
 # ---------------------------------------------------------------------------
@@ -511,14 +511,14 @@ SOURCES = {
     "entropy_elements": ("Element entropies: CODATA Key Values for Thermodynamics (1989), NIST-JANAF for iron. "
                          "Display and cross-check for SVN species; used to obtain the Gibbs energy of formation of the NIST species"),
     "nist": "NIST Chemistry WebBook, NIST Standard Reference Database 69 (webbook.nist.gov)",
-    "nist_h2o2": "NIST Chemistry WebBook, hydrogen peroxide gas: NIST-JANAF Thermochemical Tables (Chase 1998), Shomate equation",
+    "nist_h2o2": "NIST Chemistry WebBook, hydrogen peroxide gas: NIST-JANAF Thermochemical Tables (Chase 1998), heat-capacity equation",
     "nist_acetic_gas": ("NIST Chemistry WebBook, acetic acid gas: enthalpy of formation from Lebedeva (1964) and Konicek & Wadso (1970), "
-                        "entropy from Weltner (1955), heat capacity table of Chao (1986) fitted by least squares"),
+                        "entropy from Weltner (1955), heat capacity fitted to the table of Chao (1986)"),
     "nist_acetic_liquid": "NIST Chemistry WebBook, acetic acid liquid: heat capacity at 298.15 K of Martin & Andon (1982), taken as constant",
     "low_T_janaf": ("Heat capacities from 200 K to 298.15 K: NIST-JANAF Thermochemical Tables, 4th edition "
                     "(Chase 1998), janaf.nist.gov"),
     "low_T_webbook": ("Heat capacities from 200 K to 298.15 K: NIST Chemistry WebBook, recommended ideal-gas "
                       "heat capacities (webbook.nist.gov)"),
-    "high_T_webbook": ("Heat capacities above the SVN range, up to 6000 K: NIST Chemistry WebBook, Shomate equation "
+    "high_T_webbook": ("Heat capacities above the SVN range, up to 6000 K: NIST Chemistry WebBook, heat-capacity equation "
                        "fitted to the NIST-JANAF tables (Chase 1998)"),
 }

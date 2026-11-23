@@ -44,7 +44,7 @@
       <p class="hint" style="margin-top:8px">C<sub>p</sub> in J/(mol·K). Not covered below 298.15 K:</p><ul class="explain">${left}</ul></details>`;
   }
 
-  /* Heat capacities above the SVN range: the NIST Shomate equations, and how the two sources compare where they meet. */
+  /* Heat capacities above the SVN range: the NIST equations, and how the two sources compare where they meet. */
   function highTemperatureBlock(db) {
     const rows = db.species.filter((s) => s.cp_high).map((s) => `<tr><td class="l mono">${chem(s.id)}</td><td class="l">${esc(s.name)}</td>
         <td>${fix(s.cp_main_Tmax, 0)}–${fix(s.cp_Tmax, 0)}</td>
@@ -53,7 +53,7 @@
         <td class="l">${esc(s.cp_high_source.replace(/^Heat capacities above the SVN range, up to 6000 K: /, ""))}</td></tr>`).join("");
     return `<details><summary>Heat capacities above the SVN range (${db.high_T.covered} gases, up to ${fix(db.high_T.T_max, 0)} K, from NIST)</summary>
       <p class="hint">SVN's formula for the gases of a flame ends at 2000 K (2500 K for CO, 3000 K for H<sub>2</sub>). Above that the solver uses
-        the Shomate equations of the NIST Chemistry WebBook, as published. Inside the SVN range nothing is changed. The step column is how far
+        the heat-capacity equations of the NIST Chemistry WebBook, as published. Inside the SVN range nothing is changed. The step column is how far
         SVN's formula is from the NIST value at the temperature where the NIST equation takes over: SVN's formula runs a little high at its upper end.</p>
       <div class="table-scroll"><table><thead><tr><th class="l">Species</th><th class="l">Name</th><th>NIST used (K)</th>
         <th>C<sub>p</sub> at the join, NIST</th><th>C<sub>p</sub> at the join, SVN</th><th>SVN − NIST</th>
@@ -104,7 +104,7 @@
         `C<sub>p</sub>/R = A + BT + CT² + DT⁻² (the SVN form), plus ET³ for the NIST species. ` +
         `SVN's constants hold from 298 K to the upper limit in the table. From ${fix(db.low_T.T_min, 0)} K to 298.15 K the heat capacities of ${db.low_T.covered} species come from NIST tables, ` +
         `and above the SVN limit, up to ${fix(db.high_T.T_max, 0)} K, those of ${db.high_T.covered} flame gases come from NIST equations (both listed below the table). ` +
-        `ΔS°<sub>f</sub> = (ΔH°<sub>f</sub> − ΔG°<sub>f</sub>)/298.15; the absolute entropy S°<sub>298</sub> adds the CODATA entropies of the elements.`;
+        `ΔS°<sub>f</sub> = (ΔH°<sub>f</sub> − ΔG°<sub>f</sub>)/298.15; the standard molar entropy S°<sub>298</sub> adds the entropies of the elements (CODATA values).`;
       $("#db-notes").innerHTML = `<details><summary>Sources and notes on the data</summary><ul class="explain">` +
         Object.values(db.sources).map((s) => `<li>${esc(s)}</li>`).join("") +
         db.data_notes.map((n) => `<li><strong>${esc(n.species)}:</strong> ${esc(n.reason)}</li>`).join("") + `</ul></details>` +

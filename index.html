@@ -201,7 +201,7 @@
             <option value="srk">Soave/Redlich/Kwong</option>
             <option value="rk">Redlich/Kwong</option>
             <option value="vdw">van der Waals</option>
-            <option value="virial">Generalized virial (Pitzer)</option>
+            <option value="virial">Generalized virial correlation</option>
             <option value="ideal">Ideal gas</option>
           </select>
         </label>
@@ -253,7 +253,7 @@
             <option value="ideal">Ideal gas</option>
             <option value="pr">Peng/Robinson (real gas)</option>
             <option value="srk">Soave/Redlich/Kwong</option>
-            <option value="virial">Generalized virial</option>
+            <option value="virial">Generalized virial correlation</option>
           </select>
         </label>
       </div>
@@ -315,7 +315,7 @@
       <h2>Heat lab: how hot does it get, and how much heat is needed? <span class="tag">extra feature 2</span></h2>
       <p class="hint">An energy balance around the reactor: Q = ΔH<sub>R</sub> + ΔH°<sub>298</sub> + ΔH<sub>P</sub>
         (feed to 298.15 K, reaction there, products to the outlet). With Q = 0 it gives the flame temperature.
-        If the outlet is cooled below its dew point, part of the water condenses and its latent heat is added as a fourth step.
+        If the outlet is cooled so far that its water vapour becomes saturated, part of the water condenses and its latent heat is added as a fourth step.
         The second view is the bomb calorimeter of the lab, where the vessel is closed and the heat released is ΔU.</p>
       <div class="seg big" id="hl-view" role="tablist" aria-label="View">
         <button type="button" data-view="reactor" class="on">Reactor and flame</button>
@@ -338,11 +338,11 @@
         <div class="form">
           <div class="seg" id="hb-mode" aria-label="What to find">
             <button type="button" data-mode="adiabatic" class="on">Find the outlet temperature</button>
-            <button type="button" data-mode="duty">Find the heat duty</button>
+            <button type="button" data-mode="duty">Find the heat to add or remove</button>
           </div>
           <label class="check" id="hb-air-box"><input type="checkbox" id="hb-air"><span>Oxygen comes as air (79 % N<sub>2</sub>)</span></label>
-          <label class="check" id="hb-condense-box" title="A gas can carry water vapour only up to the vapour pressure. Below its dew point the outlet loses part of its water as liquid, and the latent heat comes out as well. Untick the box to keep every species in the phase that is written, as the textbook examples do.">
-            <input type="checkbox" id="hb-condense" checked><span>Let the water change phase (condense below the dew point)</span></label>
+          <label class="check" id="hb-condense-box" title="A gas can carry water vapour only up to the vapour pressure. Cooled below the temperature at which its water vapour becomes saturated, the outlet loses part of its water as liquid, and the latent heat comes out as well. Untick the box to keep every species in the phase that is written, as the textbook examples do.">
+            <input type="checkbox" id="hb-condense" checked><span>Let the water change phase (condense when the outlet is cold enough)</span></label>
         </div>
         <div class="sliders">
           <div class="slider">
