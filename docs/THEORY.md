@@ -210,6 +210,8 @@ Validation: with the ΔG°f values quoted in SVN's example (CH₄/H₂O/CO/CO₂
 
 ## 8. Extra feature 2: the heat lab (SVN Sec. 4.5 to 4.7, and the bomb-calorimeter lab)
 
+Since v1.8.4 the page shows only the bomb calorimeter (Section 8.4). The user asked for the reactor and flame view to be taken off the page; the energy balance of Sections 8.1 to 8.3 is still in the solver (`heatbalance.solve`, the `heat_balance` endpoint) and in its tests.
+
 ### 8.1 Energy balance on a reactor (`heatbalance.solve`)
 
 For a steady-flow reactor with no shaft work and negligible kinetic and potential energy changes, the first law is

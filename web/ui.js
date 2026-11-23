@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.8.3");
+      this.worker = new Worker("web/worker.js?v=1.8.4");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -443,10 +443,6 @@ TS.GLOSSARY = [
     "At high pressure gas molecules attract each other, so a real gas holds a little less enthalpy than an ideal gas. This is that difference, added up over the reaction."],
   [/^Residual entropy/, "Residual part of the entropy change",
     "The entropy of the real gas minus the entropy of the ideal gas at the same temperature and pressure, added up over the reaction. Attraction between molecules orders a gas a little, so it is usually negative for a dense gas."],
-  [/^Change caused by pressure/, "Change caused by pressure",
-    "How much bigger or smaller the heat of reaction of the real gas is than the ideal-gas value, in percent. Below about half a percent the gas can be treated as ideal."],
-  [/^Largest contribution/, "Largest contribution",
-    "The species whose residual enthalpy, times its stoichiometric number, is the biggest. It is usually the one closest to its critical point."],
   [/^ΔH\(T,P\)/, "Heat of reaction of the real gas",
     "The ideal-gas heat of reaction plus the residual part. This is the value that holds at your pressure."],
   [/^ΔH°298|Heat of reaction at 298/, "Heat of reaction at 298.15 K",
@@ -456,21 +452,11 @@ TS.GLOSSARY = [
   [/^ΔS/, "Entropy change",
     "The change in disorder. It is positive when the reaction makes more gas molecules and negative when it makes fewer."],
   [/^ΔG/, "Gibbs energy change",
-    "ΔG = ΔH − T·ΔS. A negative value means the products are favoured (K above 1). A positive value means the reactants are favoured (K below 1); some product still forms, only less."],
-  [/Equilibrium constant|^K = /, "Equilibrium constant, Kp",
-    "It tells where the reaction stops. Much bigger than 1 means mostly products, much smaller than 1 means mostly reactants. Here it is Kp, written with the partial pressures of the gases in bar, and it changes with temperature only."],
+    "ΔG = ΔH − T·ΔS. A negative value means the products are favoured. A positive value means the reactants are favoured; some product still forms, only less."],
   [/conversion/i, "Conversion",
     "The fraction of a reactant that has reacted. 25 % means a quarter of what was fed is gone."],
   [/^Solid carbon/, "Solid carbon (soot)",
     "Whether solid carbon (soot) could form from this gas. It can form when making it would lower the total Gibbs energy; otherwise it cannot."],
-  [/^Outlet temperature/, "Outlet temperature",
-    "The temperature at which the heat released by the reaction is exactly used up in heating the products. For a burner with no heat loss this is the flame temperature."],
-  [/^Heat added/, "Heat added, Q",
-    "The heat that has to be added (positive) or removed (negative) to bring the feed to the outlet state."],
-  [/^Water starts to condense/, "Where the water starts to condense",
-    "A gas can hold water vapour only up to the vapour pressure of water. This is the temperature at which the water vapour of the outlet becomes saturated. Colder than this, part of the water leaves as liquid."],
-  [/^Mean C/, "Mean heat capacity of the products",
-    "The heat needed to warm all the products by 1 K, averaged between 298.15 K and the outlet temperature."],
   [/^Heating value/, "Heating value",
     "Heat released by burning 1 kg of the fuel. Lower: the water leaves as vapour. Higher: the water is condensed, so its latent heat is collected too."],
   [/^Calorific value/, "Calorific value",
@@ -479,8 +465,6 @@ TS.GLOSSARY = [
     "The heat that warms the whole calorimeter by 1 °C. It is found by burning a standard whose calorific value is known."],
   [/^Heat taken up/, "Heat taken up by the calorimeter",
     "Calorimeter constant times the temperature rise. It equals the heat released by the sample plus the thread and wire."],
-  [/^Excess for/, "Excess for a temperature limit",
-    "How much more of the reactant than the reaction needs must be fed so that the outlet stays at the limit you set."],
   [/^Moles of gas/, "Moles of gas",
     "Total amount of gas at equilibrium. It is smaller than the feed when the reactions make fewer molecules."],
 ];

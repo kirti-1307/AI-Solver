@@ -47,13 +47,13 @@ In total: 412 tests in fifteen files, about 70 seconds. Five of them guard the d
 
 1. `python serve.py` and open http://localhost:8000.
 2. The status pill turns green ("Solver ready") within about ten seconds on a first visit.
-3. The start page shows nine question cards; each opens its tab with a result. Then open each of the seven tabs: no red error box, plots drawn.
+3. The start page shows eight question cards; each opens its tab with a result. Then open each of the seven tabs: no red error box, plots drawn.
 4. Type `CH4 + O2 -> CO2 + H2O` on tab 1: it must be rejected and offer the balanced form.
 5. On tab 4, drag the temperature slider: the bars must follow. With everything allowed, the methanol and CO switches must be faded and only methane clickable; after "Methane off" they must show their shares.
 6. On tab 2, ammonia at 200 bar must show the ideal gas (−106.50 kJ/mol) next to the real gas (−111.66 kJ/mol), and the word "fugacity" must not appear. Picking CO₂ hydrogenation must open at 50 bar with no red box; at 200 bar a blue box must offer "Use 88 bar".
-7. On tab 5, the methane burner must show 2,069 K with a note that the textbook's way gives 2,066 K, and no warning, and "Ignite" on the bomb calorimeter must draw the temperature rise.
+7. On tab 5 (bomb calorimeter), "Ignite" with 1 g of ethanol must give a rise of 2.31 °C and draw the temperature curve; "Identify" with 1.00 g and 2.30 °C must name ethanol first.
 8. On tab 1, type `H2 + 1/2 O2 -> H2O(l)` at 500 K: a blue box must say that this is not the stable phase and offer "Pick the stable phase"; after a click the reaction must read H2O(g) and the energy plot must show a step at 373.2 K.
-9. On tab 5, the "Condensing boiler" example must show a dew point of 328.7 K, a fourth step and a heat duty of −847.7 kJ; with the water box unticked it must show −796.9 kJ and a warning.
+9. Tab 1 shows no equilibrium constant, and the four graphs of tab 2 cover the same range of values.
 10. Tab 7 must report every reference value as "pass".
 
 ## Bugs the tests have caught so far

@@ -5,8 +5,9 @@
 Left:  where the carbon of a CO2 + 3 H2 feed goes at equilibrium, 50 bar,
        when methane is not allowed to form, and (dashed) the methane share
        when it is allowed.
-Right: flame temperature of methane burned in air against the excess air,
-       for a cold and a preheated feed, with the textbook example marked.
+Right: bomb calorimeter, the temperature rise that 1 g of each liquid or
+       solid fuel of the database gives in the lab calorimeter (calibrated
+       with the benzoic acid run of the lab handout), ethanol marked.
 """
 
 import os
@@ -16,8 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PIL import Image, ImageDraw, ImageFont
 
-from thermosolver import Reaction
 from thermosolver import heatbalance as hb
+from thermosolver import library
 from thermosolver.equilibrium import atom_distribution, gibbs_minimize
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "figure.png")
@@ -125,38 +126,34 @@ def main():
     a.legend([("CH₃OH (methane blocked)", BLUE, "box"), ("CO (methane blocked)", ORANGE, "box"),
               ("unreacted CO₂", GREY, "box"), ("CH₄ if methane is allowed", INK, "dash")], 462, 188)
 
-    # ---- (b) heat lab: flame temperature ---------------------------------------
-    rxn = Reaction.parse("CH4 + 2 O2 -> CO2 + 2 H2O(g)")
-
-    def flame(excess, T_in):
-        return hb.solve(hb.build_case(rxn, excess=excess, air=True), T_in, "adiabatic")["T_out"]
-
-    xs = [3.0 * i / 120 for i in range(121)]                 # 0 to 300 % excess air
-    cold = [flame(x, 298.15) for x in xs]
-    hot = [flame(x, 600.0) for x in xs]
-    b = Axes(draw, (880, 62, 1530, 388), (0, 300), (800, 2800))
-    b.frame([0, 50, 100, 150, 200, 250, 300], [800, 1200, 1600, 2000, 2400, 2800], "Excess air (%)",
-            "Outlet temperature (K)", "(b) Heat lab: CH₄ burned in air, no heat loss")
-    limit = 1500.0
-    need = hb.excess_for_outlet_temperature(rxn, limit, 298.15, air=True)["excess"]
-    _, py = b.px(0, limit)
-    for k in range(int(b.x0), int(b.x1), 9 * S):
-        draw.line([(k, py), (k + 4 * S, py)], fill=PURPLE, width=2 * S)
-    b.line([100 * x for x in xs], hot, ORANGE, 3, dash=(4, 2))
-    b.line([100 * x for x in xs], cold, BLUE, 4)
-    book = flame(0.2, 298.15)
-    cx, cy = b.px(20, book)
-    draw.ellipse([cx - 6 * S, cy - 6 * S, cx + 6 * S, cy + 6 * S], fill=INK)
-    draw.text((cx + 12 * S, cy - 4 * S), f"20 % excess air: {book:.0f} K", font=F_LEG, fill=INK, anchor="lm")
-    nx, _ = b.px(100 * need, limit)
-    draw.ellipse([nx - 5 * S, py - 5 * S, nx + 5 * S, py + 5 * S], fill=PURPLE)
-    lx, _ = b.px(6, limit)
-    draw.text((lx, py + 15 * S), f"{limit:.0f} K limit needs {100 * need:.0f} % excess air", font=F_LEG, fill=PURPLE, anchor="lm")
-    b.legend([("feed at 298 K", BLUE, "line"), ("feed preheated to 600 K", ORANGE, "dash")], 1290, 96)
+    # ---- (b) bomb calorimeter: temperature rise for 1 g of each fuel --------------
+    h = library.CALORIMETER_HANDOUT
+    cal = hb.JOULE_PER_CAL
+    C_cal = hb.calorimeter_constant(h["mass_g"], h["dT"], h["calorific_value_cal_per_g"] * cal, h["corrections_cal"] * cal)
+    SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+    fuels = []
+    for sid in hb.combustible_species():
+        if hb.SPECIES[sid].phase == "g":
+            continue
+        run = hb.calorimeter_run(sid, 1.0, C_cal)
+        fuels.append((sid, run["dT"]))
+    fuels.sort(key=lambda f: -f[1])
+    b = Axes(draw, (880, 62, 1530, 388), (0, len(fuels)), (0, 4))
+    b.frame([], [0, 1, 2, 3, 4], "Fuel, 1 g each", "Temperature rise (°C)", "(b) Bomb calorimeter of the lab, 1 g samples")
+    for i, (sid, dT) in enumerate(fuels):
+        x0, y0 = b.px(i + 0.18, dT)
+        x1, y1 = b.px(i + 0.82, 0)
+        draw.rectangle([x0, y0, x1, y1], fill=ORANGE if sid == "C2H5OH(l)" else BLUE)
+        draw.text(((x0 + x1) / 2, y0 - 5 * S), f"{dT:.2f}", font=F_LEG, fill=INK, anchor="mb")
+        label = sid.split("(")[0].translate(SUB)
+        draw.text(((x0 + x1) / 2, y1 + 9 * S), label, font=F_TICK, fill=MUTED, anchor="mt")
+    draw.text((b.x1, b.y0 - 2 * S), f"calorimeter constant {C_cal / cal:.1f} cal/°C (benzoic acid run)", font=F_LEG,
+              fill=MUTED, anchor="rt")
+    ethanol = dict(fuels)["C2H5OH(l)"]
 
     img = img.resize((W, H), Image.LANCZOS)
     img.save(OUT, dpi=(220, 220))
-    print("wrote", OUT, f"(flame {book:.1f} K at 20 % excess air; {100 * need:.1f} % excess for {limit:.0f} K; "
+    print("wrote", OUT, f"(ethanol, 1 g: {ethanol:.2f} C rise; {len(fuels)} fuels; "
           f"methanol share at 523 K = {meoh[Ts.index(525)]:.1f} %)")
 
 

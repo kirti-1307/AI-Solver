@@ -133,9 +133,10 @@ class TestCalculations(unittest.TestCase):
             tab1 = fh.read()
         with open(os.path.join(ROOT, "web", "tab-pressure.js"), encoding="utf-8") as fh:
             tab2 = fh.read()
-        self.assertEqual(len(set(re.findall(r'TS\.plot\("(rx-plot-[A-Za-z]+)"', tab1))), 5)
+        # tab 1 had a fifth graph, of the equilibrium constant, until the user asked for K to be left off tab 1
+        self.assertEqual(len(set(re.findall(r'TS\.plot\("(rx-plot-[A-Za-z]+)"', tab1))), 4)
         self.assertEqual(len(set(re.findall(r'TS\.plot\("(pr-plot-[A-Za-z]+)"', tab2))), 4)
-        self.assertEqual(tab1.count("TS.fig("), 5)                       # each with a line on how to read it
+        self.assertEqual(tab1.count("TS.fig("), 4)                       # each with a line on how to read it
         self.assertEqual(tab2.count("TS.fig("), 4)
 
     def test_favourability_at_a_certain_temperature(self):

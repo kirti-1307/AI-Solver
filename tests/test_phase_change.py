@@ -650,12 +650,12 @@ class TestThePage(unittest.TestCase):
         self.assertIn('auto_phase: $("#rx-auto-phase").checked', script)
         self.assertIn("rx-use-stable", script)
 
-    def test_tab_5_has_the_water_box_and_it_is_on_at_the_start(self):
-        html = self.read("index.html")
-        self.assertRegex(html, r'<input type="checkbox" id="hb-condense" checked>')
-        script = self.read("web", "tab-heat.js")
-        self.assertIn('condense: $("#hb-condense").checked', script)
-        self.assertIn("Step 4", script)
+    def test_condensing_water_stays_in_the_solver_after_the_reactor_view_left_the_page(self):
+        # Tab 5 no longer shows the reactor view (23 November 2026), but the calculation is kept.
+        self.assertNotIn("hb-condense", self.read("index.html"))
+        r = api.heat_balance({"equation": BURNER, "excess": 0.2, "air": True, "T_in": 298.15,
+                              "mode": "duty", "T_out": 310.0, "condense": True})
+        self.assertAlmostEqual(r["point"]["Q"] / 1000.0, -855.05, places=2)
 
     def test_the_page_does_not_work_out_the_phase_itself(self):
         # boiling points, vapour pressures and latent heats come from the solver

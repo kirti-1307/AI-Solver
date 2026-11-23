@@ -138,15 +138,18 @@ class TestPageFiles(unittest.TestCase):
         self.assertNotRegex(script, r"y: s\.carbon_activity\b")
         self.assertEqual(len(re.findall(r"carbon_activity > 1|v > 1 \? 1 : 0", script)), 3)
 
-    def test_tab_5_names_the_heat_in_plain_words(self):
-        html = tab_sections(read("index.html"))
-        self.assertIn('data-mode="duty">Find the heat to add or remove</button>', html)      # the mode keeps its name
-        self.assertRegex(html, r'id="hb-condense" checked><span>Let the water change phase')
+    def test_tab_5_is_the_bomb_calorimeter_only(self):
+        # 23 November 2026: "can u remove the reactor and flame part in tab 5? i know nothing about it."
+        # The energy balance stays in the solver (heat_balance endpoint, tests/test_heatbalance.py).
+        html = read("index.html")
+        for gone in ('id="hl-reactor"', 'id="hl-view"', 'data-demo="flame"', "Reactor and flame", "flame temperature", "hb-"):
+            self.assertNotIn(gone, html)
+        self.assertIn('<span class="n">5</span>Bomb calorimeter', html)
+        self.assertIn('<div id="hl-calorimeter">', html)                  # shown, not hidden
         script = read("web", "tab-heat.js")
-        for words in ("Heat added, Q", "Water starts to condense at", "The most work the hot products could deliver",
-                      "Carnot engine"):
-            self.assertIn(words, script)
-        self.assertNotIn("W<sub>ideal</sub>", script)
+        self.assertNotIn('call("heat_balance"', script)
+        self.assertIn('TS.engine.call("calorimeter"', script)
+        self.assertNotIn("heatExample", read("web", "main.js"))
 
 
 class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
@@ -159,14 +162,20 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         self.assertNotIn("falls to the right", script)
         self.assertNotIn("auditTable", script)
 
-    def test_tab_1_says_which_k_it_is(self):
+    def test_tab_1_shows_no_equilibrium_constant(self):
+        # 23 November 2026: "in tab 1, no need to mention about eqm constant". The solver still
+        # works K out (the conversion and tab 4 use it); tab 1 only does not show it.
         script = read("web", "tab-reaction.js")
-        self.assertIn("K here is <strong>K<sub>p</sub></strong>", script)
-        self.assertIn("not K<sub>c</sub>", script)
-        self.assertIn("changes only with temperature, never with pressure", script)
-        self.assertIn("Equilibrium constant K<sub>p</sub>", script)
+        hide = '!s.title.startsWith("Equilibrium constant")'
+        self.assertIn(hide, script)                                                  # the step is left out of the list
+        shown = script.replace(hide, "")
+        for gone in ("K<sub>p</sub>", "fmtK", "lnK", "log10K", "rx-plot-K", "Equilibrium constant", "K = 1", "K &lt;"):
+            self.assertNotIn(gone, shown)
         steps = ok("analyze", METHANOL)["steps"]
-        self.assertIn("Kp", steps[-1]["title"])
+        self.assertIn("Kp", steps[-1]["title"])                                      # the solver still has it
+        html = tab_sections(read("index.html"))
+        start, end = html.index('id="tab-reaction"'), html.index('id="tab-pressure"')
+        self.assertNotIn(" and K ", html[start:end])
 
     def test_tab_2_has_no_largest_contribution(self):
         script = read("web", "tab-pressure.js")
@@ -182,9 +191,10 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
 
     def test_graphs_that_are_compared_share_their_scales(self):
         pressure = read("web", "tab-pressure.js")
-        self.assertEqual(pressure.count("yaxis: residualAxis"), 3)            # graphs 2, 3 and 4
-        self.assertIn("yaxis: totalAxis", pressure)                            # graph 1, same height per kJ
-        self.assertEqual(read("web", "tab-reaction.js").count("xaxis: tAxis"), 4)
+        self.assertEqual(pressure.count("yaxis: residualAxis"), 4)            # all four graphs: the same range of values
+        self.assertNotIn("totalAxis", pressure)
+        self.assertIn("y: k(s.sum_HR)", pressure)                              # graph 1 shows the residual part
+        self.assertEqual(read("web", "tab-reaction.js").count("xaxis: tAxis"), 3)
         self.assertEqual(read("web", "tab-combine.js").count("...same"), 2)
         self.assertEqual(read("web", "tab-network.js").count("xaxis: xAxis"), 3)
 

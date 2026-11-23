@@ -155,17 +155,17 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 
 **It answers:** how much heat, and which side is favoured?
 
-**You do:** pick a reaction or type one, set the temperature, press Calculate. The pressure box is only for the equilibrium conversion; ΔH°, ΔS°, ΔG° and K are standard values, and K is Kp.
+**You do:** pick a reaction or type one, set the temperature, press Calculate. The pressure box is only for the equilibrium conversion; ΔH°, ΔS° and ΔG° are standard values at 1 bar.
 
 **You read:**
 
-- The headline at the top: "Gives out heat" or "Takes in heat", and "Products favoured" or "Reactants favoured". The second one compares K with 1. It never means that nothing reacts.
-- The cards: ΔH, ΔS, ΔG and K at your temperature, and how much reacts at your pressure.
+- The headline at the top: "Gives out heat" or "Takes in heat", and "Products favoured" or "Reactants favoured". The second one looks at the sign of ΔG°. It never means that nothing reacts.
+- The cards: ΔH, ΔS and ΔG at your temperature, and how much reacts at your pressure.
 - "What the numbers mean": the same result in sentences.
 - The graphs (explained below).
 - The step-by-step calculation, if you want to follow the arithmetic.
 
-**Favourable at which pressure?** K only depends on temperature. But how far a reaction goes also depends on pressure. Example: CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K converts 0.6 % at 1 bar and 21.3 % at 50 bar. Four gas molecules become two, so squeezing the gas helps.
+**Favourable at which pressure?** ΔG° belongs to the standard pressure of 1 bar, so it depends on temperature only. But how far a reaction goes also depends on pressure. Example: CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K converts 0.6 % at 1 bar and 21.3 % at 50 bar. Four gas molecules become two, so squeezing the gas helps.
 
 **The "Pick the stable phase" box.** Normally the solver uses the phase you type. H2O(l) stays a liquid at any temperature, even at 500 K, where it only gets a warning. Tick the box and the solver chooses for you: liquid below the boiling point, vapour above it. The plots then run across the boiling point. The orange ΔH° line has a step there (the latent heat), and the blue ΔG° line only bends. Try `H2 + 1/2 O2 -> H2O(l)`: ΔH° is −283.4 kJ/mol just below 373.2 K and −242.6 kJ/mol just above it.
 
@@ -173,15 +173,14 @@ The box is off at the start, because a textbook often wants the other form on pu
 
 One more point. Below its boiling point a product is not automatically a liquid. In a gas mixture it stays a vapour as long as its partial pressure is below its vapour pressure. The "equilibrium conversion" card works this way: a product leaves as liquid only once the gas is saturated with it, and the card says when that happens.
 
-**The five graphs of tab 1.** Each has a line under it that says how to read it. In short:
+**The four graphs of tab 1.** Each has a line under it that says how to read it. In short:
 
-1. **Energy changes versus temperature.** Orange is ΔH° (heat), blue is ΔG° (which side is favoured), green is T·ΔS°. Blue is always orange minus green. Where the blue line crosses zero, K = 1. The dots show your temperature.
-2. **Equilibrium constant Kp.** The higher the line, the more the products are favoured. Above the dotted line Kp is bigger than 1.
-3. **Equilibrium conversion.** How much has reacted when the reaction comes to rest. Grey dashed is at 1 bar, blue is at your pressure.
-4. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
-5. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
+1. **Energy changes versus temperature.** Orange is ΔH° (heat), blue is ΔG° (which side is favoured), green is T·ΔS°. Blue is always orange minus green. Where the blue line crosses zero, the favoured side changes. The dots show your temperature.
+2. **Equilibrium conversion.** How much has reacted when the reaction comes to rest. Grey dashed is at 1 bar, blue is at your pressure.
+3. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
+4. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
 
-The four graphs against temperature share the same temperature axis, so you can follow one temperature from graph to graph.
+The three graphs against temperature share the same temperature axis, so you can follow one temperature from graph to graph.
 
 A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens. For gases the range now starts at 200 K, so the plots start there too.
 
@@ -193,7 +192,7 @@ A grey band on a plot means the Cp formula is being used outside the temperature
 
 - The headline: the ideal-gas ΔH, the real-gas ΔH and the difference between them.
 - The three steps. They reach the real-gas ΔH by a detour, in the same way as Hess's law. Step 1: turn the real reactants into ideal gases, which takes away their Hᴿ. Step 2: let them react as ideal gases, which is ΔH° from tab 1. Step 3: turn the ideal-gas products into real gases, which adds their Hᴿ. H depends only on where you start and where you end, so the detour gives the same answer as the direct route. For CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K and 50 bar: +0.64 − 57.94 − 6.76 = −64.06 kJ/mol.
-- The first plot: the ideal gas is a flat line, the real gas is a curve. The shaded gap between them is the residual part. It grows with pressure.
+- The first graph: the ideal gas is the flat zero line, and the orange curve is the residual part, how much the real gas differs from it. It grows with pressure.
 - The list of bars at the top: six industrial reactions, sorted by how much pressure matters. Click one to load it.
 
 Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.16 kJ/mol, so the real gas releases 4.8 % more heat.
@@ -221,12 +220,12 @@ When does it matter?
 
 **The four graphs of tab 2.** Each has a line under it that says how to read it. In short:
 
-1. **Heat of reaction against pressure.** The grey dashed line is the ideal gas; it is flat. The orange line is the real gas. The shaded gap between them is the residual part.
+1. **Real gas minus ideal gas, against pressure.** The grey dashed line at zero is the ideal gas; it is flat. The orange line is the residual part, Σ ν Hᴿ. Add it to the ideal-gas ΔH to get the real-gas ΔH.
 2. **Where the difference comes from.** One bar per substance. The tallest bar is the gas that is furthest from ideal.
 3. **Residual part against temperature.** The same gap at your pressure, at other temperatures. It shrinks as the gas gets hotter.
 4. **Residual enthalpy of each pure gas.** A line near zero is an almost ideal gas. A line that falls steeply is a gas close to its critical point.
 
-All four graphs use the same kJ/mol scale, so a height in one graph means the same number of kJ in the others. The first graph is only moved up or down, so that its ideal-gas line sits where the other graphs have zero. The gap in graph 1 at your pressure, the sum of the bars in graph 2 and the dot in graph 3 are the same number.
+All four graphs cover exactly the same range of values, in kJ/mol, so you can read a number across from one graph to another. The value of graph 1 at your pressure, the sum of the bars in graph 2 and the dot in graph 3 are the same number.
 
 **"No gas-phase value".** If a substance would be a liquid at your temperature and pressure, there is no gas reaction to calculate. The tab says so in a blue box and offers a pressure, or a temperature, where it works. Example: at 523 K water is a liquid above about 90 bar, so CO₂ hydrogenation at 200 bar has no gas-phase value. This is a limit of the conditions, not an error.
 
@@ -272,52 +271,29 @@ The "solid carbon" card tells you whether solid carbon (soot) can form. The solv
 
 Example: with methane switched off, at 700 K and 50 bar the gas has p(CO₂) = 7.46 bar and p(CO) = 5.02 bar, so the ratio is 0.30. Kp of 2 CO → C(s) + CO₂ at 700 K is 4142, far larger, so carbon can form. With everything allowed at 523 K, the gas ratio and Kp are almost equal (Kp is 0.98 of the ratio), so no carbon forms.
 
-### Tab 5: Heat lab (extra feature 2)
+### Tab 5: Bomb calorimeter (extra feature 2)
 
-**Reactor and flame** answers two questions: how hot does it get, and how much heat is needed?
+**It answers:** how much heat does a fuel give, and which fuel is an unknown sample?
 
-It is an energy balance: heat added = enthalpy out − enthalpy in. It uses the same three-step path as section 3:
-
-1. Feed from its inlet temperature to 298.15 K.
-2. Reaction at 298.15 K.
-3. Products from 298.15 K to the outlet temperature.
-
-If no heat is added or removed, the three steps must add up to zero. The solver finds the outlet temperature that makes this true. For a burner, that is the flame temperature.
-
-Examples:
-
-- Methane with 20 % excess air, entering at 25 °C: the flame is at 2069 K.
-- The textbook's answer for this example is 2066 K. The textbook uses its Cp formula 66 K beyond its 2000 K limit; the solver uses NIST data up there, which gives 3 K more. A note on the page shows both numbers.
-- With no excess air it is 2326 K. With 100 % excess air it is 1486 K. Extra air cools the flame, because the extra air has to be heated too.
-- A real flame above 2000 K is a little cooler than these numbers, because the hot CO₂ and H₂O partly break apart. The page says so in a note.
-- To stay below 1500 K you need 97 % excess air.
-- A steam reformer fed at 600 K with products at 1300 K needs 328 kJ per mole of methane (−34.4 + 200.5 + 161.9 kJ for the three steps).
-
-**When the outlet is cool, the water condenses.** A gas can carry water vapour only up to the vapour pressure. The flue gas of the methane burner is 16 % water, and its water vapour becomes saturated at 55.5 °C. Below that temperature the gas drops liquid water, and the path gets a fourth step:
-
-4. Part of the water condenses at the outlet temperature and gives up its latent heat.
-
-Examples (methane with 20 % excess air, feed at 25 °C):
-
-- Cooled to 40 °C: 1.17 of the 2 mol of water condense, and 847.7 kJ must be removed. With all the water kept as vapour it would be 796.9 kJ.
-- Cooled to 25 °C: 1.66 mol condense and 875.6 kJ comes out. This lies between the LHV (802.6 kJ) and the HHV (890.6 kJ). It does not reach the HHV, because the gas leaves saturated and still carries 0.34 mol of water vapour.
-
-This is how a condensing boiler gets more heat out of the same fuel. The box "Let the water change phase" is on at the start. Untick it to keep every substance in the phase that is written, as the textbook examples do. While the outlet is too warm for water to condense, the box changes nothing, so the flame temperature and the reformer example stay as they are.
-
-Only water can change phase in this tab, and the liquid is taken as pure water.
-
-**Bomb calorimeter** is the lab experiment on screen. A sample burns in a closed steel vessel. The vessel cannot change its volume, so the heat released is ΔU, not ΔH. The two are linked by:
+This is our bomb calorimeter lab on screen. A sample burns in a closed steel vessel, the bomb, which sits in water. The vessel cannot change its volume, so no work is done and the heat released is ΔU, not ΔH. The two are linked by:
 
     ΔH = ΔU + Δn·R·T
 
 where Δn is the change in the number of gas molecules.
 
-Example: 1 g of ethanol, with the calorimeter constant from the lab handout (3059 cal/°C), gives a temperature rise of 2.31 °C and a calorific value of 29.62 MJ/kg.
+**You do:**
+
+1. Calibrate the calorimeter with benzoic acid. The numbers of the lab handout are filled in: 1.1942 g, 6319 cal/g, a rise of 2.48 °C and 41 cal for the thread and wire. They give a calorimeter constant of (1.1942 × 6319 + 41) / 2.48 = 3059.3 cal/°C.
+2. Then either burn a known fuel to see its temperature rise, or type a measured rise to find the fuel that fits best.
+
+Example: 1 g of ethanol. The solver writes the complete combustion, C₂H₅OH(l) + 3 O₂ → 2 CO₂ + 3 H₂O(l), and gets ΔH = −1366.8 kJ/mol from the heats of formation. The gas moles fall by 1, so ΔU = ΔH − Δn·R·T = −1364.3 kJ/mol. That is a calorific value of 29.62 MJ/kg and a temperature rise of 2.31 °C.
+
+Working backwards: if 1 g of an unknown sample raises the temperature by 2.30 °C, its calorific value is 29.44 MJ/kg. The closest fuel is ethanol, only 0.6 % away; the next one, graphite, is 11 % away.
 
 Two more words from this tab:
 
-- **HHV** (higher heating value): the water formed ends up as liquid.
-- **LHV** (lower heating value): the water stays as vapour. It is smaller, because the heat of condensing the water is not collected.
+- **HHV** (higher heating value): the water formed ends up as liquid. For ethanol 29.67 MJ/kg.
+- **LHV** (lower heating value): the water stays as vapour. It is smaller, 26.80 MJ/kg for ethanol, because the heat of condensing the water is not collected.
 
 ### Tab 6: Species data
 
@@ -334,7 +310,7 @@ This is the proof that the numbers are right. It has three parts:
 ## 5. Why you can trust the answers
 
 - **The data are traceable.** From 298.15 K upwards, 54 of the 57 substances use only the textbook tables. The other three come from the NIST database and are labelled. Below 298.15 K, where the textbook has no data, the heat capacities come from NIST tables, and the solver says so whenever it uses them.
-- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency checks" under the results of tab 5.
+- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. These checks run in the automated tests every time the code changes.
 - **It has more than 200 automated tests.** They run every time the code changes.
 - **It refuses bad input.** An unbalanced reaction gets no answer at all.
 - **It warns you.** If a formula is used outside its valid temperature range, you see a warning.
@@ -350,14 +326,12 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | Two rounded constants in a formula | Two results that should agree differed slightly | The exact constants are used |
 | "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now says that K belongs to 1 bar, and tab 1 shows the conversion at your pressure |
 | The calorimeter named a gas as the unknown sample | A gas cannot be weighed into a crucible | Only liquids and solids are compared |
-| The "excess air for a temperature limit" search gave a wrong value | It never checked its own answer | It now solves again with its answer before showing it |
 | "Standard state" was explained as 298.15 K and 1 bar | Standard state fixes only the pressure (1 bar). 298.15 K is just where the tables list the data | The guide and the page now keep the two apart |
 | Below 298 K the textbook Cp formulas were simply stretched | They are valid from 298 K only. For CO₂ at 200 K the stretched formula is 29 % too low | NIST table values are used from 200 K to 298.15 K |
 | The headline said "Not favourable" | It read as if the reaction could not happen, so its ΔH looked meaningless | It now says "Reactants favoured" and adds that some product still forms |
 | Tab 2 showed a red error for CO₂ hydrogenation | The pressure was still 200 bar from the ammonia example. Water is a liquid there, so there is no gas value | The example opens at its own conditions (50 bar), and a blue box offers a pressure that works |
-| The two burner examples showed an "extrapolated" warning | The flame is hotter than the 2000 K limit of the textbook Cp formula | NIST data are used above the limit. The answer moves from 2066 K to 2069 K, and a note shows both |
 | After tab 2 was narrowed down to the heat of reaction, no tab said how pressure changes favourability | The assignment asks for favourability at a given pressure and temperature | Tab 1 has a pressure box and shows the equilibrium conversion at that pressure |
-| Every substance stayed in the phase that was typed | Liquid water stayed liquid at 500 K, and a flue gas cooled to 25 °C never gave up the latent heat of its water | The solver finds the boiling point from its own data. Tab 1 can pick the stable phase, and in tab 5 the water condenses when the outlet is cold enough |
+| Every substance stayed in the phase that was typed | Liquid water stayed liquid at 500 K | The solver finds the boiling point from its own data, and tab 1 can pick the stable phase |
 
 The five stress tests of the assignment:
 
@@ -390,8 +364,6 @@ This is why the first visit takes about ten seconds: the browser downloads Pytho
 | Exothermic / endothermic | Gives out heat / takes in heat |
 | Conversion | The fraction of a reactant that has reacted |
 | Stoichiometric | Exactly the amounts the balanced reaction asks for |
-| Excess air | Air beyond what the reaction needs |
-| Adiabatic | No heat goes in or out through the walls |
 | Residual property, Hᴿ | Real-gas value minus ideal-gas value |
 | Equation of state | A formula linking pressure, volume and temperature of a gas |
 | Hess's law | Adding reactions adds their ΔH |
@@ -412,23 +384,20 @@ Try to answer before you read the answer.
 4. **K = 0.00002. Mostly products or mostly reactants?** Mostly reactants.
 5. **Why does pressure help ammonia synthesis?** The reaction reduces the number of gas molecules from 4 to 2. Higher pressure favours the side with fewer molecules.
 6. **Does "standard state" mean 298.15 K?** No. It fixes the pressure at 1 bar. The temperature is whatever you choose. 298.15 K is only the temperature at which the tables list the heats of formation; other temperatures are reached with Cp.
-7. **Why does extra air cool a flame?** The extra air does not react. It only has to be heated, so the same heat is shared by more gas.
-8. **Why does a bomb calorimeter measure ΔU and not ΔH?** Its volume is fixed, so no work is done. Heat at constant volume equals ΔU.
-9. **Why is LHV smaller than HHV?** With LHV the water leaves as vapour, so the heat of condensing it is not collected.
-10. **In tab 4, why does switching methane off change the answer?** Methane is the most stable product. Remove it, and the atoms settle into the next best mixture, which contains methanol.
-11. **What do the consistency checks prove?** That two different ways of calculating the same quantity agree. A wrong sign or unit would break it.
-12. **Does a favourable ΔG mean the reaction is fast?** No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.
-13. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
-14. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
-15. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 17.3 %; now its switch matters.
-16. **Why is the methane flame 2069 K on the page and 2066 K in the textbook?** The textbook stretches its Cp formula 66 K beyond its 2000 K limit. The solver uses NIST data above 2000 K. Stretched, the formula gives a Cp that is a little too high, so the textbook's flame comes out 3 K cooler.
-17. **A reaction is favoured at 50 bar but not at 1 bar. Did K change?** No. K depends on temperature only. Pressure changes how far the reaction goes when the number of gas molecules changes.
-18. **Why does ΔH° jump at a boiling point while ΔG° does not?** Liquid and vapour have different enthalpies; the difference is the latent heat. But at the boiling point they have the same Gibbs energy, so ΔG° and K pass through without a jump.
-19. **A flue gas is cooled to 25 °C. Why does less than the HHV come out?** The gas leaves saturated with water. Of the 2 mol of water from one mole of methane, 0.34 mol stay vapour and keep their latent heat.
-20. **Water is in a gas mixture at 80 °C and 1 bar. Is it a liquid?** Only if its partial pressure reaches its vapour pressure, which is 0.47 bar at 80 °C. Below that it stays a vapour, although 80 °C is below the boiling point.
-21. **Is the K of this solver Kp or Kc?** Kp: it is written with partial pressures in bar. It changes with temperature only; pressure changes the conversion, not Kp.
-22. **Why does the ideal-gas ΔH not change with pressure?** For an ideal gas U depends on T only and PV = RT, so H = U + RT depends on T only.
-23. **Why does tab 2 start on Peng/Robinson?** It uses the acentric factor as well as Tc and Pc, and it holds at high pressure. Soave/Redlich/Kwong gives almost the same answer; van der Waals and Redlich/Kwong do not.
+7. **Why does a bomb calorimeter measure ΔU and not ΔH?** Its volume is fixed, so no work is done. Heat at constant volume equals ΔU.
+8. **Why is LHV smaller than HHV?** With LHV the water leaves as vapour, so the heat of condensing it is not collected.
+9. **In tab 4, why does switching methane off change the answer?** Methane is the most stable product. Remove it, and the atoms settle into the next best mixture, which contains methanol.
+10. **What do the consistency checks prove?** That two different ways of calculating the same quantity agree. A wrong sign or unit would break it.
+11. **Does a favourable ΔG mean the reaction is fast?** No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.
+12. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
+13. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
+14. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 17.3 %; now its switch matters.
+15. **A reaction is favoured at 50 bar but not at 1 bar. Did K change?** No. K depends on temperature only. Pressure changes how far the reaction goes when the number of gas molecules changes.
+16. **Why does ΔH° jump at a boiling point while ΔG° does not?** Liquid and vapour have different enthalpies; the difference is the latent heat. But at the boiling point they have the same Gibbs energy, so ΔG° and K pass through without a jump.
+17. **Water is in a gas mixture at 80 °C and 1 bar. Is it a liquid?** Only if its partial pressure reaches its vapour pressure, which is 0.47 bar at 80 °C. Below that it stays a vapour, although 80 °C is below the boiling point.
+18. **Is the K of this solver Kp or Kc?** Kp: it is written with partial pressures in bar. It changes with temperature only; pressure changes the conversion, not Kp.
+19. **Why does the ideal-gas ΔH not change with pressure?** For an ideal gas U depends on T only and PV = RT, so H = U + RT depends on T only.
+20. **Why does tab 2 start on Peng/Robinson?** It uses the acentric factor as well as Tc and Pc, and it holds at high pressure. Soave/Redlich/Kwong gives almost the same answer; van der Waals and Redlich/Kwong do not.
 
 ## 10. A five-minute tour
 
@@ -436,6 +405,5 @@ Try to answer before you read the answer.
 2. Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.
 3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.66 kJ/mol at 200 bar. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
 4. Click "What actually forms?" Press the three "Try this" buttons: everything allowed, methane off, methane and CO off. Point at the faded switches and say why they are faded. Then drag the temperature slider.
-5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool. Then pick the "Condensing boiler" example and drag the outlet temperature across 329 K: the heat line bends where the water starts to condense.
-6. Click "Bomb calorimeter" and press Ignite.
-7. Finish on **Validation**: 67 of 67 reference values reproduced.
+5. Click "Bomb calorimeter" and press Ignite: 1 g of ethanol raises the temperature by 2.31 °C. Then click "Identify an unknown sample" and press Identify.
+6. Finish on **Validation**: 67 of 67 reference values reproduced.

@@ -147,32 +147,30 @@
     const bars = c.contributions.filter((x) => x.contribution !== null);
     const gas = r.at_P.species.filter((x) => x.phase === "g");
 
-    // One kJ/mol scale for all four graphs. Graphs 2 to 4 share the same range; graph 1
-    // has the same height per kJ, moved so that its ideal-gas line sits where the others
-    // have zero. The gap in graph 1 at your pressure, the sum of the bars and the dot in
-    // graph 3 are the same number, and now they also have the same size.
+    // All four graphs show residual quantities in kJ/mol, and all four cover exactly the
+    // same range of values, so a number can be read across from one graph to another.
+    // The value at your pressure in graph 1, the sum of the bars in graph 2 and the dot
+    // in graph 3 are the same number.
     const scale = TS.span([k(s.sum_HR), bars.map((x) => x.contribution / 1000), t ? k(t.residual) : [],
       ...gas.map((x) => k(s.species_HR[x.species]))], [0]);
-    const ideal = s.dH_std / 1000;
     const residualAxis = scale ? { range: scale } : {};
-    const totalAxis = scale ? { range: [ideal + scale[0], ideal + scale[1]] } : {};
     const pAxis = { range: [s.P[0], s.P[s.P.length - 1]] };
 
-    // 1. Ideal against real along the isotherm; the shaded gap is the residual part.
+    // 1. Real gas minus ideal gas along the isotherm. The ideal gas is the zero line.
     const traces = [
-      { x: s.P, y: s.P.map(() => s.dH_std / 1000), name: "Ideal gas, ΔH°(T)", mode: "lines",
+      { x: s.P, y: s.P.map(() => 0), name: "Ideal gas (no residual part)", mode: "lines",
         line: { width: 2, dash: "dash", color: "#475569" } },
-      { x: s.P, y: k(s.dH_P), name: `Real gas, ${r.at_P.model_name}`, mode: "lines", fill: "tonexty",
+      { x: s.P, y: k(s.sum_HR), name: `Real gas minus ideal gas, ${r.at_P.model_name}`, mode: "lines", fill: "tonexty",
         fillcolor: "rgba(194,65,12,0.14)", line: { width: 2.5, color: "#c2410c" } },
     ];
-    if (c.dH_real !== null) {
-      traces.push({ x: [r.P, r.P], y: [c.dH_ideal / 1000, c.dH_real / 1000], mode: "markers", showlegend: false,
-        marker: { size: 9, color: ["#475569", "#c2410c"], line: { width: 1.5, color: "#fff" } },
+    if (c.residual !== null) {
+      traces.push({ x: [r.P], y: [c.residual / 1000], mode: "markers", showlegend: false,
+        marker: { size: 9, color: "#c2410c", line: { width: 1.5, color: "#fff" } },
         hovertemplate: "%{y:.2f} kJ/mol at %{x:.0f} bar<extra></extra>" });
     }
     TS.plot("pr-plot-dH", traces,
-      TS.layout(`Heat of reaction at ${fix(r.T, 0)} K: the shaded gap is the residual part`, "Pressure (bar)", "kJ per mol of reaction",
-        { shapes: mark, xaxis: pAxis, yaxis: totalAxis }));
+      TS.layout(`How much the real gas differs from the ideal gas at ${fix(r.T, 0)} K`, "Pressure (bar)", "Σ ν Hᴿ (kJ per mol of reaction)",
+        { shapes: mark, xaxis: pAxis, yaxis: residualAxis }));
 
     // 2. Which species the difference comes from, at the chosen state.
     TS.plot("pr-plot-bars", [{
@@ -235,12 +233,13 @@
       hints.push(`The temperature curve starts near ${fix(r.sweep_T.first_valid_T, 0)} K: below that, a species is a liquid at ${fix(r.P, 0)} bar.`);
     }
     html += `<div class="panel"><div class="grid two">
-      ${TS.fig("pr-plot-dH", "the dashed grey line is the ideal gas. It is flat, because pressure does not change the enthalpy of an ideal gas. The orange line is the real gas. The shaded gap between the two is the residual part, and it widens as the pressure rises. The dots mark your pressure.")}
+      ${TS.fig("pr-plot-dH", "how much the real-gas heat of reaction differs from the ideal-gas value, at each pressure. The dashed grey line at zero is the ideal gas: it is flat, because pressure does not change the enthalpy of an ideal gas. The orange line is the residual part, Σ ν Hᴿ, and it grows as the pressure rises. The dot marks your pressure; the real-gas value is the ideal value plus this number.")}
       ${TS.fig("pr-plot-bars", "one bar per species: its residual enthalpy times its stoichiometric number (blue for products, orange for reactants). Added together, the bars are the gap in the first plot. The tallest bar belongs to the gas that is furthest from ideal.")}
       ${r.sweep_T ? TS.fig("pr-plot-T", "the same residual part at your pressure, but at other temperatures. It shrinks towards zero as the gas gets hotter, because a hot gas behaves almost ideally. The dot marks your temperature.") : ""}
       ${TS.fig("pr-plot-HR", "the residual enthalpy of each pure gas against pressure. A line that stays near zero is an almost ideal gas. A line that falls steeply is a gas close to its critical point, where the molecules attract each other strongly.")}</div>
-      <p class="hint" style="margin:8px 0 0">All four graphs use the same kJ/mol scale, so heights can be compared from one graph to the next.
-        The first graph is only moved up or down, so that its dashed ideal-gas line sits where the other graphs have zero.</p>
+      <p class="hint" style="margin:8px 0 0">All four graphs cover exactly the same range of values (in kJ/mol), so a number can be read
+        across from one graph to another. The value at your pressure in the first graph, the sum of the bars and the dot in the third graph
+        are the same number.</p>
       ${hints.map((h) => `<p class="hint" style="margin:8px 0 0">${h}</p>`).join("")}</div>`;
     html += `<div class="panel"><h3>Residual properties of each species at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar</h3>
       ${residualTable(r)}${TS.notes(a.notes.filter((n) => n.level === "info" && n.kind !== "condensation"))}</div>`;

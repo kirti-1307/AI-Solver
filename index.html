@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Thermodynamic Reaction Energy Solver</title>
-  <meta name="description" content="Reaction enthalpy, entropy, Gibbs energy and equilibrium from Smith, Van Ness & Abbott data, with residual properties, reaction combination, a live equilibrium reactor and a heat lab (flame temperature, heat duty, bomb calorimeter).">
+  <meta name="description" content="Reaction enthalpy, entropy, Gibbs energy and equilibrium from Smith, Van Ness & Abbott data, with residual properties, reaction combination, a live equilibrium reactor and a virtual bomb calorimeter.">
   <script>
     // Apply a saved light/dark choice before the first paint.
     try { const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
@@ -12,17 +12,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="web/styles.css?v=1.8.3">
+  <link rel="stylesheet" href="web/styles.css?v=1.8.4">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.8.3" defer></script>
-  <script src="web/tab-reaction.js?v=1.8.3" defer></script>
-  <script src="web/tab-pressure.js?v=1.8.3" defer></script>
-  <script src="web/tab-combine.js?v=1.8.3" defer></script>
-  <script src="web/tab-network.js?v=1.8.3" defer></script>
-  <script src="web/tab-heat.js?v=1.8.3" defer></script>
-  <script src="web/tab-data.js?v=1.8.3" defer></script>
-  <script src="web/tab-validation.js?v=1.8.3" defer></script>
-  <script src="web/main.js?v=1.8.3" defer></script>
+  <script src="web/ui.js?v=1.8.4" defer></script>
+  <script src="web/tab-reaction.js?v=1.8.4" defer></script>
+  <script src="web/tab-pressure.js?v=1.8.4" defer></script>
+  <script src="web/tab-combine.js?v=1.8.4" defer></script>
+  <script src="web/tab-network.js?v=1.8.4" defer></script>
+  <script src="web/tab-heat.js?v=1.8.4" defer></script>
+  <script src="web/tab-data.js?v=1.8.4" defer></script>
+  <script src="web/tab-validation.js?v=1.8.4" defer></script>
+  <script src="web/main.js?v=1.8.4" defer></script>
 </head>
 <body>
 <header class="top">
@@ -48,7 +48,7 @@
     <button role="tab" id="tabbtn-pressure" aria-controls="tab-pressure" aria-selected="false" data-tab="pressure"><span class="n">2</span>Pressure &amp; real gas</button>
     <button role="tab" id="tabbtn-combine" aria-controls="tab-combine" aria-selected="false" data-tab="combine"><span class="n">3</span>Combine reactions</button>
     <button role="tab" id="tabbtn-network" aria-controls="tab-network" aria-selected="false" data-tab="network"><span class="n">4</span>Product slate <span class="tag">extra</span></button>
-    <button role="tab" id="tabbtn-heat" aria-controls="tab-heat" aria-selected="false" data-tab="heat"><span class="n">5</span>Heat lab <span class="tag">extra</span></button>
+    <button role="tab" id="tabbtn-heat" aria-controls="tab-heat" aria-selected="false" data-tab="heat"><span class="n">5</span>Bomb calorimeter <span class="tag">extra</span></button>
     <button role="tab" id="tabbtn-data" aria-controls="tab-data" aria-selected="false" data-tab="data"><span class="n">6</span>Species data</button>
     <button role="tab" id="tabbtn-validation" aria-controls="tab-validation" aria-selected="false" data-tab="validation"><span class="n">7</span>Validation</button>
   </nav>
@@ -123,14 +123,6 @@
           <span class="qtext">A live reactor: drag temperature and pressure, and switch products off like choosing a catalyst.</span>
         </span>
       </button>
-      <button class="qcard demo extra" type="button" data-demo="flame">
-        <span class="tile" aria-hidden="true"><span class="tile-no">05</span><span class="tile-sym">T</span><span class="tile-name">flame</span></span>
-        <span class="qbody">
-          <span class="qtag">Tab 5 · extra feature</span>
-          <span class="qtitle">How hot does it get?</span>
-          <span class="qtext">Flame temperature and the heat to add or remove, from an energy balance around the reactor.</span>
-        </span>
-      </button>
       <button class="qcard demo extra" type="button" data-demo="bomb">
         <span class="tile" aria-hidden="true"><span class="tile-no">05</span><span class="tile-sym">ΔU</span><span class="tile-name">bomb</span></span>
         <span class="qbody">
@@ -186,7 +178,7 @@
         <label>Temperature (K)
           <input id="rx-T" type="number" step="any" value="298.15">
         </label>
-        <label title="Used only for the equilibrium conversion. ΔH°, ΔS°, ΔG° and K are standard values at 1 bar.">Pressure (bar)
+        <label title="Used only for the equilibrium conversion. ΔH°, ΔS° and ΔG° are standard values at 1 bar.">Pressure (bar)
           <input id="rx-P" type="number" step="any" value="1">
         </label>
         <label>Plot from (K)
@@ -351,100 +343,15 @@
 
   <!-- ============================================================ 5 -->
   <section id="tab-heat" role="tabpanel" aria-labelledby="tabbtn-heat" class="tab">
-    <div class="panel" data-bar="Tab 5 · Heat lab">
-      <h2>Heat lab: how hot does it get, and how much heat is needed? <span class="tag">extra feature 2</span></h2>
-      <p class="hint">An energy balance around the reactor: Q = ΔH<sub>R</sub> + ΔH°<sub>298</sub> + ΔH<sub>P</sub>
-        (feed to 298.15 K, reaction there, products to the outlet). With Q = 0 it gives the flame temperature.
-        If the outlet is cooled so far that its water vapour becomes saturated, part of the water condenses and its latent heat is added as a fourth step.
-        The second view is the bomb calorimeter of the lab, where the vessel is closed and the heat released is ΔU.</p>
-      <div class="seg big" id="hl-view" role="tablist" aria-label="View">
-        <button type="button" data-view="reactor" class="on">Reactor and flame</button>
-        <button type="button" data-view="calorimeter">Bomb calorimeter</button>
-      </div>
+    <div class="panel" data-bar="Tab 5 · Bomb calorimeter">
+      <h2>Bomb calorimeter: the lab experiment on screen <span class="tag">extra feature 2</span></h2>
+      <p class="hint">A sample burns in a closed steel vessel, the bomb, which sits in water. The vessel cannot change its
+        volume, so no work is done and the heat released is ΔU, not ΔH. First the calorimeter is calibrated with benzoic acid,
+        whose calorific value is known. Then the same calorimeter predicts the temperature rise of another fuel, or finds the
+        fuel that best fits a measured rise.</p>
     </div>
 
-    <div id="hl-reactor">
-      <div class="panel" data-bar="Reactor and flame · settings">
-        <div class="form">
-          <label class="grow2">Example
-            <select id="hb-select"></select>
-          </label>
-          <label class="grow3">Reaction (editable)
-            <input id="hb-equation" type="text" spellcheck="false" autocomplete="off">
-          </label>
-          <button id="hb-run" class="primary">Calculate</button>
-        </div>
-        <p id="hb-note" class="hint" style="margin:10px 0 0"></p>
-        <div class="form">
-          <div class="seg" id="hb-mode" aria-label="What to find">
-            <button type="button" data-mode="adiabatic" class="on">Find the outlet temperature</button>
-            <button type="button" data-mode="duty">Find the heat to add or remove</button>
-          </div>
-          <label class="check" id="hb-air-box"><input type="checkbox" id="hb-air"><span>Oxygen comes as air (79 % N<sub>2</sub>)</span></label>
-          <label class="check" id="hb-condense-box" title="A gas can carry water vapour only up to the vapour pressure. Cooled below the temperature at which its water vapour becomes saturated, the outlet loses part of its water as liquid, and the latent heat comes out as well. Untick the box to keep every species in the phase that is written, as the textbook examples do.">
-            <input type="checkbox" id="hb-condense" checked><span>Let the water change phase (condense when the outlet is cold enough)</span></label>
-        </div>
-        <div class="sliders">
-          <div class="slider">
-            <span class="name">Inlet temperature</span>
-            <span class="val"><input id="hb-Tin" type="number" step="any" value="298.15"><span>K</span></span>
-            <input id="hb-Tin-r" type="range" min="250" max="1500" step="1" value="298.15" aria-label="Inlet temperature in kelvin">
-          </div>
-          <div class="slider" id="hb-excess-box">
-            <span class="name" id="hb-excess-name">Excess</span>
-            <span class="val"><input id="hb-excess" type="number" step="any" value="20"><span>%</span></span>
-            <input id="hb-excess-r" type="range" min="0" max="400" step="1" value="20" aria-label="Excess reactant in percent">
-          </div>
-          <div class="slider">
-            <span class="name" id="hb-conv-name">Conversion</span>
-            <span class="val"><input id="hb-conv" type="number" step="any" value="100"><span>%</span></span>
-            <input id="hb-conv-r" type="range" min="0" max="100" step="1" value="100" aria-label="Conversion in percent">
-          </div>
-          <div class="slider" id="hb-Tout-box" hidden>
-            <span class="name">Outlet temperature</span>
-            <span class="val"><input id="hb-Tout" type="number" step="any" value="1300"><span>K</span></span>
-            <input id="hb-Tout-r" type="range" min="300" max="2500" step="1" value="1300" aria-label="Outlet temperature in kelvin">
-          </div>
-        </div>
-        <details class="plain">
-          <summary>More settings: side reaction, extra feed, heat added or removed, temperature limit</summary>
-          <div class="form">
-            <label>Basis: 1 mol of
-              <select id="hb-key"></select>
-            </label>
-            <label>Reactant in excess
-              <select id="hb-excess-species"></select>
-            </label>
-            <label>Plot against
-              <select id="hb-sweep"></select>
-            </label>
-            <label id="hb-target-box">Temperature limit (K), optional
-              <input id="hb-target" type="number" step="any" placeholder="e.g. 1500">
-            </label>
-            <label id="hb-Q-box">Heat added (kJ per mol), 0 = adiabatic
-              <input id="hb-Q" type="number" step="any" value="0">
-            </label>
-          </div>
-          <div class="form">
-            <label class="grow3">Side reaction, optional
-              <input id="hb-side-eq" class="mono-input" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. CO + H2O(g) -> CO2 + H2">
-            </label>
-            <label>Its extent (mol per mol of basis)
-              <input id="hb-side-extent" type="number" step="any" placeholder="0">
-            </label>
-            <label>Extra feed species, optional
-              <select id="hb-extra-species"></select>
-            </label>
-            <label>Its amount (mol per mol of basis)
-              <input id="hb-extra-n" type="number" step="any" placeholder="0">
-            </label>
-          </div>
-        </details>
-      </div>
-      <div id="hb-out" aria-live="polite"></div>
-    </div>
-
-    <div id="hl-calorimeter" hidden>
+    <div id="hl-calorimeter">
       <div class="panel" data-bar="Bomb calorimeter · settings">
         <h3>1. The calorimeter constant</h3>
         <div class="form">

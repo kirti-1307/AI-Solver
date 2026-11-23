@@ -28,23 +28,21 @@ The first thing the solver does is check the elemental balance. Here I typed met
 
 *[Pick "CO2 hydrogenation to methanol" from the list. The temperature is 523.15 K]*
 
-Now a real case: CO2 hydrogenation to methanol at 523 K. The reaction gives out heat, ΔH° = −57.94 kJ/mol. But it turns four moles of gas into two, so ΔS° is negative, −199.76 J/(mol·K). At this temperature the entropy term wins, and ΔG° is +46.56 kJ/mol. So the reactants are favoured, and Kp is only 2.2 × 10⁻⁵.
-
-Kp here means the equilibrium constant written with partial pressures in bar. It changes with temperature only, never with pressure.
+Now a real case: CO2 hydrogenation to methanol at 523 K. The reaction gives out heat, ΔH° = −57.94 kJ/mol. But it turns four moles of gas into two, so ΔS° is negative, −199.76 J/(mol·K). At this temperature the entropy term wins, and ΔG° is +46.56 kJ/mol. So the reactants are favoured. That does not mean nothing reacts: some product still forms, only less.
 
 *[Type 50 in the pressure box and press Calculate]*
 
-Pressure does not change Kp, but it changes how far the reaction goes. At 1 bar only 0.6 % of the CO2 converts. At 50 bar it is 21.3 %, because the reaction makes fewer gas molecules.
+ΔG° belongs to the standard pressure of 1 bar, so pressure does not change it. But pressure changes how far the reaction goes. At 1 bar only 0.6 % of the CO2 converts. At 50 bar it is 21.3 %, because the reaction makes fewer gas molecules.
 
 *[Scroll to the graphs]*
 
-The graphs show the same quantities against temperature, and all of them use the same temperature axis. The orange line is ΔH°, the blue line is ΔG°, and where the blue line crosses zero, Kp equals 1. The dashed lines show what we would get with a constant Cp or with Cp ignored. This was one of the stress tests of the assignment: at 1000 K for steam reforming the three give 225.3, 238.8 and 205.8 kJ/mol.
+The graphs show the same quantities against temperature, and all of them use the same temperature axis. The orange line is ΔH°, the blue line is ΔG°, and where the blue line crosses zero, the favoured side changes. The dashed lines show what we would get with a constant Cp or with Cp ignored. This was one of the stress tests of the assignment: at 1000 K for steam reforming the three give 225.3, 238.8 and 205.8 kJ/mol.
 
 ### Tab 2: Pressure and real gas
 
 *[Click tab 2. It opens on ammonia synthesis at 723 K and 200 bar]*
 
-For an ideal gas the enthalpy does not depend on pressure. The molecules do not feel each other, so U depends on temperature only, and H = U + PV = U + RT. That is why the grey dashed line is flat.
+For an ideal gas the enthalpy does not depend on pressure. The molecules do not feel each other, so U depends on temperature only, and H = U + PV = U + RT. That is why the grey dashed line in the first graph, the ideal gas, is flat at zero.
 
 A real gas is different. The residual enthalpy Hᴿ is the real value minus the ideal value, and I get it from an equation of state. For ammonia synthesis at 200 bar the ideal-gas ΔH is −106.50 kJ/mol, and the real gas gives −111.66 kJ/mol. So the real gas releases 4.8 % more heat.
 
@@ -92,39 +90,25 @@ At 700 K methanol almost disappears, and CO takes 40.1 %, because high temperatu
 
 The faded switches are the ones that would change nothing at the current settings, so the page only lets me click switches that matter.
 
-## 4. Extra feature 2: Heat lab (2.5 minutes)
+## 4. Extra feature 2: Bomb calorimeter (2.5 minutes)
 
-*[Click tab 5. "Reactor and flame" opens on the methane burner with 20 % excess air]*
+*[Click tab 5. The numbers of our lab handout are already filled in]*
 
-The heat of reaction alone does not tell us how hot a reactor gets. So this tab makes an energy balance around the reactor, using the same three-step path as the textbook: bring the feed to 298.15 K, react there, then heat the products to the outlet.
+This tab repeats our bomb calorimeter lab on screen. A sample burns in a closed steel vessel, the bomb, which sits in water. The vessel cannot change its volume, so no work is done, and the heat that comes out is ΔU, not ΔH.
 
-With no heat loss, methane burned with 20 % excess air reaches 2069 K. The textbook example gives 2066 K, because it stretches its Cp formula beyond its 2000 K limit. Above 2000 K my solver uses NIST data instead, and the note on the page shows both numbers.
+First the calorimeter is calibrated, with the numbers from the handout: 1.1942 g of benzoic acid, which gives 6319 cal/g, raised the temperature by 2.48 °C, and the thread and wire gave 41 cal. So the calorimeter constant is (1.1942 × 6319 + 41) / 2.48 = 3059.3 cal/°C.
 
-*[Drag the excess-air slider]*
+*[Ethanol is selected. Press Ignite]*
 
-Extra air cools the flame, because the extra nitrogen and oxygen also have to be heated. With no excess air the flame is at 2326 K, and with 100 % excess air it is 1486 K.
+Now I burn 1 g of ethanol. The solver writes the complete combustion, C2H5OH(l) + 3 O2 → 2 CO2 + 3 H2O(l), and gets ΔH = −1366.8 kJ/mol from the heats of formation. The gas moles fall by 1, because three O2 go in and two CO2 come out, so ΔU = ΔH − Δn·R·T = −1364.3 kJ/mol. Per kilogram, that is a calorific value of 29.62 MJ/kg, and the predicted temperature rise is 2.31 °C.
 
-*[Put the excess air back to 20 %. Open "More settings" and type 1500 in "Temperature limit"]*
+*[Scroll to the steps under the result]*
 
-If I set a temperature limit of 1500 K, the solver finds that I need 97 % excess air.
+The page also gives the two heating values. The HHV, 29.67 MJ/kg, has the water as liquid, and the LHV, 26.80 MJ/kg, has it as vapour. The difference is the latent heat of the water formed.
 
-*[Pick the example "Condensing boiler: flue gas of a methane burner cooled to 40 C"]*
+*[Click "Identify an unknown sample". Keep 1.00 g and 2.30 °C, then press Identify]*
 
-The flue gas also contains water vapour. A gas can hold water vapour only up to the vapour pressure of water, so when it is cooled far enough the water starts to condense. For this flue gas that happens at 328.7 K, which is 55.5 °C.
-
-At 40 °C, 1.17 of the 2 moles of water condense, and their latent heat comes out as a fourth step. So 847.7 kJ can be recovered instead of 796.9 kJ.
-
-*[Untick "Let the water change phase"]*
-
-If I keep the water as vapour, it is back to 796.9 kJ, with a warning that heat is left out. This is how a condensing boiler gets more heat out of the same fuel. Cooled to 25 °C the flue gas gives 875.6 kJ, which lies between the LHV of 802.6 and the HHV of 890.6 kJ/mol. It cannot reach the HHV, because the gas leaves saturated and still carries some water vapour away.
-
-*[Click "Bomb calorimeter"]*
-
-The second view repeats our lab experiment. The calibration uses the numbers from the lab handout: 1.1942 g of benzoic acid and a rise of 2.48 °C, which give a calorimeter constant of 3059.3 cal/°C.
-
-*[Choose ethanol and press Ignite]*
-
-For 1 g of ethanol the solver predicts a temperature rise of 2.31 °C. The bomb has a fixed volume, so it measures ΔU, not ΔH, and ΔH = ΔU + Δn·R·T links the two.
+The calorimeter can also work backwards. If 1 g of an unknown sample raises the temperature by 2.30 °C, its calorific value is 29.44 MJ/kg. The closest fuel in the database is ethanol, only 0.6 % away, while the next one, graphite, is 11 % away. So in the lab we could tell which fuel we burned.
 
 ## 5. How I checked it (1 minute)
 
@@ -136,14 +120,14 @@ While building it, I also found and corrected several errors of the AI. For exam
 
 ## 6. Closing (20 seconds)
 
-To sum up, the solver gives the heat of reaction, entropy, Gibbs energy and Kp at any temperature, shows what pressure does for real gases, and adds two features on top: the product slate, which shows that the catalyst decides what forms, and the heat lab, which turns the heat of reaction into a reactor temperature, or into the heat to add or remove, for a real burner. Thank you.
+To sum up, the solver gives the heat of reaction, entropy and Gibbs energy at any temperature, shows what pressure does for real gases, and adds two features on top: the product slate, which shows that the catalyst decides what forms, and the bomb calorimeter, which repeats our lab on screen and links ΔU to ΔH. Thank you.
 
 ---
 
 ## Questions the professor may ask
 
 **Is your K a Kp or a Kc?**
-It is Kp, written with the partial pressures in bar, divided by the standard pressure of 1 bar. The standard state of a gas is 1 bar, so ΔG° = −RT ln K gives Kp.
+K is not shown on tab 1, but the solver uses it for the conversion and for the soot test on tab 4. It is Kp, written with the partial pressures in bar, divided by the standard pressure of 1 bar. The standard state of a gas is 1 bar, so ΔG° = −RT ln K gives Kp.
 
 **Does Kp change with pressure?**
 No. For an ideal gas, Kp (and Kc too) depends on temperature only. Pressure changes the equilibrium composition, which is why the conversion rises from 0.6 % to 21.3 % at 50 bar.
@@ -160,6 +144,12 @@ Near the critical point a gas is almost a liquid: the molecules are close and sl
 **What do the three steps on tab 2 mean?**
 They reach the real-gas ΔH by a detour, like Hess's law: real reactants to ideal gases, react as ideal gases, ideal products back to real gases. H depends only on the start and the end, so the detour gives the same answer.
 
+**Does the solver use Peng/Robinson for every calculation?**
+No. Only tab 2 needs an equation of state, and it starts on Peng/Robinson; the list lets me pick any other. Tab 4 can use Peng/Robinson if I choose "real gas", but it starts on the ideal gas. Tabs 1, 3 and 5 use standard values at 1 bar, which need no equation of state.
+
+**What if another equation is better in some cases?**
+That can happen. Each equation is a model, and the best one depends on the gas and the conditions. That is why the list is there: switching the model shows how much the answer depends on it. For the six industrial cases, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, so the answer hardly depends on which of the two I use. Only measured data could say which equation is closest to the truth, and the course tables do not give measured residual enthalpies.
+
 **Why Peng/Robinson?**
 It uses Tc, Pc and the acentric factor, and it works at high pressure. Soave/Redlich/Kwong gives almost the same answer. van der Waals and Redlich/Kwong use only Tc and Pc, and the virial equation is only for low to moderate pressure. For methanol synthesis at 80 bar, the residual part is −8.63 kJ/mol with Peng/Robinson but −5.05 with van der Waals.
 
@@ -169,12 +159,6 @@ The solver takes the gas it found and a reaction that makes carbon from it, for 
 **Why does methane win on tab 4, if industry makes methanol?**
 Making methane from CO2 and hydrogen lowers the total Gibbs energy much more than making methanol does. Industry uses a catalyst that makes methanol but not methane, which is exactly what the switch imitates.
 
-**Why is your flame 2069 K and the textbook's 2066 K?**
-The textbook uses its Cp formula up to 2066 K, but the formula is only valid to 2000 K. My solver uses NIST data above 2000 K. With the stretched formula it also gives 2066 K, as shown in the Validation tab.
-
-**Is a real flame really that hot?**
-A little cooler. Above about 2000 K, some of the CO2 and H2O break apart, which takes up heat, and the energy balance does not include that. The page says so in a note.
-
 **A reaction is "reactants favoured". Why does it still have a ΔH?**
 ΔH is the enthalpy of the products minus that of the reactants, so it exists for every balanced reaction. A small Kp only means that less product forms, and every mole that does react still gives out ΔH.
 
@@ -182,10 +166,10 @@ A little cooler. Above about 2000 K, some of the CO2 and H2O break apart, which 
 The pure species at 1 bar, at any temperature. 298.15 K is only the reference temperature at which the tables give the heats of formation.
 
 **Where does the data come from below 298 K and above 2000 K?**
-The textbook's Cp tables start at 298 K. From 200 K to 298.15 K, the heat capacities come from NIST tables. Above 2000 K, for the eight flame gases, they come from NIST equations. Everything in between is from the textbook.
+The textbook's Cp tables start at 298 K. From 200 K to 298.15 K, the heat capacities come from NIST tables. Above 2000 K, for eight common gases, they come from NIST equations. Everything in between is from the textbook.
 
 **Why does the bomb calorimeter give ΔU?**
 Its volume is fixed, so no work is done, and the heat released equals ΔU. Then ΔH = ΔU + Δn·R·T.
 
 **What are the limitations?**
-Phase change is handled on tab 1 and in the heat lab only. On tabs 2 and 4, a species that would condense at high pressure is flagged but not condensed. The heat lab ignores the breaking apart of CO2 and H2O above 2000 K. And equilibrium tells us where a reaction ends up, not how fast it gets there.
+Phase change is handled on tab 1 only. On tabs 2 and 4, a species that would condense at high pressure is flagged but not condensed. The calorimeter assumes complete combustion to CO2 and liquid water. And equilibrium tells us where a reaction ends up, not how fast it gets there.

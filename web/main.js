@@ -59,8 +59,7 @@
     ammonia() { showTab("pressure"); $("#pr-P").value = 200; pick("#pr-select", "ammonia"); },
     hess() { showTab("combine"); const s = $("#cb-preset"); s.selectedIndex = 0; s.dispatchEvent(new Event("change")); },
     slate() { showTab("network"); pick("#nw-preset", "co2_hydrogenation"); },
-    flame() { showTab("heat"); TS.heatView("reactor"); TS.heatExample("methane_burner"); },
-    bomb() { showTab("heat"); TS.heatView("calorimeter"); },
+    bomb() { showTab("heat"); },
     validation() { showTab("validation"); },
   };
 
