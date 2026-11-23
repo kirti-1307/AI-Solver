@@ -68,6 +68,8 @@ A reaction does not always go all the way. It stops at a balance point called eq
 
 Example: for the reaction above at 523 K, K = 2.2 × 10⁻⁵. Almost nothing reacts at 1 bar (0.6 % conversion).
 
+**Which K is it?** The K of this solver is **Kp**: it is written with the partial pressure of each gas in bar, divided by the standard pressure of 1 bar, so it has no units. It is not Kc, which is written with concentrations. Pure liquids and solids do not appear in it. Kp changes with temperature only. Pressure changes how far the reaction goes, but not Kp.
+
 ### Real gases and residual enthalpy, Hᴿ
 
 At low pressure, gas molecules are far apart and ignore each other. That is an ideal gas, and its enthalpy does not depend on pressure.
@@ -153,7 +155,7 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 
 **It answers:** how much heat, and which side is favoured?
 
-**You do:** pick a reaction or type one, set the temperature, press Calculate. The pressure box is only for the equilibrium conversion; ΔH°, ΔS°, ΔG° and K are standard values at 1 bar.
+**You do:** pick a reaction or type one, set the temperature, press Calculate. The pressure box is only for the equilibrium conversion; ΔH°, ΔS°, ΔG° and K are standard values, and K is Kp.
 
 **You read:**
 
@@ -174,10 +176,12 @@ One more point. Below its boiling point a product is not automatically a liquid.
 **The five graphs of tab 1.** Each has a line under it that says how to read it. In short:
 
 1. **Energy changes versus temperature.** Orange is ΔH° (heat), blue is ΔG° (which side is favoured), green is T·ΔS°. Blue is always orange minus green. Where the blue line crosses zero, K = 1. The dots show your temperature.
-2. **Equilibrium constant.** The higher the line, the more the products are favoured. Above the dotted line K is bigger than 1. If the line falls to the right, the reaction gives out heat.
+2. **Equilibrium constant Kp.** The higher the line, the more the products are favoured. Above the dotted line Kp is bigger than 1.
 3. **Equilibrium conversion.** How much has reacted when the reaction comes to rest. Grey dashed is at 1 bar, blue is at your pressure.
 4. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
 5. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
+
+The four graphs against temperature share the same temperature axis, so you can follow one temperature from graph to graph.
 
 A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens. For gases the range now starts at 200 K, so the plots start there too.
 
@@ -192,7 +196,11 @@ A grey band on a plot means the Cp formula is being used outside the temperature
 - The first plot: the ideal gas is a flat line, the real gas is a curve. The shaded gap between them is the residual part. It grows with pressure.
 - The list of bars at the top: six industrial reactions, sorted by how much pressure matters. Click one to load it.
 
-Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.16 kJ/mol, so the real gas releases 4.8 % more heat. Most of it comes from NH₃.
+Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.16 kJ/mol, so the real gas releases 4.8 % more heat.
+
+**Why does the ideal-gas ΔH not depend on pressure?** An ideal gas has no forces between its molecules, so its internal energy U depends on temperature only. Also PV = RT for one mole. So H = U + PV = U + RT depends on temperature only, and so does the ΔH of a reaction between ideal gases. A real gas is different: its molecules attract and repel each other, so its H changes with pressure. That change is the residual enthalpy Hᴿ.
+
+**Why Peng/Robinson?** The tab starts on Peng/Robinson, but you can pick any of the five models. Peng/Robinson and Soave/Redlich/Kwong use three properties of each gas: the critical temperature, the critical pressure and the acentric factor ω. van der Waals and Redlich/Kwong use only the first two, so they treat every molecule as if it had the same shape. The virial equation is only meant for low to moderate pressure. For the six industrial cases of the tab, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, while van der Waals and Redlich/Kwong can be off by up to 3.6 kJ/mol (methanol synthesis at 80 bar: −8.63 with Peng/Robinson, −5.05 with van der Waals). The table "Same state, every model" under each result shows this.
 
 When does it matter?
 
@@ -206,6 +214,8 @@ When does it matter?
 2. **Where the difference comes from.** One bar per substance. The tallest bar is the gas that is furthest from ideal.
 3. **Residual part against temperature.** The same gap at your pressure, at other temperatures. It shrinks as the gas gets hotter.
 4. **Residual enthalpy of each pure gas.** A line near zero is an almost ideal gas. A line that falls steeply is a gas close to its critical point.
+
+All four graphs use the same kJ/mol scale, so a height in one graph means the same number of kJ in the others. The first graph is only moved up or down, so that its ideal-gas line sits where the other graphs have zero. The gap in graph 1 at your pressure, the sum of the bars in graph 2 and the dot in graph 3 are the same number.
 
 **"No gas-phase value".** If a substance would be a liquid at your temperature and pressure, there is no gas reaction to calculate. The tab says so in a blue box and offers a pressure, or a temperature, where it works. Example: at 523 K water is a liquid above about 90 bar, so CO₂ hydrogenation at 200 bar has no gas-phase value. This is a limit of the conditions, not an error.
 
@@ -311,7 +321,7 @@ This is the proof that the numbers are right. It has three parts:
 ## 5. Why you can trust the answers
 
 - **The data are traceable.** From 298.15 K upwards, 54 of the 57 substances use only the textbook tables. The other three come from the NIST database and are labelled. Below 298.15 K, where the textbook has no data, the heat capacities come from NIST tables, and the solver says so whenever it uses them.
-- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency checks" under each result.
+- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency checks" under the results of tabs 2 and 5.
 - **It has more than 200 automated tests.** They run every time the code changes.
 - **It refuses bad input.** An unbalanced reaction gets no answer at all.
 - **It warns you.** If a formula is used outside its valid temperature range, you see a warning.
@@ -403,6 +413,9 @@ Try to answer before you read the answer.
 18. **Why does ΔH° jump at a boiling point while ΔG° does not?** Liquid and vapour have different enthalpies; the difference is the latent heat. But at the boiling point they have the same Gibbs energy, so ΔG° and K pass through without a jump.
 19. **A flue gas is cooled to 25 °C. Why does less than the HHV come out?** The gas leaves saturated with water. Of the 2 mol of water from one mole of methane, 0.34 mol stay vapour and keep their latent heat.
 20. **Water is in a gas mixture at 80 °C and 1 bar. Is it a liquid?** Only if its partial pressure reaches its vapour pressure, which is 0.47 bar at 80 °C. Below that it stays a vapour, although 80 °C is below the boiling point.
+21. **Is the K of this solver Kp or Kc?** Kp: it is written with partial pressures in bar. It changes with temperature only; pressure changes the conversion, not Kp.
+22. **Why does the ideal-gas ΔH not change with pressure?** For an ideal gas U depends on T only and PV = RT, so H = U + RT depends on T only.
+23. **Why does tab 2 start on Peng/Robinson?** It uses the acentric factor as well as Tc and Pc, and it holds at high pressure. Soave/Redlich/Kwong gives almost the same answer; van der Waals and Redlich/Kwong do not.
 
 ## 10. A five-minute tour
 

@@ -351,26 +351,31 @@
 
     const xTitle = s.variable === "T" ? "Temperature (K)" : "Pressure (bar)";
     const here = s.variable === "T" ? r.T : r.P;
+    // Every graph of this panel uses the same horizontal axis, and the fractions run over
+    // the whole 0 to 1 (0 to 100 %) on every graph, so curves can be compared from one to the next.
+    const xAxis = { range: [s.x[0], s.x[s.x.length - 1]] };
+    const percent = (list) => list.map((v) => (v === null ? null : 100 * v));
+    const convAxis = { range: TS.span(Object.values(s.conversion).map(percent), [0, 100], 0) };
     TS.plot("nw-plot-y", r.species.map((sid) => ({
       x: s.x, y: s.y[sid], name: sid, mode: "lines", line: { width: 2.2, color: TS.colorOf(sid) },
-    })), TS.layout("Equilibrium mole fractions", xTitle, "Mole fraction", { shapes: [TS.vline(here)] }));
+    })), TS.layout("Equilibrium mole fractions", xTitle, "Mole fraction", { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [0, 1] } }));
 
     TS.plot("nw-plot-dist", Object.keys(s.distribution).map((sid) => ({
       x: s.x, y: s.distribution[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines",
       stackgroup: "one", line: { width: 0.6, color: TS.colorOf(sid) },
-    })), TS.layout(`Where the ${el} atoms go`, xTitle, `% of ${el} atoms`, { shapes: [TS.vline(here)], yaxis: { range: [0, 100] } }));
+    })), TS.layout(`Where the ${el} atoms go`, xTitle, `% of ${el} atoms`, { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [0, 100] } }));
 
     if (hasCarbon) {
       // Yes or no at each point of the plot: the same test as on the card above.
       const yesNo = s.carbon_activity.map((v) => (v === null ? null : (v > 1 ? 1 : 0)));
       TS.plot("nw-plot-aC", [{ x: s.x, y: yesNo, name: "solid carbon", mode: "lines", line: { width: 2.5, color: "#475569", shape: "hv" } }],
         TS.layout("Can solid carbon (soot) form?", xTitle, "",
-          { shapes: [TS.vline(here)], yaxis: { range: [-0.25, 1.25], tickvals: [0, 1], ticktext: ["no", "yes"] }, showlegend: false }));
+          { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [-0.25, 1.25], tickvals: [0, 1], ticktext: ["no", "yes"] }, showlegend: false }));
     }
     TS.plot("nw-plot-conv", Object.keys(s.conversion).map((sid) => ({
-      x: s.x, y: s.conversion[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines",
+      x: s.x, y: percent(s.conversion[sid]), name: sid, mode: "lines",
       line: { width: 2.2, color: TS.colorOf(sid) },
-    })), TS.layout("Equilibrium conversion of the feed species", xTitle, "Conversion (%)", { shapes: [TS.vline(here)] }));
+    })), TS.layout("Equilibrium conversion of the feed species", xTitle, "Conversion (%)", { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: convAxis }));
   }
 
   /* ------------------------------------------------------------- calculations */

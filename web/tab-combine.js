@@ -70,12 +70,17 @@
       const stepTraces = (series) => series.map((y, i) => ({
         x: s.T, y: k(y), name: `step ${i + 1} × ${r.steps[i].multiplier}`, mode: "lines",
         line: { width: 1.6, dash: "dash", color: palette[(i + 1) % palette.length] } }));
+      // The ΔG° and ΔH° graphs share both axes, so a value can be read across from one to the other.
+      const same = {
+        xaxis: { range: [s.T[0], s.T[s.T.length - 1]] },
+        yaxis: { range: TS.span([...s.steps, ...s.steps_dH, s.net_dG, s.net_dH].map(k), [0]) },
+      };
       TS.plot("cb-plot-G", stepTraces(s.steps).concat([
         { x: s.T, y: k(s.net_dG), name: "net reaction", mode: "lines", line: { width: 3, color: palette[0] } },
-      ]), TS.layout("ΔG° of the steps add up to the net ΔG°", "Temperature (K)", "kJ/mol", { shapes: [TS.hline(0), TS.vline(r.T)] }));
+      ]), TS.layout("ΔG° of the steps add up to the net ΔG°", "Temperature (K)", "kJ per mol of reaction", { shapes: [TS.hline(0), TS.vline(r.T)], ...same }));
       TS.plot("cb-plot-H", stepTraces(s.steps_dH).concat([
         { x: s.T, y: k(s.net_dH), name: "net reaction", mode: "lines", line: { width: 3, color: palette[0] } },
-      ]), TS.layout("ΔH° of the steps add up to the net ΔH°", "Temperature (K)", "kJ/mol", { shapes: [TS.hline(0), TS.vline(r.T)] }));
+      ]), TS.layout("ΔH° of the steps add up to the net ΔH°", "Temperature (K)", "kJ per mol of reaction", { shapes: [TS.hline(0), TS.vline(r.T)], ...same }));
     }
   }
 

@@ -341,8 +341,8 @@ def _derivation(rxn: Reaction, ev: dict) -> List[dict]:
          "formula": "ΔG°(T) = ΔH°(T) − T·ΔS°(T)",
          "work": f"{ev['dH']:,.0f} − {T:g} × ({ev['dS']:,.3f})",
          "value": ev["dG"], "unit": "J/mol"},
-        {"title": "Equilibrium constant",
-         "formula": "ln K = −ΔG°(T) / (R·T)",
+        {"title": "Equilibrium constant Kp (partial pressures in bar)",
+         "formula": "ln Kp = −ΔG°(T) / (R·T)",
          "work": f"−({ev['dG']:,.0f}) / (8.314 × {T:g})",
          "value": ev["lnK"], "unit": "(ln K)"},
     ]

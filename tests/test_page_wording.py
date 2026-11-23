@@ -111,7 +111,7 @@ class TestPageFiles(unittest.TestCase):
                 self.assertNotIn(term, lower, f"'{term}' in {name}")
 
     def test_the_guide_uses_the_same_words(self):
-        for name in (os.path.join("docs", "LEARNERS_GUIDE.md"), "guide.html"):
+        for name in (os.path.join("docs", "LEARNERS_GUIDE.md"), "guide.html", os.path.join("docs", "PRESENTATION_SCRIPT.md")):
             lower = read(name).lower()
             for term in FORBIDDEN:
                 self.assertNotIn(term, lower, f"'{term}' in {name}")
@@ -147,6 +147,46 @@ class TestPageFiles(unittest.TestCase):
                       "Carnot engine"):
             self.assertIn(words, script)
         self.assertNotIn("W<sub>ideal</sub>", script)
+
+
+class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
+    """What the user asked for on tabs 1 and 2 on 23 November 2026, kept in place."""
+
+    def test_tab_1_has_no_van_t_hoff_line_and_no_consistency_checks(self):
+        script = read("web", "tab-reaction.js")
+        self.assertNotIn("van 't Hoff", script)
+        self.assertNotIn("d ln K/dT", script)
+        self.assertNotIn("falls to the right", script)
+        self.assertNotIn("auditTable", script)
+
+    def test_tab_1_says_which_k_it_is(self):
+        script = read("web", "tab-reaction.js")
+        self.assertIn("K here is <strong>K<sub>p</sub></strong>", script)
+        self.assertIn("not K<sub>c</sub>", script)
+        self.assertIn("changes only with temperature, never with pressure", script)
+        self.assertIn("Equilibrium constant K<sub>p</sub>", script)
+        steps = ok("analyze", METHANOL)["steps"]
+        self.assertIn("Kp", steps[-1]["title"])
+
+    def test_tab_2_has_no_largest_contribution(self):
+        script = read("web", "tab-pressure.js")
+        self.assertNotIn("Largest contribution", script)
+        self.assertNotIn("c.largest", script)
+
+    def test_tab_2_says_why_the_ideal_gas_value_is_flat_and_why_peng_robinson(self):
+        script = read("web", "tab-pressure.js")
+        self.assertIn("H = U + PV = U + RT", script)
+        html = read("index.html")
+        self.assertIn("The model starts on Peng/Robinson", html)
+        self.assertIn("acentric factor", html)
+
+    def test_graphs_that_are_compared_share_their_scales(self):
+        pressure = read("web", "tab-pressure.js")
+        self.assertEqual(pressure.count("yaxis: residualAxis"), 3)            # graphs 2, 3 and 4
+        self.assertIn("yaxis: totalAxis", pressure)                            # graph 1, same height per kJ
+        self.assertEqual(read("web", "tab-reaction.js").count("xaxis: tAxis"), 4)
+        self.assertEqual(read("web", "tab-combine.js").count("...same"), 2)
+        self.assertEqual(read("web", "tab-network.js").count("xaxis: xAxis"), 4)
 
 
 class TestTextsFromTheSolver(unittest.TestCase):

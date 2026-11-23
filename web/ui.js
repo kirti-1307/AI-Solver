@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.8.1");
+      this.worker = new Worker("web/worker.js?v=1.8.2");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -214,6 +214,25 @@ TS.vline = (x, color) => ({ type: "line", xref: "x", yref: "paper", x0: x, x1: x
 
 TS.hline = (y, color) => ({ type: "line", xref: "paper", yref: "y", x0: 0, x1: 1, y0: y, y1: y,
   line: { color: color || TS.css("--muted"), width: 1, dash: "dot" } });
+
+/* One axis range for several graphs, so that their values can be compared at a glance:
+ * the smallest range that holds every number of every list (and the extra values,
+ * such as 0), with a small margin. Display only; it changes no result. */
+TS.span = (lists, extra = [], margin = 0.06) => {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const list of lists) {
+    for (const v of list) {
+      if (v === null || !Number.isFinite(v)) continue;
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    }
+  }
+  if (!Number.isFinite(lo)) return null;
+  for (const v of extra) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  const width = hi - lo || Math.abs(hi) || 1;
+  return [lo - margin * width, hi + margin * width];
+};
 
 /* A plot with one line underneath that says how to read it. */
 TS.fig = (id, caption, cls = "") => `<figure class="fig"><div id="${id}" class="plot ${cls}"></div>
@@ -438,8 +457,8 @@ TS.GLOSSARY = [
     "The change in disorder. It is positive when the reaction makes more gas molecules and negative when it makes fewer."],
   [/^ΔG/, "Gibbs energy change",
     "ΔG = ΔH − T·ΔS. A negative value means the products are favoured (K above 1). A positive value means the reactants are favoured (K below 1); some product still forms, only less."],
-  [/Equilibrium constant|^K = /, "Equilibrium constant",
-    "It tells where the reaction stops. Much bigger than 1 means mostly products, much smaller than 1 means mostly reactants."],
+  [/Equilibrium constant|^K = /, "Equilibrium constant, Kp",
+    "It tells where the reaction stops. Much bigger than 1 means mostly products, much smaller than 1 means mostly reactants. Here it is Kp, written with the partial pressures of the gases in bar, and it changes with temperature only."],
   [/conversion/i, "Conversion",
     "The fraction of a reactant that has reacted. 25 % means a quarter of what was fed is gone."],
   [/^Solid carbon/, "Solid carbon (soot)",

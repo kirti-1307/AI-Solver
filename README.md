@@ -85,7 +85,7 @@ thermosolver/           the solver, pure Python, standard library only
     literature.py       published research values for comparison
     api.py              JSON interface used by the page
 tests/                  automated tests (unittest)
-docs/                   beginner's guide, theory, data sources, testing, debug log, review, deploy checklist
+docs/                   beginner's guide, presentation script, theory, data sources, testing, debug log, review, deploy checklist
 report/                 the two-page assignment report
 ```
 

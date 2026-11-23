@@ -52,8 +52,9 @@
     const lines = [];
     const T = fix(r.T, 0);
     const P = fix(r.P, 1);
-    lines.push(`An ideal gas has no forces between its molecules, so its enthalpy depends on temperature only. As ideal gases the ` +
-      `reaction ${heat(c.dH_ideal)} ${kJ(Math.abs(c.dH_ideal))} kJ/mol at ${T} K, <em>whatever the pressure</em>.`);
+    lines.push(`Why the ideal-gas value does not change with pressure: an ideal gas has no forces between its molecules, so its ` +
+      `internal energy U depends on temperature only. Also PV = RT, so H = U + PV = U + RT depends on temperature only too. ` +
+      `As ideal gases the reaction ${heat(c.dH_ideal)} ${kJ(Math.abs(c.dH_ideal))} kJ/mol at ${T} K, <em>whatever the pressure</em>.`);
     if (!a.gas_phase_valid) {
       lines.push(`At ${T} K and ${P} bar, ${a.no_vapour_species.map(chem).join(", ")} is a liquid, not a gas, according to the ` +
         `${esc(a.model_name)} equation. A gas-phase heat of reaction is not defined at this ` +
@@ -71,11 +72,6 @@
       `${fix(Math.abs(c.percent), 2)} % ${c.percent < 0 ? "less" : "more"} than the ideal-gas value. The pressure effect is ` +
       `<strong>${esc(c.size)}</strong> here: a heat balance made with the ideal-gas value would be off by ` +
       `${kJ(Math.abs(c.residual))} kJ for every mole that reacts.`);
-    if (c.largest) {
-      lines.push(`Most of it comes from ${chem(c.largest.species)} (${signed(c.largest.contribution / 1000, 2)} kJ; ` +
-        `T<sub>r</sub> = ${fix(c.largest.Tr, 2)}, P<sub>r</sub> = ${fix(c.largest.Pr, 2)}, Z = ${fix(c.largest.Z, 3)}). ` +
-        `The closer a gas is to its critical point, the more its molecules attract each other and the more negative its H<sup>R</sup>.`);
-    }
     lines.push(`The three steps above are the same calculation written as a path: take the real reactants to the ideal-gas state, ` +
       `let them react as ideal gases, and take the ideal-gas products to the real state. Enthalpy is a state function, so the path does not matter.`);
     lines.push(`The effect grows with pressure (first plot) and fades as the gas gets hotter (third plot), because fast molecules feel each other less.`);
@@ -138,7 +134,8 @@
     return `<details open><summary>Same state, every model</summary>
       <div class="table-scroll"><table><thead><tr><th class="l">Model</th><th>Σν H<sup>R</sup> (J/mol)</th><th>ΔH(T,P) (kJ/mol)</th>
       <th>Difference from the ideal gas</th><th>Σν S<sup>R</sup> (J/mol·K)</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="hint" style="margin-top:8px">The spread between the cubic equations is a fair measure of the model uncertainty.
+      <p class="hint" style="margin-top:8px">Peng/Robinson and Soave/Redlich/Kwong use the acentric factor ω as well as
+        T<sub>c</sub> and P<sub>c</sub>, and they agree closely. van der Waals and Redlich/Kwong use T<sub>c</sub> and P<sub>c</sub> only.
         The virial equation truncated after B is only for low to moderate pressure.</p></details>`;
   }
 
@@ -149,6 +146,20 @@
     const k = (arr) => arr.map((v) => (v === null ? null : v / 1000));
     const mark = [TS.vline(r.P)];
     const real = r.model !== "ideal";
+    const t = r.sweep_T;
+    const bars = c.contributions.filter((x) => x.contribution !== null);
+    const gas = r.at_P.species.filter((x) => x.phase === "g");
+
+    // One kJ/mol scale for all four graphs. Graphs 2 to 4 share the same range; graph 1
+    // has the same height per kJ, moved so that its ideal-gas line sits where the others
+    // have zero. The gap in graph 1 at your pressure, the sum of the bars and the dot in
+    // graph 3 are the same number, and now they also have the same size.
+    const scale = TS.span([k(s.sum_HR), bars.map((x) => x.contribution / 1000), t ? k(t.residual) : [],
+      ...gas.map((x) => k(s.species_HR[x.species]))], [0]);
+    const ideal = s.dH_std / 1000;
+    const residualAxis = scale ? { range: scale } : {};
+    const totalAxis = scale ? { range: [ideal + scale[0], ideal + scale[1]] } : {};
+    const pAxis = { range: [s.P[0], s.P[s.P.length - 1]] };
 
     // 1. Ideal against real along the isotherm; the shaded gap is the residual part.
     const traces = [
@@ -163,19 +174,18 @@
         hovertemplate: "%{y:.2f} kJ/mol at %{x:.0f} bar<extra></extra>" });
     }
     TS.plot("pr-plot-dH", traces,
-      TS.layout(`Heat of reaction at ${fix(r.T, 0)} K: the shaded gap is the residual part`, "Pressure (bar)", "kJ per mol of reaction", { shapes: mark }));
+      TS.layout(`Heat of reaction at ${fix(r.T, 0)} K: the shaded gap is the residual part`, "Pressure (bar)", "kJ per mol of reaction",
+        { shapes: mark, xaxis: pAxis, yaxis: totalAxis }));
 
     // 2. Which species the difference comes from, at the chosen state.
-    const bars = c.contributions.filter((x) => x.contribution !== null);
     TS.plot("pr-plot-bars", [{
       type: "bar", x: bars.map((x) => x.species), y: bars.map((x) => x.contribution / 1000),
       marker: { color: bars.map((x) => (x.role === "product" ? "#0b5cad" : "#c2410c")) },
       hovertemplate: "%{x}<br>ν·H<sup>R</sup> = %{y:.3f} kJ<extra></extra>",
     }], TS.layout(`Where the difference comes from: ν·Hᴿ of each species at ${fix(r.P, 0)} bar`, "", "kJ per mol of reaction",
-      { showlegend: false, hovermode: "closest", shapes: [TS.hline(0)] }));
+      { showlegend: false, hovermode: "closest", shapes: [TS.hline(0)], yaxis: residualAxis }));
 
     // 3. The same pressure at other temperatures.
-    const t = r.sweep_T;
     if (t) {
       const tTraces = [{ x: t.T, y: k(t.residual), name: "Σ ν Hᴿ", mode: "lines", line: { width: 2.5, color: "#c2410c" } }];
       if (c.residual !== null) {
@@ -183,16 +193,16 @@
           marker: { size: 9, color: "#c2410c", line: { width: 1.5, color: "#fff" } } });
       }
       TS.plot("pr-plot-T", tTraces,
-        TS.layout(`Residual part at ${fix(r.P, 0)} bar: it fades as the gas gets hotter`, "Temperature (K)", "Σ ν Hᴿ (kJ/mol)",
-          { showlegend: false, shapes: [TS.vline(r.T), TS.hline(0)] }));
+        TS.layout(`Residual part at ${fix(r.P, 0)} bar: it fades as the gas gets hotter`, "Temperature (K)", "Σ ν Hᴿ (kJ per mol of reaction)",
+          { showlegend: false, shapes: [TS.vline(r.T), TS.hline(0)], yaxis: residualAxis }));
     }
 
     // 4. Residual enthalpy of each pure species along the isotherm.
     const palette = TS.palette();
-    const gas = r.at_P.species.filter((x) => x.phase === "g");
     TS.plot("pr-plot-HR", gas.map((x, i) => ({
       x: s.P, y: k(s.species_HR[x.species]), name: x.species, mode: "lines", line: { width: 2, color: palette[i % palette.length] },
-    })), TS.layout(`Residual enthalpy of each pure species at ${fix(r.T, 0)} K${real ? "" : " (ideal gas: zero)"}`, "Pressure (bar)", "Hᴿ (kJ/mol)", { shapes: mark.concat([TS.hline(0)]) }));
+    })), TS.layout(`Residual enthalpy of each pure species at ${fix(r.T, 0)} K${real ? "" : " (ideal gas: zero)"}`, "Pressure (bar)",
+      "Hᴿ (kJ per mol of the species)", { shapes: mark.concat([TS.hline(0)]), xaxis: pAxis, yaxis: residualAxis }));
   }
 
   /* ----------------------------------------------------------- render */
@@ -219,7 +229,6 @@
     html += `<div class="cards">
         <div class="card"><div class="k">Residual part, Σ ν H<sup>R</sup></div><div class="v">${ok ? signed(c.residual / 1000, 3) : "–"} <span class="u">kJ/mol</span></div><div class="s">real gas minus ideal gas</div></div>
         <div class="card"><div class="k">Change caused by pressure</div><div class="v">${ok && c.percent !== null ? signed(c.percent, 2) : "–"} <span class="u">%</span></div><div class="s">${ok && c.effect ? esc(c.effect) : ""}</div></div>
-        <div class="card"><div class="k">Largest contribution</div><div class="v">${c.largest ? chem(c.largest.species) : "–"}</div><div class="s">${c.largest ? `${signed(c.largest.contribution / 1000, 2)} kJ, Z = ${fix(c.largest.Z, 3)}` : ""}</div></div>
         <div class="card"><div class="k">Residual entropy part, Σ ν S<sup>R</sup></div><div class="v">${ok ? signed(a.sum_SR, 2) : "–"} <span class="u">J/(mol·K)</span></div><div class="s">real gas minus ideal gas</div></div>
       </div>${pathBlock(r)}<h3>What the numbers mean</h3>${explain(r)}</div>`;
     const hints = [];
@@ -234,6 +243,8 @@
       ${TS.fig("pr-plot-bars", "one bar per species: its residual enthalpy times its stoichiometric number (blue for products, orange for reactants). Added together, the bars are the gap in the first plot. The tallest bar belongs to the gas that is furthest from ideal.")}
       ${r.sweep_T ? TS.fig("pr-plot-T", "the same residual part at your pressure, but at other temperatures. It shrinks towards zero as the gas gets hotter, because a hot gas behaves almost ideally. The dot marks your temperature.") : ""}
       ${TS.fig("pr-plot-HR", "the residual enthalpy of each pure gas against pressure. A line that stays near zero is an almost ideal gas. A line that falls steeply is a gas close to its critical point, where the molecules attract each other strongly.")}</div>
+      <p class="hint" style="margin:8px 0 0">All four graphs use the same kJ/mol scale, so heights can be compared from one graph to the next.
+        The first graph is only moved up or down, so that its dashed ideal-gas line sits where the other graphs have zero.</p>
       ${hints.map((h) => `<p class="hint" style="margin:8px 0 0">${h}</p>`).join("")}</div>`;
     html += `<div class="panel"><h3>Residual properties of each species at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar</h3>
       ${residualTable(r)}${TS.notes(a.notes.filter((n) => n.level === "info" && n.kind !== "condensation"))}${modelTable(r)}${TS.auditTable(r.audit)}</div>`;
