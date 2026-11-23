@@ -33,7 +33,7 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><td>Sensible heat</td><td>C<sub>p</sub>/R = A + BT + CT<sup>2</sup> + DT<sup>&minus;2</sup>; &nbsp; Q = R&int;(C<sub>p</sub>/R)dT</td></tr>
 <tr><td>Heat of reaction</td><td>&Delta;H&deg;<sub>298</sub> = &Sigma;&nu;<sub>i</sub>&Delta;H&deg;<sub>f,i</sub>; &nbsp; &Delta;H&deg;(T) = &Delta;H&deg;<sub>298</sub> + R&int;(&Delta;C<sub>p</sub>&deg;/R)dT</td></tr>
 <tr><td>Entropy and Gibbs energy</td><td>&Delta;S&deg;(T) = &Delta;S&deg;<sub>298</sub> + R&int;(&Delta;C<sub>p</sub>&deg;/R)dT/T; &nbsp; &Delta;G&deg; = &Delta;H&deg; &minus; T&Delta;S&deg;; &nbsp; ln K = &minus;&Delta;G&deg;/RT</td></tr>
-<tr><td>Effect of pressure</td><td>&Delta;H(T,P) = &Delta;H&deg;(T) + &Sigma;&nu;<sub>i</sub>H<sub>i</sub><sup>R</sup>(T,P), with the residual enthalpy H<sup>R</sup> from an equation of state</td></tr>
+<tr><td>Effect of pressure</td><td>&Delta;H(T,P) = &Delta;H&deg;(T) + &Sigma;&nu;<sub>i</sub>H<sub>i</sub><sup>R</sup>(T,P), with H<sup>R</sup> from Peng/Robinson or another equation of state</td></tr>
 <tr><td>Combining reactions</td><td>&Delta;H = &Sigma;m<sub>j</sub>&Delta;H<sub>j</sub> and &Delta;G = &Sigma;m<sub>j</sub>&Delta;G<sub>j</sub> (Hess's law)</td></tr>
 <tr><td>Bomb calorimeter</td><td>&Delta;U<sub>c</sub> = &Delta;H<sub>c</sub> &minus; &Delta;n<sub>gas</sub>RT; &nbsp; &Delta;T = (m &times; calorific value + corrections)/C<sub>cal</sub></td></tr>
 </table>
@@ -78,10 +78,10 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <p>Two independent reviews of the code then found further issues, which I also fixed. All of them are listed in the repository, where 412 automated tests run on every change.</p>
 
 <h2>6. Limitations</h2>
-<p>Phase change is handled on the reaction tab only. On the pressure tab and in the product slate, a species that would condense is flagged but not condensed, and each gas is treated as a pure species. Moreover, the calorimeter assumes complete combustion to CO<sub>2</sub> and liquid water. Equilibrium results say where a reaction can end up, not how fast it gets there.</p>
+<p>Phase change is handled on the reaction tab only. On the pressure tab and in the product slate, a species that would condense is flagged but not condensed, and each gas is treated as a pure species. The residual part also depends on the equation of state. I chose Peng/Robinson as the default, since it includes the acentric factor and agrees with SRK within 0.05 kJ/mol in all six examples of the pressure tab. But close to a critical point the equations of the course differ: for methanol from CO at 523 K and 80 bar, just above the critical temperature of methanol (512.6 K), they give between &minus;5.05 (van der Waals) and &minus;8.68 kJ/mol (SRK), and only measured data could show which one is closest. Moreover, the calorimeter assumes complete combustion to CO<sub>2</sub> and liquid water. Equilibrium results say where a reaction can end up, not how fast it gets there.</p>
 
 <h2>References</h2>
-<p class="ref">[1] J. M. Smith, H. C. Van Ness and M. M. Abbott, <i>Introduction to Chemical Engineering Thermodynamics</i>, 8th edition, McGraw-Hill. Equations of Chapters 4, 6 and 14; property data of Tables B.1 and C.1 to C.4.</p>
+<p class="ref">[1] J. M. Smith, H. C. Van Ness and M. M. Abbott, <i>Introduction to Chemical Engineering Thermodynamics</i>, 8th edition, McGraw-Hill. Equations of Chapters 3, 4, 6 and 14; property data of Tables B.1 and C.1 to C.4.</p>
 <p class="ref">[2] NIST Chemistry WebBook, NIST Standard Reference Database 69, webbook.nist.gov. Hydrogen peroxide, acetic acid vapour, and heat capacities outside the range of [1].</p>
 <p class="ref">[3] M. W. Chase, <i>NIST-JANAF Thermochemical Tables</i>, 4th edition, 1998, janaf.nist.gov.</p>
 <p class="ref">[4] Helmi et al., <i>Molecules</i> 21 (2016) 376, and the other papers listed in the Validation tab of the app.</p>
