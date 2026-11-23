@@ -140,6 +140,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.8.2, 23 November 2026, commit `b900e57`:** both workflows green. On https://ai-solver-seven.vercel.app/ and https://kirti-1307.github.io/AI-Solver/ the scripts carry 1.8.2. Tab 1: the K card reads "Equilibrium constant Kp", no van 't Hoff line, no consistency checks. Tab 2 (ammonia, 723.15 K, 200 bar): the four graphs share a y-span of 30.9 kJ, no "Largest contribution", the Peng/Robinson note is shown. Locally, every tab 4 number of docs/PRESENTATION_SCRIPT.md was reproduced by clicking through the script (74.8 %, 74.9 %, 17.3 %, 7.9 %, 21.3 %, 30.8 % at 100 bar, 0.3 % and 40.1 % at 700 K). 407 tests pass. No console errors.
 
+**v1.8.3, 23 November 2026, commit `0416653`:** both workflows green. On both addresses the scripts carry 1.8.3. Tab 2 shows only the two residual cards, with no consistency checks and no model table. Tab 4 shows the solid-carbon and moles-of-gas cards and no conversion anywhere. Locally: tab 3 has no K, the tab 4 switch message lists where the C atoms go, and the soot explanation is shown. 412 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
