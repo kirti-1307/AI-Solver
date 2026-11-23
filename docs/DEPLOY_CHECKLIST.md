@@ -152,6 +152,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.8.8, 23 November 2026, commit `17e9e4e`:** both workflows green. On both addresses the scripts carry 1.8.8. Tab 1, CH4 + 2 O2 -> CO2 + 2 H2O at 298.15 K with "Pick the stable phase" ticked: H2O(l), ΔH° = −890.65 kJ/mol, and no "H2O(g) was assumed" note. 439 tests pass. No console errors.
 
+**v1.8.9 and v1.8.10, 23 November 2026, commits `b2ffa19` and `b03b2db`:** both workflows green. On both addresses the scripts carry 1.8.10. Tab 1 opens with "Pick the stable phase" ticked; `CH4 + 2 O2 -> CO2 + 2 H2O` at 298.15 K gives H2O(l) and −890.65 kJ/mol with no "was assumed" note. Tab 4 names the products that hardly form (CH3OH 1.5 × 10⁻¹⁰, CO 4.7 × 10⁻⁶ with everything allowed). 441 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
