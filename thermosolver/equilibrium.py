@@ -35,7 +35,7 @@ from typing import Dict, List, Optional, Sequence
 
 from .constants import P0, R
 from .errors import ConvergenceError, InputError
-from .realgas import require_vapour, residual
+from .realgas import mixture_residual, require_vapour, residual
 from .species import SPECIES, find_species
 
 
@@ -127,7 +127,7 @@ def reaction_equilibrium(rxn, T: float, P: float = P0,
     for sid in gas:
         if sid not in rxn.stoich:
             continue                     # an inert only dilutes; its fugacity coefficient is never used
-        res = residual(SPECIES[sid], T, P, model)
+        res = mixture_residual(SPECIES[sid], T, P, model)
         require_vapour(res)              # a liquid root must never enter a gas-phase equilibrium
         lnphi[sid] = res.lnphi
         for note in res.notes:
@@ -259,7 +259,7 @@ def gibbs_minimize(species_ids: Sequence[str], feed: Dict[str, float], T: float,
     ln_p = math.log(P / P0)
     for sid in active:
         sp = SPECIES[sid]
-        res = residual(sp, T, P, model)
+        res = mixture_residual(sp, T, P, model)
         require_vapour(res)
         for note in res.notes:
             if note not in notes:

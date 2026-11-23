@@ -108,10 +108,11 @@ def main():
     Ts = [400 + 5 * i for i in range(61)]
     meoh, co, ch4 = [], [], []
     for T in Ts:
-        d = atom_distribution(gibbs_minimize(selective, feed, T, 50.0), "C")
+        # real gases, each with the equation of state the solver chooses (as on tab 4)
+        d = atom_distribution(gibbs_minimize(selective, feed, T, 50.0, model="auto"), "C")
         meoh.append(100 * d["CH3OH(g)"])
         co.append(100 * d["CO(g)"])
-        d_all = atom_distribution(gibbs_minimize(selective + ["CH4"], feed, T, 50.0), "C")
+        d_all = atom_distribution(gibbs_minimize(selective + ["CH4"], feed, T, 50.0, model="auto"), "C")
         ch4.append(100 * d_all["CH4(g)"])
     a = Axes(draw, (92, 62, 730, 388), (400, 700), (0, 100))
     zero = [0.0] * len(Ts)

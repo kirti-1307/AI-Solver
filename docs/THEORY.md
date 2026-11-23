@@ -181,6 +181,22 @@ It is a corresponding-states estimate (within about 10 % for water), so it is us
 
 Residual properties here are those of the **pure** species at T and P. Using them for a reacting mixture is the ideal-solution (Lewis/Randall) approximation: no heat of mixing, and φ̂ᵢ = φᵢ.
 
+### 5.5 Which equation for which gas (`eoschoice`, model `auto`)
+
+Since v1.8.6 the user does not pick the equation of state; the page sends model `auto`, and every gas gets the equation of Sections 5.1 and 5.2 whose residual enthalpy is closest to measured data:
+
+    Hᴿ_measured(T, P) = H(T, P) − H(T, 0.01 bar)                     (NIST, data.NIST_FLUID)
+    error(equation)   = mean over the measured points of |Hᴿ_equation − Hᴿ_measured|
+    equation used     = the one with the smallest error for that gas
+
+The measured enthalpies are NIST WebBook fluid isotherms at 300, 400, 500, 600, 700, 800 and 1000 K and 10, 50, 100, 200 and 300 bar, as far as NIST covers each fluid, gas states only: 24 gases and 380 points (see DATA_SOURCES.md). Taking the 0.01 bar row as the ideal gas is off by at most 16 J/mol (virial estimate). Only points at which every equation describes a gas are compared, so all five are judged on the same points.
+
+Result: Soave/Redlich/Kwong is closest for 14 gases, Peng/Robinson for 6 and Redlich/Kwong for 4 (CH₄, CO, H₂, O₂); the virial correlation and van der Waals never. Over all 380 points the mean errors are 0.137 (SRK), 0.160 (PR), 0.510 (RK), 1.246 (vdW) and 1.349 kJ/mol (virial), so a gas without measured data uses SRK. Gases without critical constants stay ideal, and liquids and solids get no pressure correction, as before.
+
+The choice is made once per gas, not per temperature and pressure. A gas therefore keeps one equation along every plot, Hᴿ, Sᴿ and ln φ stay smooth functions of T and P, and the Gibbs/Helmholtz and Maxwell checks of the audit still hold (tested for the six industrial cases).
+
+**In a mixture (tab 4).** A gas whose chosen cubic equation has no gas state of its own at T and P (Section 5.2, a liquid root only; for example water at 523 K above 90 bar with SRK) is diluted in the mixture and stays a vapour. For that point `realgas.mixture_residual` describes it with the virial correlation, which has a gas state at any pressure, and the page says so. Where the cubic loses its gas state the two differ little (water at 523 K: ln φ −0.336 with SRK at 90 bar, −0.308 with the virial correlation). Tab 2 does not do this: it is about each pure gas at T and P, so it reports that no gas-phase value exists. A model named explicitly by a caller is never replaced.
+
 ## 6. Equilibrium conversion of one reaction (SVN Sec. 14.6 and 14.7)
 
 With the reaction coordinate ε, nᵢ = nᵢ₀ + νᵢ·ε, and unit activity for pure solids and liquids (`equilibrium.reaction_equilibrium`):

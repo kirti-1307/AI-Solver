@@ -190,7 +190,7 @@ NETWORKS = [
         "T_range": [500, 900], "P": 200,
         "optional": [],
         "tour": [],
-        "note": "One reaction only, so the result must match the single-reaction solver.",
+        "note": "One reaction only, N2 + 3 H2 -> 2 NH3. Drag the pressure to see how much more ammonia forms at high pressure.",
     },
     {
         "id": "syngas_to_methanol",

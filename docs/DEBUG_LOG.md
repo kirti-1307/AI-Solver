@@ -287,3 +287,17 @@ These were not found by a test. They were raised as questions about the page and
 - **Actual:** on tab 4 the rows "Where the C atoms go" and "Mole fractions at equilibrium" showed their labels, numbers and empty grey tracks, but no coloured bar. Found by the user.
 - **Root cause:** each fill is a `<span>`. The new stylesheet of v1.8 gave it a width and a height but no `display: block`, and an inline box ignores both, so every bar was 0 px wide although its width was set (25.15 % for CO2 at the start). The bars of tab 2 are `<div>` elements, which is why they still worked there.
 - **Fix:** `display: block` on `.bars .fill`; a test (`test_bars_are_drawn`) now checks the rule.
+
+## Round 14: the solver chooses the equation of state (v1.8.6)
+
+### 40. Found while building it: the textbook's virial limit does not say which equation is closest
+
+- **What was expected:** the rule of thumb that the virial correlation holds while V/Vc is at least 2 would tell the solver where to use it.
+- **Actual:** by that rule the virial correlation is allowed for every gas of all six industrial cases of tab 2, including methanol at 523 K and 80 bar. There the measured Hᴿ (NIST) is −9.87 kJ/mol, the virial correlation gives −5.74 and Peng/Robinson −8.63.
+- **Fix:** the choice is made from measured data instead (module `eoschoice`, 24 gases, 380 points): each gas uses the equation with the smallest mean error for it.
+
+### 41. Found while building it: tab 4 refused high pressures once its gases were real gases
+
+- **Actual:** with real gases on tab 4, CO₂ hydrogenation at 523 K and 100 bar returned an error, because Soave/Redlich/Kwong has no gas state for pure water there (above about 90 bar); the plots had gaps at low temperature for the same reason. With ideal gases, as before, this never showed.
+- **Root cause:** the mixture uses the residual properties of each pure gas at T and P. Pure water at 523 K and 100 bar would be a liquid, but in the mixture it is diluted and stays a vapour.
+- **Fix:** `realgas.mixture_residual` describes such a gas, for that point only, with the virial correlation, which has a gas state at any pressure, and the page says so in a note. Where the cubic loses its gas state the two differ by about 3 % in φ. Tab 2 (pure gases) still reports that no gas-phase value exists, and a model named by a caller is never replaced.

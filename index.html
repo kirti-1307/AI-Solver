@@ -12,17 +12,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="web/styles.css?v=1.8.5">
+  <link rel="stylesheet" href="web/styles.css?v=1.8.6">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.8.5" defer></script>
-  <script src="web/tab-reaction.js?v=1.8.5" defer></script>
-  <script src="web/tab-pressure.js?v=1.8.5" defer></script>
-  <script src="web/tab-combine.js?v=1.8.5" defer></script>
-  <script src="web/tab-network.js?v=1.8.5" defer></script>
-  <script src="web/tab-heat.js?v=1.8.5" defer></script>
-  <script src="web/tab-data.js?v=1.8.5" defer></script>
-  <script src="web/tab-validation.js?v=1.8.5" defer></script>
-  <script src="web/main.js?v=1.8.5" defer></script>
+  <script src="web/ui.js?v=1.8.6" defer></script>
+  <script src="web/tab-reaction.js?v=1.8.6" defer></script>
+  <script src="web/tab-pressure.js?v=1.8.6" defer></script>
+  <script src="web/tab-combine.js?v=1.8.6" defer></script>
+  <script src="web/tab-network.js?v=1.8.6" defer></script>
+  <script src="web/tab-heat.js?v=1.8.6" defer></script>
+  <script src="web/tab-data.js?v=1.8.6" defer></script>
+  <script src="web/tab-validation.js?v=1.8.6" defer></script>
+  <script src="web/main.js?v=1.8.6" defer></script>
 </head>
 <body>
 <header class="top">
@@ -203,9 +203,11 @@
         between the two is the residual enthalpy, H<sup>R</sup> = H(real gas) − H(ideal gas), which comes from an
         equation of state. Here every reactant and product is taken as the pure species at T and P, at constant temperature:
         ΔH(T,P) = ΔH°(T) + Σ ν<sub>i</sub> H<sub>i</sub><sup>R</sup>(T,P).</p>
-      <p class="hint">The model starts on Peng/Robinson: like Soave/Redlich/Kwong it uses the acentric factor ω as well as
-        T<sub>c</sub> and P<sub>c</sub>, and it still holds at high pressure, where the virial equation does not. The other
-        equations of the course can be picked from the list.</p>
+      <p class="hint">You do not pick the equation of state: the solver does, for each gas. It has compared the five equations
+        of the course (virial, van der Waals, Redlich/Kwong, Soave/Redlich/Kwong, Peng/Robinson) with measured enthalpies from
+        NIST for 24 gases, and each gas uses the equation that came closest for it. A gas that NIST does not cover uses
+        Soave/Redlich/Kwong, the closest over all 24 gases together. The table at the bottom shows which equation each gas uses;
+        the Validation tab shows the whole comparison.</p>
       <div class="form">
         <label class="grow2">Predefined reaction
           <select id="pr-select"></select>
@@ -223,16 +225,6 @@
         </label>
         <label>Plot up to (bar)
           <input id="pr-Pmax" type="number" step="any" value="300">
-        </label>
-        <label>Real-gas model
-          <select id="pr-model">
-            <option value="pr">Peng/Robinson</option>
-            <option value="srk">Soave/Redlich/Kwong</option>
-            <option value="rk">Redlich/Kwong</option>
-            <option value="vdw">van der Waals</option>
-            <option value="virial">Generalized virial correlation</option>
-            <option value="ideal">Ideal gas</option>
-          </select>
         </label>
         <button id="pr-run" class="primary">Calculate</button>
       </div>
@@ -277,15 +269,9 @@
         <label class="grow3">Example system
           <select id="nw-preset"></select>
         </label>
-        <label>Gas model
-          <select id="nw-model">
-            <option value="ideal">Ideal gas</option>
-            <option value="pr">Peng/Robinson (real gas)</option>
-            <option value="srk">Soave/Redlich/Kwong</option>
-            <option value="virial">Generalized virial correlation</option>
-          </select>
-        </label>
       </div>
+      <p class="hint" style="margin:10px 0 0">The gases are real gases here: each one uses the equation of state that is closest
+        to measured data for it, the same choice as on tab 2.</p>
       <p id="nw-note" class="hint" style="margin:10px 0 0"></p>
       <div class="sliders">
         <div class="slider">
@@ -456,6 +442,13 @@
     <div class="panel" data-bar="Tab 7 · Published research">
       <h2>Solver versus published research</h2>
       <div id="vl-literature"></div>
+    </div>
+    <div class="panel" data-bar="Tab 7 · Equations of state">
+      <h2>Which equation of state for which gas</h2>
+      <p class="hint">The solver chooses the equation of state itself. For every gas of the database that NIST has measured data
+        for, each equation's residual enthalpy H<sup>R</sup> is compared with the measured one, H<sup>R</sup> = H(T, P) − H(T, 0.01 bar),
+        at every measured point, and the gas uses the equation with the smallest average difference.</p>
+      <div id="vl-eos"></div>
     </div>
   </section>
 </main>

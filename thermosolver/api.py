@@ -14,7 +14,7 @@ import json
 import math
 from typing import Any, Callable, Dict, List, Optional
 
-from . import benchmarks, heatbalance, library, phase
+from . import benchmarks, eoschoice, heatbalance, library, phase
 from .audit import audit_reaction, audit_residuals
 from .combine import combine_reactions, formation_decomposition, formation_reaction
 from .constants import P0, R, T0
@@ -621,7 +621,9 @@ def pressure(payload: dict) -> dict:
     rxn = _reaction(payload)
     T = _temperature(payload)
     P = _pressure(payload)
-    model = _model(payload)
+    # The page sends no model: every gas gets the equation closest to measured data (eoschoice).
+    # A model can still be named here, for scripts and the tests.
+    model = _model(payload, "auto")
     P_max = _num(payload, "P_max", max(P, 300.0), 1e-3, P_ABS_MAX, "Maximum pressure")
     P_min = _num(payload, "P_min", min(P, 1.0), 1e-6, P_ABS_MAX, "Minimum pressure")
     if P_max <= P_min:
@@ -691,11 +693,11 @@ def pressure_overview(payload: Optional[dict] = None) -> dict:
     for case in library.PRESSURE_CASES:
         _, name, equation, *_ = library.reaction_by_id(case["id"])
         rxn = Reaction.parse(equation)
-        point = reaction_at_pressure(rxn, case["T"], case["P"], "pr")
+        point = reaction_at_pressure(rxn, case["T"], case["P"], "auto")
         cmp_ = _real_against_ideal(point)
         rows.append({
             "id": case["id"], "name": name, "equation": rxn.equation,
-            "T": case["T"], "P": case["P"], "model": "pr", "model_name": MODEL_NAMES["pr"],
+            "T": case["T"], "P": case["P"], "model": "auto", "model_name": MODEL_NAMES["auto"],
             "gas_phase_valid": point["gas_phase_valid"],
             "dH_ideal": cmp_["dH_ideal"], "residual": cmp_["residual"], "dH_real": cmp_["dH_real"],
             "percent": cmp_["percent"], "effect": cmp_["effect"], "size": cmp_["size"],
@@ -703,6 +705,21 @@ def pressure_overview(payload: Optional[dict] = None) -> dict:
         })
     rows.sort(key=lambda r: -abs(r["percent"] or 0.0))
     return _safe({"rows": rows})
+
+
+def eos_check(payload: Optional[dict] = None) -> dict:
+    """The five equations of state against measured residual enthalpies (NIST), gas by gas,
+    and the equation the solver therefore uses for each gas (module eoschoice)."""
+    out = eoschoice.summary()
+    out["names"] = {m: MODEL_NAMES[m] for m in out["equations"]}
+    out["choices"] = []
+    for sid, sp in SPECIES.items():
+        if sp.phase != "g":
+            continue
+        model, why = eoschoice.choose(sp)
+        out["choices"].append({"species": sid, "name": sp.name, "model": model, "model_name": MODEL_NAMES[model],
+                               "basis": why["basis"]})
+    return _safe(out)
 
 
 def species_residual(payload: dict) -> dict:
@@ -1352,6 +1369,7 @@ ENDPOINTS: Dict[str, Callable[[dict], dict]] = {
     "pressure": pressure,
     "pressure_overview": pressure_overview,
     "species_residual": species_residual,
+    "eos_check": eos_check,
     "combine": combine,
     "formation": formation,
     "network": network,

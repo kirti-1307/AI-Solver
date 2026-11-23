@@ -99,6 +99,32 @@
       <p class="hint" style="margin-top:8px">${esc(lit.comment)}</p>`;
   }
 
+  /* The five equations of state against measured data, and the equation each gas therefore uses. */
+  function eos(e) {
+    const eqs = e.equations;
+    const cell = (mean, best, m) => `<td class="${m === best ? "pass" : ""}">${fix(mean[m] / 1000, 3)}</td>`;
+    const rows = e.rows.map((x) => `<tr><td class="l">${esc(x.name)}</td><td>${x.points}</td>
+      ${eqs.map((m) => cell(x.mean, x.best, m)).join("")}<td class="l"><strong>${esc(e.names[x.best])}</strong></td></tr>`).join("");
+    const o = e.overall;
+    const total = `<tr class="sum"><td class="l">All ${o.gases} gases together</td><td>${o.points}</td>
+      ${eqs.map((m) => cell(o.mean, o.best, m)).join("")}<td class="l"><strong>${esc(e.names[o.best])}</strong></td></tr>`;
+    const wins = eqs.filter((m) => o.wins[m] > 0).sort((a, b) => o.wins[b] - o.wins[a])
+      .map((m) => `${esc(e.names[m])} for ${o.wins[m]}`).join(", ");
+    const never = eqs.filter((m) => !o.wins[m]).map((m) => esc(e.names[m])).join(" and ");
+    const others = e.choices.filter((c) => c.basis === "overall").map((c) => esc(c.name));
+    const ideal = e.choices.filter((c) => c.basis === "no_critical").map((c) => esc(c.name));
+    $("#vl-eos").innerHTML = TS.message("info", `Closest equation: ${wins} of the ${o.gases} measured gases; ${never} never.
+        Over all ${o.points} measured points ${esc(e.names[o.best])} is closest on average, so the ${others.length} gases without
+        measured data use it (${others.join(", ")}).${ideal.length ? ` ${ideal.join(", ")} ${ideal.length > 1 ? "have" : "has"} no critical
+        constants in the textbook and ${ideal.length > 1 ? "stay ideal gases" : "stays an ideal gas"}.` : ""}`) +
+      `<div class="table-scroll"><table><thead><tr><th class="l">Gas</th><th>Measured points</th>
+        ${eqs.map((m) => `<th>${esc(e.names[m])}</th>`).join("")}<th class="l">Used by the solver</th></tr></thead>
+        <tbody>${rows}${total}</tbody></table></div>
+      <p class="hint" style="margin-top:8px">Each number is the average of |H<sup>R</sup>(equation) − H<sup>R</sup>(measured)| in kJ/mol;
+        the smallest in each row is green. Points: 300 to 1000 K and 10 to 300 bar, as far as NIST covers each gas, gas states only.
+        Measured data: ${esc(e.source)}.</p>`;
+  }
+
   let started = false;
   TS.tabs.push({
     id: "validation",
@@ -108,10 +134,12 @@
       started = true;
       $("#vl-bench").innerHTML = TS.message("info", "Running the benchmarks…");
       try {
-        const [b, c, l] = await Promise.all([TS.engine.call("validate"), TS.engine.call("challenge"), TS.engine.call("literature")]);
+        const [b, c, l, e] = await Promise.all([TS.engine.call("validate"), TS.engine.call("challenge"),
+          TS.engine.call("literature"), TS.engine.call("eos_check")]);
         benchmarks(b);
         challenge(c);
         literature(l);
+        eos(e);
       } catch (err) {
         $("#vl-bench").innerHTML = TS.errorBox(err);
         started = false;

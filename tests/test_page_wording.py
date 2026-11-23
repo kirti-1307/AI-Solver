@@ -183,12 +183,17 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         self.assertNotIn("Largest contribution", script)
         self.assertNotIn("c.largest", script)
 
-    def test_tab_2_says_why_the_ideal_gas_value_is_flat_and_why_peng_robinson(self):
+    def test_tab_2_says_why_the_ideal_gas_value_is_flat_and_how_the_equation_is_chosen(self):
         script = read("web", "tab-pressure.js")
         self.assertIn("H = U + PV = U + RT", script)
         html = read("index.html")
-        self.assertIn("The model starts on Peng/Robinson", html)
-        self.assertIn("acentric factor", html)
+        self.assertIn("You do not pick the equation of state: the solver does, for each gas.", html)
+        # the page names the fallback equation and the number of measured gases; both must be the solver's
+        from thermosolver import eoschoice, realgas
+        o = eoschoice.overall()
+        self.assertIn(f"A gas that NIST does not cover uses\n        {realgas.MODEL_NAMES[o['best']]}", html)
+        self.assertIn(f"NIST for {o['gases']} gases", html)
+        self.assertIn(f"the closest over all {o['gases']} gases together", html)
 
     def test_graphs_that_are_compared_share_their_scales(self):
         pressure = read("web", "tab-pressure.js")
@@ -301,6 +306,12 @@ class TestTextsFromTheSolver(unittest.TestCase):
             "analyze": ok("analyze", METHANOL),
             "analyze, stable phase": ok("analyze", dict(METHANOL, auto_phase=True)),
             "pressure": ok("pressure", AMMONIA),
+            # what the page asks for since the solver chooses the equation of state itself
+            "pressure, automatic": ok("pressure", {k: v for k, v in AMMONIA.items() if k != "model"}),
+            "network, automatic, 100 bar": ok("network", {"species": ["CO2(g)", "H2(g)", "CH3OH(g)", "CO(g)", "H2O(g)"],
+                                                          "feed": {"CO2(g)": 1, "H2(g)": 3}, "T": 523.0, "P": 100.0,
+                                                          "model": "auto", "sweep": "none"}),
+            "eos_check": ok("eos_check", {}),
             "network, ideal gas": ok("network", network_payload("dry_reforming", "ideal")),
             "network, real gas": ok("network", network_payload("co2_hydrogenation", "pr")),
             "heat balance, flame": ok("heat_balance", heat_payload("methane_burner")),
@@ -383,7 +394,14 @@ class TestTextsFromTheSolver(unittest.TestCase):
         self.assertIn("Equilibrium mixture", groups)
         self.assertEqual(sum(1 for r in self.results["validate"]["rows"] if r["group"] == "Equilibrium mixture"), 5)
         self.assertEqual(self.results["database"]["models"]["virial"], "Generalized virial correlation")
-        self.assertIn('<option value="virial">Generalized virial correlation</option>', read("index.html"))
+        # 23 November 2026: the user no longer picks the equation of state, on tab 2 or on tab 4
+        html = read("index.html")
+        for gone in ('id="pr-model"', 'id="nw-model"', "<option value=\"pr\">", "Real-gas model", "Gas model"):
+            self.assertNotIn(gone, html)
+        for name in ("tab-pressure.js", "tab-network.js"):
+            script = read("web", name)
+            self.assertNotIn("-model", script)
+            self.assertIn('model: "auto"', script)
 
     def test_a_species_that_is_a_liquid_is_called_a_liquid(self):
         # water at 523 K and 100 bar: no gas-phase value, and the texts say why in plain words

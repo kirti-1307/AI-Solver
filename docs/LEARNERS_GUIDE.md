@@ -74,7 +74,7 @@ Example: for the reaction above at 523 K, K = 2.2 × 10⁻⁵. Almost nothing re
 
 At low pressure, gas molecules are far apart and ignore each other. That is an ideal gas, and its enthalpy does not depend on pressure.
 
-At high pressure the molecules are close and attract each other. The gas is then a **real gas**. The difference between the real value and the ideal value is called the **residual** enthalpy, Hᴿ. The solver gets it from an equation of state such as Peng/Robinson.
+At high pressure the molecules are close and attract each other. The gas is then a **real gas**. The difference between the real value and the ideal value is called the **residual** enthalpy, Hᴿ. The solver gets it from an equation of state, and it picks the equation for each gas itself (see tab 2).
 
 So at high pressure: ΔH(real) = ΔH(ideal) + the residual part.
 
@@ -188,34 +188,38 @@ A grey band on a plot means the Cp formula is being used outside the temperature
 **You read:**
 
 - The headline: the ideal-gas ΔH, the real-gas ΔH and the difference between them.
-- The three steps. They reach the real-gas ΔH by a detour, in the same way as Hess's law. Step 1: take the reactants from real gas to ideal gas, which removes their Hᴿ. Step 2: let them react as ideal gases, which is ΔH° from tab 1. Step 3: take the ideal-gas products to real gas, which adds their Hᴿ. H depends only on where you start and where you end, so the detour gives the same answer as the direct route. Each Hᴿ is in the table at the bottom of the tab. Example, ammonia at 723 K and 200 bar (N₂ + 3 H₂ → 2 NH₃): step 1 = −(1 × 177 + 3 × 195) J = −0.76 kJ; step 2 = −106.50 kJ; step 3 = 2 × (−2198) J = −4.40 kJ. Total: −111.66 kJ/mol.
+- The three steps. They reach the real-gas ΔH by a detour, in the same way as Hess's law. Step 1: take the reactants from real gas to ideal gas, which removes their Hᴿ. Step 2: let them react as ideal gases, which is ΔH° from tab 1. Step 3: take the ideal-gas products to real gas, which adds their Hᴿ. H depends only on where you start and where you end, so the detour gives the same answer as the direct route. Each Hᴿ is in the table at the bottom of the tab. Example, ammonia at 723 K and 200 bar (N₂ + 3 H₂ → 2 NH₃): step 1 = −(1 × 177 + 3 × 325) J = −1.15 kJ; step 2 = −106.50 kJ; step 3 = 2 × (−1949) J = −3.90 kJ. Total: −111.55 kJ/mol.
 - The first graph: the ideal gas is the flat zero line, and the orange curve is the residual part, how much the real gas differs from it. It grows with pressure.
 - The list of bars at the top: six industrial reactions, sorted by how much pressure matters. Click one to load it.
 
-Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.16 kJ/mol, so the real gas releases 4.8 % more heat.
+Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pressure. At 200 bar the residual part adds −5.05 kJ/mol, so the real gas releases 4.7 % more heat.
 
 **Why does the ideal-gas ΔH not depend on pressure?** An ideal gas has no forces between its molecules, so its internal energy U depends on temperature only. Also PV = RT for one mole. So H = U + PV = U + RT depends on temperature only, and so does the ΔH of a reaction between ideal gases. A real gas is different: its molecules attract and repel each other, so its H changes with pressure. That change is the residual enthalpy Hᴿ.
 
 **How is the residual part calculated?** In four steps, for each gas:
 
 1. Take its critical temperature Tc, critical pressure Pc and acentric factor ω from the textbook's Table B.1, and work out Tr = T/Tc and Pr = P/Pc.
-2. Solve the Peng/Robinson equation for the compressibility factor Z of the gas.
+2. Solve the equation of state chosen for that gas (see below) for its compressibility factor Z.
 3. Put Z, Tr, Pr and ω into the textbook's formula for Hᴿ/RT that belongs to that equation of state.
 4. Add up ν·Hᴿ over the reaction: products count plus, reactants minus.
 
-Example, methanol at 523 K and 50 bar: Tr = 1.02, Pr = 0.62, Z = 0.753, Hᴿ/RT = −0.971, so Hᴿ = −0.971 × 8.314 × 523.15 = −4.22 kJ/mol.
+Example, methanol at 523 K and 50 bar, which uses Soave/Redlich/Kwong: Tr = 1.02, Pr = 0.62, Z = 0.774, Hᴿ/RT = −0.948, so Hᴿ = −0.948 × 8.314 × 523.15 = −4.12 kJ/mol.
 
-**Why does Hᴿ get more negative close to the critical point?** Near the critical point (Tr close to 1) a gas is almost a liquid: the molecules are close together and slow enough for their attraction to hold them. That attraction lowers the enthalpy, and Hᴿ measures exactly how much. Methanol at 523 K has Tr = 1.02, so it is just above its critical temperature, and it is also polar, so it attracts strongly: Hᴿ = −4.22 kJ/mol and Z = 0.753. Hydrogen at the same conditions has Tr = 15.8, so it is far from its critical point: Hᴿ = +0.03 kJ/mol and Z = 1.01, almost ideal.
+**Why does Hᴿ get more negative close to the critical point?** Near the critical point (Tr close to 1) a gas is almost a liquid: the molecules are close together and slow enough for their attraction to hold them. That attraction lowers the enthalpy, and Hᴿ measures exactly how much. Methanol at 523 K has Tr = 1.02, so it is just above its critical temperature, and it is also polar, so it attracts strongly: Hᴿ = −4.12 kJ/mol and Z = 0.774. Hydrogen at the same conditions has Tr = 15.8, so it is far from its critical point: Hᴿ = +0.07 kJ/mol and Z = 1.02, almost ideal.
 
-**Why Peng/Robinson?** The tab starts on Peng/Robinson, but you can pick any of the five models. Peng/Robinson and Soave/Redlich/Kwong use three properties of each gas: the critical temperature, the critical pressure and the acentric factor ω. van der Waals and Redlich/Kwong use only the first two, so they treat every molecule as if it had the same shape. The virial equation is only meant for low to moderate pressure. For the six industrial cases of the tab, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, while van der Waals and Redlich/Kwong can be off by up to 3.6 kJ/mol (methanol synthesis at 80 bar: −8.63 with Peng/Robinson, −5.05 with van der Waals). You can see this by switching the model in the list.
+**Which equation of state does the solver use?** You do not choose it: the solver does, for each gas, because a wrong choice would give a wrong answer without any warning. It has compared the five equations of the course (the virial equation, van der Waals, Redlich/Kwong, Soave/Redlich/Kwong and Peng/Robinson) with measured data. For 24 gases of the database, NIST gives the measured enthalpy at 300 to 1000 K and up to 300 bar, and the measured Hᴿ is H(T, P) − H(T, 0.01 bar), because at 0.01 bar a gas is practically ideal. At each of these 380 points the solver works out Hᴿ with all five equations, and each gas gets the equation with the smallest average difference.
 
-**How do I know the model is right for my reaction?** The solver cannot prove it; only measured data can. Three things help. First, switch the model: where all five give nearly the same number (hot, light gases, or low pressure), the choice does not matter. Where they spread out (cold, polar gases close to their critical point, at high pressure), the answer is uncertain by about that spread. Second, the virial equation is meant for low to moderate pressure only. Third, where measured data exist, such as the steam tables for water, they decide.
+The result: Soave/Redlich/Kwong is closest for 14 gases, Peng/Robinson for 6 and Redlich/Kwong for 4 (methane, CO, hydrogen and oxygen, all small, light molecules). The virial equation and van der Waals are never the closest. A gas that NIST does not cover, such as ethanol, uses Soave/Redlich/Kwong, which is the closest on average over all 380 points (0.137 kJ/mol, against 0.160 for Peng/Robinson). The table at the bottom of tab 2 shows the equation of each gas, and the Validation tab shows the whole comparison.
+
+One reaction can therefore use different equations for different gases. That is fine, because each gas is treated on its own as the pure species at T and P. Each gas keeps its one equation at every temperature and pressure, so its Hᴿ changes smoothly along the graphs.
+
+**Is the chosen equation exact?** No. It is only the closest of the five. For ammonia, Soave/Redlich/Kwong is still 0.18 kJ/mol off on average. For a gas that NIST does not cover, the choice is the best guess from the other gases, not a measured check.
 
 When does it matter?
 
 - **A lot** for cold, dense gases such as methanol, water and ammonia. CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K and 50 bar: 10.6 %.
 - **Hardly at all** for hot, light gases. Steam reforming at 1100 K and 30 bar: 0.2 %.
-- **Less as the gas gets hotter.** For ammonia at 200 bar the residual part is −11.8 kJ/mol at 500 K and only −3.4 kJ/mol at 900 K.
+- **Less as the gas gets hotter.** For ammonia at 200 bar the residual part is −11.9 kJ/mol at 500 K and only −3.3 kJ/mol at 900 K.
 
 **The four graphs of tab 2.** Each has a line under it that says how to read it. In short:
 
@@ -244,19 +248,21 @@ Tab 1 looks at one reaction at a time. In a real reactor several reactions compe
 
 **You do:** drag the temperature, pressure and feed-ratio sliders. Click a product to switch it off. Or press the numbered "Try this" buttons, which do the switching for you.
 
+**Real gases.** The gases of tab 4 are real gases, each with the equation of state chosen for it (see tab 2). If a gas would be a liquid on its own at that temperature and pressure (water at 523 K above about 90 bar), its equation has no gas state there. In the mixture it is diluted and stays a vapour, so for that point the solver describes it with the virial equation, which has a gas state at any pressure, and says so in a note.
+
 **What a switch means:** off means the catalyst cannot make that product. So a switch imitates a selective catalyst.
 
 **Why some switches are faded:** a switch can only change the result if its product holds a real share of the atoms. If a product holds nothing, there is nothing to take away. The solver checks this for every switch, each time you move something:
 
-- A normal switch shows the share its product holds, for example "74.8 % of C". You can click it.
+- A normal switch shows the share its product holds, for example "74.9 % of C". You can click it.
 - A **faded** switch says "no effect now". Blocking it would change nothing, so it cannot be clicked. It wakes up when it starts to matter.
 - A **dashed** switch is either fed to the reactor, or "needed": without it nothing could react at all, because the atoms would have nowhere to go.
 
 Example: CO₂ + 3 H₂ at 523 K and 50 bar. Press the three "Try this" buttons in turn.
 
-1. **Everything allowed.** 74.8 % of the carbon ends up as methane. Methanol and CO hold 0.0 %, so their switches are faded. Only the methane switch can be clicked.
-2. **Methane off.** Now 74.8 % of the carbon stays as CO₂, 17.3 % goes to methanol and 7.9 % to CO. The methanol and CO switches have woken up.
-3. **Methane and CO off.** Only methanol can form, and it takes 21.3 % of the carbon. Methanol is now "needed", because it is the only product left.
+1. **Everything allowed.** 74.9 % of the carbon ends up as methane. Methanol and CO hold 0.0 %, so their switches are faded. Only the methane switch can be clicked.
+2. **Methane off.** Now 71.9 % of the carbon stays as CO₂, 20.6 % goes to methanol and 7.5 % to CO. The methanol and CO switches have woken up.
+3. **Methane and CO off.** Only methanol can form, and it takes 24.5 % of the carbon. Methanol is now "needed", because it is the only product left.
 
 Water is "needed" in all three steps. The oxygen atoms of CO₂ have to go somewhere, and water is the only place.
 
@@ -266,7 +272,9 @@ If you want to allow or block any substance freely, open "Build your own system"
 
 The "solid carbon" card tells you whether solid carbon (soot) can form. The solver takes the gas it found and a reaction that would make carbon from it, for example 2 CO → C(s) + CO₂. It works out the same ratio of partial pressures as in Kp, p(CO₂)/p(CO)², but for the gas, and compares it with Kp. Solid carbon does not appear in the ratio, because it is a pure solid. If the gas ratio is smaller than Kp, the reaction can still go forward, so carbon can form. If it is larger, it cannot. Any reaction that makes carbon gives the same answer, because the gas is already at equilibrium.
 
-Example: with methane switched off, at 700 K and 50 bar the gas has p(CO₂) = 7.46 bar and p(CO) = 5.02 bar, so the ratio is 0.30. Kp of 2 CO → C(s) + CO₂ at 700 K is 4142, far larger, so carbon can form. With everything allowed at 523 K, the gas ratio and Kp are almost equal (Kp is 0.98 of the ratio), so no carbon forms.
+The gases of tab 4 are real gases, so each partial pressure is first multiplied by exp(Gᴿ/RT) of its gas, the real-gas correction from its equation of state. At 1 bar this factor is almost exactly 1.
+
+Example: with methane switched off, at 700 K and 50 bar the gas has p(CO₂) = 7.35 bar and p(CO) = 5.13 bar. With the real-gas factors (1.000 for CO₂, 1.014 for CO) the ratio is 0.27. Kp of 2 CO → C(s) + CO₂ at 700 K is 4142, far larger, so carbon can form. With everything allowed at 523 K the two are very close: Kp is 1.14 times the gas ratio, so carbon can just form. With ideal gases it would be 0.98 times and no carbon would form, so in this case the real-gas correction decides.
 
 ### Tab 5: Bomb calorimeter (extra feature 2)
 
@@ -388,19 +396,19 @@ Try to answer before you read the answer.
 11. **Does a favourable ΔG mean the reaction is fast?** No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.
 12. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
 13. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
-14. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 17.3 %; now its switch matters.
+14. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 20.6 %; now its switch matters.
 15. **A reaction is favoured at 50 bar but not at 1 bar. Did K change?** No. K depends on temperature only. Pressure changes how far the reaction goes when the number of gas molecules changes.
 16. **Why does ΔH° jump at a boiling point while ΔG° does not?** Liquid and vapour have different enthalpies; the difference is the latent heat. But at the boiling point they have the same Gibbs energy, so ΔG° and K pass through without a jump.
 17. **Water is in a gas mixture at 80 °C and 1 bar. Is it a liquid?** Only if its partial pressure reaches its vapour pressure, which is 0.47 bar at 80 °C. Below that it stays a vapour, although 80 °C is below the boiling point.
 18. **Is the K of this solver Kp or Kc?** Kp: it is written with partial pressures in bar. It changes with temperature only; pressure changes the conversion, not Kp.
 19. **Why does the ideal-gas ΔH not change with pressure?** For an ideal gas U depends on T only and PV = RT, so H = U + RT depends on T only.
-20. **Why does tab 2 start on Peng/Robinson?** It uses the acentric factor as well as Tc and Pc, and it holds at high pressure. Soave/Redlich/Kwong gives almost the same answer; van der Waals and Redlich/Kwong do not.
+20. **Who chooses the equation of state, and how?** The solver, for each gas: the one of the five equations whose Hᴿ is closest to measured NIST data for that gas. A gas without measured data uses Soave/Redlich/Kwong, the closest over all 24 measured gases.
 
 ## 10. A five-minute tour
 
 1. Open the **Start** page and click "Try to break it". The unbalanced reaction is rejected.
 2. Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.
-3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.66 kJ/mol at 200 bar. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
+3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.55 kJ/mol at 200 bar, and the equation each gas uses in the table at the bottom. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
 4. Click "What actually forms?" Press the three "Try this" buttons: everything allowed, methane off, methane and CO off. Point at the faded switches and say why they are faded. Then drag the temperature slider.
 5. Click "Bomb calorimeter" and press Ignite: 1 g of ethanol raises the temperature by 2.31 °C. Then click "Identify an unknown sample" and press Identify.
 6. Finish on **Validation**: 67 of 67 reference values reproduced.

@@ -46,6 +46,8 @@ from .species import SPECIES, Species
 SQRT2 = math.sqrt(2.0)
 
 MODEL_NAMES = {
+    # "auto": every gas gets the equation that is closest to measured data for it (module eoschoice)
+    "auto": "Chosen by the solver for each gas",
     "ideal": "Ideal gas",
     "virial": "Generalized virial correlation",
     "vdw": "van der Waals",
@@ -287,6 +289,8 @@ class Residual:
     #     is no gas-phase value at all.
     state: str = "vapour"
     notes: List[dict] = field(default_factory=list)
+    # With model "auto": why this equation was chosen (eoschoice.choose); None otherwise
+    choice: Optional[dict] = None
 
     @property
     def phi(self) -> float:
@@ -298,10 +302,12 @@ class Residual:
 
     def to_dict(self) -> dict:
         return {
-            "species": self.species, "model": self.model, "T": self.T, "P": self.P,
+            "species": self.species, "model": self.model, "model_name": MODEL_NAMES[self.model],
+            "T": self.T, "P": self.P,
             "Tr": self.Tr, "Pr": self.Pr, "Z": self.Z, "HR": self.HR, "SR": self.SR,
             "GR": self.GR, "lnphi": self.lnphi, "phi": self.phi,
             "treated_ideal": self.treated_ideal, "state": self.state, "notes": self.notes,
+            "choice": self.choice,
         }
 
 
@@ -324,6 +330,17 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
     _check_TP(T, P)
     if model not in MODEL_NAMES:
         raise InputError(f"Unknown real-gas model '{model}'. Choose from: {', '.join(MODEL_NAMES)}.")
+    if model == "auto":
+        # The solver picks the equation for this gas (closest to measured data).
+        from . import eoschoice
+        chosen, why = eoschoice.choose(sp)
+        if why["basis"] == "no_critical":
+            res = residual(sp, T, P, "pr")      # gives the note that the gas is taken as ideal
+            res.model = "ideal"
+        else:
+            res = residual(sp, T, P, chosen)
+        res.choice = why
+        return res
     res = Residual(sp.id, model, T, P)
 
     if sp.phase != "g":
@@ -440,14 +457,45 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
     return res
 
 
+def mixture_residual(sp: Species, T: float, P: float, model: str) -> Residual:
+    """Residual properties of a species as a component of a gas mixture.
+
+    With model "auto" a gas whose chosen cubic equation has no gas state on its own
+    at T and P (it would be a liquid, state "liquid_like") is described by the
+    generalized virial correlation instead, which has a gas state at any pressure.
+    In a mixture the species is diluted and stays a vapour, and this is the
+    hypothetical vapour that the calculation needs. At the pressure where the cubic
+    loses its gas state the two differ little in ln(phi) (water at 523 K, 90 bar:
+    -0.336 against -0.308). With a model named by the caller nothing is replaced,
+    and require_vapour() refuses the point as before.
+    """
+    res = residual(sp, T, P, model)
+    if model != "auto" or res.state != "liquid_like":
+        return res
+    first = MODEL_NAMES[res.model]
+    alt = residual(sp, T, P, "virial")
+    alt.state = "hypothetical_vapour"
+    alt.choice = dict(res.choice or {}, replaced=res.model)
+    alt.notes = [n for n in alt.notes if n.get("kind") != "virial_range"] + [{
+        "level": "info", "species": sp.id, "kind": "vapour_fallback",
+        "message": (
+            f"{sp.id}: on its own it would be a liquid at {T:g} K and {P:g} bar, and the {first} equation has no "
+            f"gas state for it there. In the gas mixture it is diluted and stays a vapour, so for this point its "
+            f"vapour is described with the generalized virial correlation, which has a gas state at any pressure. "
+            f"This part of the result is approximate."
+        ),
+    }]
+    return alt
+
+
 def require_vapour(res: Residual) -> None:
     """Raise if a residual result is not usable for a gas-phase calculation."""
     if res.state == "liquid_like":
         raise PhaseError(
             f"{res.species} is a liquid, not a gas, at {res.T:g} K and {res.P:g} bar according to the "
             f"{MODEL_NAMES[res.model]} equation, so a "
-            f"gas-phase equilibrium cannot be calculated. Lower the pressure, raise the "
-            f"temperature, or use the ideal-gas or virial model.",
+            f"gas-phase equilibrium cannot be calculated. Lower the pressure or raise the "
+            f"temperature.",
             {"species": res.species},
         )
 

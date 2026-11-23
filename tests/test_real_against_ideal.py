@@ -141,7 +141,10 @@ class TestOverview(unittest.TestCase):
         self.assertEqual(rows[0]["id"], "co2_methanol")
         self.assertAlmostEqual(by["co2_methanol"]["percent"], 10.56, delta=0.05)
         self.assertEqual(by["co2_methanol"]["size"], "large")
-        self.assertAlmostEqual(by["ammonia"]["residual"], -5158.0, delta=1.0)
+        # the overview uses the equation of state chosen for each gas (N2: PR, H2: RK, NH3: SRK);
+        # with Peng/Robinson for all three it was -5158 J
+        self.assertEqual(rows[0]["model"], "auto")
+        self.assertAlmostEqual(by["ammonia"]["residual"], -5049.5, delta=1.0)
         self.assertEqual(by["ammonia"]["size"], "significant")
         self.assertEqual(by["smr"]["size"], "negligible")
         self.assertEqual(by["so2_oxidation"]["size"], "negligible")
@@ -151,7 +154,8 @@ class TestOverview(unittest.TestCase):
 
     def test_overview_row_equals_the_tab_result(self):
         row = next(r for r in ok("pressure_overview", {})["rows"] if r["id"] == "ammonia")
-        c = ok("pressure", AMMONIA)["comparison"]
+        c = ok("pressure", dict(AMMONIA, model="auto"))["comparison"]
+        self.assertEqual(ok("pressure", {k: v for k, v in AMMONIA.items() if k != "model"})["model"], "auto")   # the default
         for key in ("dH_ideal", "residual", "dH_real", "percent", "effect", "size"):
             self.assertEqual(row[key], c[key], key)
 

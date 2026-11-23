@@ -236,7 +236,9 @@
       lines.push("How the solver decides: it takes the gas it found and a reaction that would make carbon from it, for example " +
         "2 CO → C(s) + CO<sub>2</sub>. It compares the K<sub>p</sub> of that reaction with the same ratio of partial pressures in the gas, " +
         "p<sub>CO2</sub>/p<sub>CO</sub><sup>2</sup> (solid carbon does not appear in it). If the gas ratio is smaller than K<sub>p</sub>, " +
-        "the reaction can still go forward, so carbon can form. Every reaction that makes carbon gives the same answer, because the gas is already at equilibrium.");
+        "the reaction can still go forward, so carbon can form. Every reaction that makes carbon gives the same answer, because the gas is already at equilibrium. " +
+        "The gases here are real gases, so each partial pressure is first multiplied by exp(G<sup>R</sup>/RT) of its gas, the real-gas correction " +
+        "from its equation of state (at 1 bar this factor is almost exactly 1).");
     }
     if (r.excluded.length) {
       lines.push(`Left out because the feed has none of their elements: ${r.excluded.map(chem).join(", ")}.`);
@@ -280,7 +282,7 @@
     }
 
     $("#nw-live-notes").innerHTML = TS.notes(r.warnings) +
-      TS.notes(r.notes.filter((n) => n.level !== "info" || n.kind === "condensation"));
+      TS.notes(r.notes.filter((n) => n.level !== "info" || n.kind === "condensation" || n.kind === "vapour_fallback"));
     $("#nw-live-title").innerHTML = `Where the ${esc(el)} atoms go at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar`;
 
     // Rows keep the order of the system so the bars do not jump around while dragging.
@@ -353,7 +355,8 @@
     const { species, feed } = readSystem();
     const sweep = $("#nw-sweep").value;
     // "candidates" are the products that are switched off; the solver reports what allowing them would change.
-    const body = { species, feed, T: TS.readNumber("nw-T"), P: TS.readNumber("nw-P"), model: $("#nw-model").value,
+    // Real gases, each with the equation of state the solver chose for it (closest to measured data)
+    const body = { species, feed, T: TS.readNumber("nw-T"), P: TS.readNumber("nw-P"), model: "auto",
       sweep: withSweep ? sweep : "none", switches: true, candidates: system.filter((s) => !species.includes(s)) };
     if (withSweep) {
       body[sweep === "T" ? "T_min" : "P_min"] = TS.readNumber("nw-min");
@@ -407,7 +410,6 @@
       for (const id of ["nw-min", "nw-max"]) {
         $("#" + id).addEventListener("keydown", (ev) => { if (ev.key === "Enter") full(); });
       }
-      $("#nw-model").addEventListener("change", () => full());
       loadPreset(TS.library.networks[0].id);
     },
     onShow() {

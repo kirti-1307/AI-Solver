@@ -86,6 +86,19 @@ For these eight gases the solver therefore uses, from the SVN limit up to 6000 K
 
 **Dissociation.** Having data up to 6000 K does not make a 4000 K flame real. Above about 2000 K the products of combustion partly dissociate, which the energy balance does not include. The page says so in a note, and as a warning above 2500 K.
 
+## Measured enthalpies of real gases (choice of the equation of state)
+
+The solver chooses the equation of state for each gas from measured data (THEORY.md, Section 5.5). The data are `data.NIST_FLUID`: isotherms of the NIST Chemistry WebBook, "Thermophysical Properties of Fluid Systems", read on 23 November 2026 from `webbook.nist.gov/cgi/fluid.cgi` (enthalpy in kJ/mol, default reference state, which cancels in the differences used).
+
+| Item | Value |
+|---|---|
+| Gases | the 24 gases of the database that the WebBook has in this section: CH₄, C₂H₆, C₃H₈, n-butane to n-octane, C₂H₄, C₃H₆, benzene, cyclohexane, toluene, CH₃OH, NH₃, CO, CO₂, H₂, H₂S, N₂, N₂O, O₂, SO₂, H₂O. Not covered: ethanol, acetic acid, acetylene, 1-butene, 1,3-butadiene, styrene, ethylbenzene, formaldehyde, acetaldehyde, Cl₂, HCl, HCN, NO, SO₃ |
+| Temperatures | 300, 400, 500, 600, 700, 800 and 1000 K, as far as NIST's equation for each fluid reaches (for many fluids up to 600 or 700 K) |
+| Pressures | 0.01 bar (the ideal-gas reference of each isotherm), 10, 50, 100, 200 and 300 bar (read as 10.01 to 300.01 bar, the grid of the WebBook query) |
+| Points kept | only those NIST marks as vapour or supercritical; rows that NIST lists twice at the same pressure appear once; 380 points in all |
+
+How this was checked: the rows were read in the browser and the exported text was compared with the saved copy by a checksum before it went into `data.py`. Two rows are spot-checked in `tests/test_eos_choice.py` (CO₂ at 400 K and 300 bar, methanol at 600 K and 300 bar). The test-suite also recomputes the choice for every gas straight from these rows.
+
 ## Cross-check of the SVN tables against NIST-JANAF
 
 The heat-capacity checksum of the next section tests the SVN constants at 298.15 K only. As a second, independent check the formation data and the heat capacities over the whole SVN range were compared with rows of the NIST-JANAF tables for 21 gases and 6 solids (`tests/janaf_reference.py`, `tests/test_cross_check_janaf.py`). The two sources are not identical, so this is a search for typing errors, not a claim that they agree to the last digit.
@@ -103,7 +116,7 @@ The last line is worth a remark. At 2000 K the SVN heat capacity itself is 2 to 
 
 | Species | Situation | What the solver does |
 |---|---|---|
-| NO₂, N₂O₄, ethylene oxide | In C.1 and C.4 but not in B.1 (no critical constants) | Full temperature dependence; treated as ideal gases in pressure calculations, with a warning. |
+| NO₂, N₂O₄, ethylene oxide (and H₂O₂ from NIST) | In C.1 and C.4 but not in B.1 (no critical constants) | Full temperature dependence; treated as ideal gases in pressure calculations, with a warning. |
 | Sulfur (element) | Table C.2 gives rhombic sulfur only up to 368.3 K | H₂S, SO₂ and SO₃ work normally in reactions; only their formation-from-elements reaction is not offered. |
 
 ## How the transcription was verified

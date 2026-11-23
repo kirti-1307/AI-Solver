@@ -1,5 +1,7 @@
 /* Tab 2: ideal gas against real gas. What pressure does to the heat of reaction,
- * through the residual enthalpy H^R = H(real gas) - H(ideal gas). */
+ * through the residual enthalpy H^R = H(real gas) - H(ideal gas).
+ * The user does not pick the equation of state (the user's request of 23 November 2026): the
+ * solver uses, for each gas, the one closest to measured data (thermosolver/eoschoice.py). */
 "use strict";
 (() => {
   const { $, esc, chem, fix, kJ, int, signed, coeff } = TS;
@@ -29,7 +31,7 @@
         <span class="dim" style="font-weight:500">${esc(x.size || "")}</span></div>`).join("");
     box.innerHTML = `<details open><summary>Where does the real gas differ from the ideal gas?</summary>
       <p class="hint">Six industrial reactions at their usual conditions. The bar is the residual part of the heat of reaction,
-        as a percentage of the ideal-gas value (${esc(overview.rows[0].model_name)}). Cold, dense, polar gases such as methanol,
+        as a percentage of the ideal-gas value, with the equation of state chosen for each gas. Cold, dense, polar gases such as methanol,
         water and ammonia are far from ideal; hot, light gases are not. Click a name to load that case.</p>
       <div class="bars">${rows}</div></details>`;
     for (const button of box.querySelectorAll(".pr-case")) {
@@ -38,7 +40,6 @@
         $("#pr-T").value = x.T;
         $("#pr-P").value = x.P;
         $("#pr-Pmax").value = Math.max(50, Math.round(x.P * 1.5));
-        $("#pr-model").value = x.model;
         TS.pickReaction($("#pr-select"), $("#pr-equation"), x.id);
         calculate();
       });
@@ -56,8 +57,10 @@
       `internal energy U depends on temperature only. Also PV = RT, so H = U + PV = U + RT depends on temperature only too. ` +
       `As ideal gases the reaction ${heat(c.dH_ideal)} ${kJ(Math.abs(c.dH_ideal))} kJ/mol at ${T} K, <em>whatever the pressure</em>.`);
     if (!a.gas_phase_valid) {
-      lines.push(`At ${T} K and ${P} bar, ${a.no_vapour_species.map(chem).join(", ")} is a liquid, not a gas, according to the ` +
-        `${esc(a.model_name)} equation. A gas-phase heat of reaction is not defined at this ` +
+      const which = a.species.filter((s) => a.no_vapour_species.includes(s.species))
+        .map((s) => `${chem(s.species)} (${esc(s.model_name)})`).join(", ");
+      lines.push(`At ${T} K and ${P} bar, ${which} is a liquid, not a gas, according to the equation of state used for it. ` +
+        `A gas-phase heat of reaction is not defined at this ` +
         `pressure, so no value is reported. Lower the pressure or raise the temperature.`);
       return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
     }
@@ -85,7 +88,7 @@
       `<strong>Step 2</strong>: let the ideal gases react. That is ΔH° from tab 1, ${signed(p.ideal_reaction / 1000, 2)} kJ. ` +
       `<strong>Step 3</strong>: take the products from ideal gas to real gas. That adds their H<sup>R</sup>: ` +
       `${terms(true)} J = ${signed(p.products_to_real / 1000, 2)} kJ. ` +
-      `Each H<sup>R</sup> is in the table at the bottom of this tab (${esc(a.model_name)}). H depends only on where you start and where ` +
+      `Each H<sup>R</sup> is in the table at the bottom of this tab, from the equation of state chosen for that gas. H depends only on where you start and where ` +
       `you end, not on the route, so the three steps add up to the real-gas value (${signed(p.total / 1000, 2)} kJ/mol).`);
     lines.push(`The gap between real and ideal grows with pressure (first graph), because the molecules are pushed closer together ` +
       `and attract each other more. It shrinks as the temperature rises (third graph), because hotter molecules move faster and have ` +
@@ -128,16 +131,28 @@
   }
 
   /* ----------------------------------------------------------- tables */
+  /* Which equation of state a gas uses, and why (the solver's choice). */
+  function equationCell(s) {
+    const c = s.choice;
+    if (!c || s.phase !== "g") return `<td class="l dim">–</td>`;
+    if (c.basis === "no_critical") return `<td class="l dim">ideal gas (no critical constants)</td>`;
+    const why = c.basis === "measured"
+      ? `closest to NIST data: off by ${fix(c.mean_error / 1000, 2)} kJ/mol on average (${c.points} points)`
+      : `no NIST data for this gas: the closest equation over all ${c.gases} measured gases`;
+    return `<td class="l"><strong>${esc(s.model_name)}</strong><br><span class="dim">${why}</span></td>`;
+  }
+
   function residualTable(r) {
     const rows = r.at_P.species.map((s) => `<tr>
       <td class="l mono">${chem(s.species)}</td><td>${s.nu > 0 ? "+" : "−"}${coeff(s.nu)}</td>
+      ${equationCell(s)}
       <td>${s.Tr === null ? "–" : fix(s.Tr, 3)}</td><td>${s.Pr === null ? "–" : fix(s.Pr, 3)}</td>
       <td>${fix(s.Z, 4)}</td><td>${int(s.HR)}</td><td>${fix(s.SR, 3)}</td>
       <td>${int(s.nu * s.HR)}</td>
       <td class="l ${s.state === "liquid_like" ? "fail" : "dim"}">${STATE_LABEL(s)}</td></tr>`).join("");
-    return `<div class="table-scroll"><table><thead><tr><th class="l">Species</th><th>ν</th><th>T<sub>r</sub></th><th>P<sub>r</sub></th>
+    return `<div class="table-scroll"><table><thead><tr><th class="l">Species</th><th>ν</th><th class="l">Equation of state</th><th>T<sub>r</sub></th><th>P<sub>r</sub></th>
       <th>Z</th><th>H<sup>R</sup> (J/mol)</th><th>S<sup>R</sup> (J/mol·K)</th><th>ν·H<sup>R</sup> (J)</th><th class="l">State</th></tr></thead>
-      <tbody>${rows}<tr class="sum"><td class="l" colspan="7">Σ ν<sub>i</sub>H<sub>i</sub><sup>R</sup> = ΔH(T,P) − ΔH°(T)</td>
+      <tbody>${rows}<tr class="sum"><td class="l" colspan="8">Σ ν<sub>i</sub>H<sub>i</sub><sup>R</sup> = ΔH(T,P) − ΔH°(T)</td>
       <td>${r.at_P.gas_phase_valid ? int(r.at_P.sum_HR) : "not defined"}</td><td></td></tr></tbody></table></div>`;
   }
 
@@ -165,7 +180,7 @@
     const traces = [
       { x: s.P, y: s.P.map(() => 0), name: "Ideal gas (no residual part)", mode: "lines",
         line: { width: 2, dash: "dash", color: "#475569" } },
-      { x: s.P, y: k(s.sum_HR), name: `Real gas minus ideal gas, ${r.at_P.model_name}`, mode: "lines", fill: "tonexty",
+      { x: s.P, y: k(s.sum_HR), name: "Real gas minus ideal gas", mode: "lines", fill: "tonexty",
         fillcolor: "rgba(194,65,12,0.14)", line: { width: 2.5, color: "#c2410c" } },
     ];
     if (c.residual !== null) {
@@ -211,7 +226,8 @@
     const c = r.comparison;
     const ok = a.gas_phase_valid;
     const sign = c.dH_real === null ? "" : (c.dH_real < 0 ? "exo" : "endo");
-    let html = `<div class="panel"><div class="eqn">${chem(r.equation)} <small>&nbsp; at ${fix(r.T, 2)} K and ${fix(r.P, 2)} bar, ${esc(a.model_name)}</small></div>`;
+    let html = `<div class="panel"><div class="eqn">${chem(r.equation)} <small>&nbsp; at ${fix(r.T, 2)} K and ${fix(r.P, 2)} bar,
+      ${r.model === "auto" ? "each gas with the equation of state chosen for it" : esc(a.model_name)}</small></div>`;
     html += `<div class="verdict">
         <div class="v-item neutral"><div class="v-big">Ideal gas: ${kJ(c.dH_ideal)} kJ/mol</div>
           <div class="v-sub">ΔH°(${fix(r.T, 0)} K), the same at every pressure</div></div>
@@ -271,7 +287,7 @@
         T: TS.readNumber("pr-T"),
         P: TS.readNumber("pr-P"),
         P_max: TS.readNumber("pr-Pmax"),
-        model: $("#pr-model").value,
+        model: "auto",          // the solver chooses the equation of state for each gas
       }));
     });
   }
@@ -300,7 +316,6 @@
         },
       });
       $("#pr-run").addEventListener("click", calculate);
-      $("#pr-model").addEventListener("change", calculate);
       for (const id of ["pr-equation", "pr-T", "pr-P", "pr-Pmax"]) {
         $("#" + id).addEventListener("keydown", (ev) => { if (ev.key === "Enter") calculate(); });
       }
