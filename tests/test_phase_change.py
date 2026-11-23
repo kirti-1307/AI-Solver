@@ -14,7 +14,7 @@ import math
 import os
 import unittest
 
-from thermosolver import api, heatbalance, phase
+from thermosolver import api, heatbalance, library, phase
 from thermosolver.constants import P0, R, T0
 from thermosolver.errors import InputError
 from thermosolver.reaction import Reaction
@@ -659,12 +659,38 @@ class TestThePage(unittest.TestCase):
         with open(os.path.join(ROOT, *parts), encoding="utf-8") as fh:
             return fh.read()
 
-    def test_tab_1_has_the_stable_phase_box_and_it_is_off_at_the_start(self):
+    def test_tab_1_picks_the_stable_phase_where_none_is_typed_from_the_start(self):
+        # 23 November 2026: the box is ticked at the start, and it applies to species typed without
+        # a phase only; a phase that is typed is kept (so H2O(g) at 298 K still gives the lower heating value).
         html = self.read("index.html")
-        self.assertRegex(html, r'<input type="checkbox" id="rx-auto-phase">')       # not ticked: typed phases are respected
+        self.assertIn('<input type="checkbox" id="rx-auto-phase" checked>', html)
+        self.assertIn("where no phase is typed", html)
         script = self.read("web", "tab-reaction.js")
-        self.assertIn('auto_phase: $("#rx-auto-phase").checked', script)
+        self.assertIn('auto_phase_untyped: $("#rx-auto-phase").checked', script)
+        self.assertNotIn("auto_phase: ", script)
         self.assertIn("rx-use-stable", script)
+
+    def test_untyped_species_get_the_stable_phase_typed_ones_keep_theirs(self):
+        def run(equation, T):
+            return api.analyze({"equation": equation, "T": T, "auto_phase_untyped": True, "from_reference_T": True})
+        cold = run("CH4 + 2 O2 -> CO2 + 2 H2O", 298.15)
+        self.assertIn("H2O(l)", cold["stoich"])
+        self.assertAlmostEqual(cold["at_T"]["dH"], -890649.0, delta=1.0)
+        self.assertEqual(cold["phase"]["chosen"], [{"compound": "Water", "species": "H2O(l)", "untyped": True}])
+        self.assertEqual(cold["notes"], [])
+        self.assertIn("H2O(g)", run("CH4 + 2 O2 -> CO2 + 2 H2O", 500.0)["stoich"])
+        typed = run("CH4 + 2 O2 -> CO2 + 2 H2O(g)", 298.15)               # the lower heating value stays possible
+        self.assertIn("H2O(g)", typed["stoich"])
+        self.assertAlmostEqual(typed["at_T"]["dH"], -802625.0, delta=1.0)
+        self.assertFalse(typed["phase"]["auto"])
+        self.assertEqual([(s["typed"], s["used"]) for s in typed["phase"]["swaps"]], [("H2O(g)", "H2O(l)")])   # the page offers it
+        # "Let the solver choose" takes the phase off: the plots then cross the boiling point
+        off = run("H2(g) + 1/2 O2(g) -> H2O", 298.15)
+        self.assertTrue(off["phase"]["auto"])
+        self.assertEqual([round(t["T_boil"], 1) for t in off["phase"]["transitions"]], [373.2])
+        # every predefined reaction types its phases, so none of them changes
+        for entry in library.REACTIONS:
+            self.assertEqual(api._untyped(Reaction.parse(entry[2])) & {t.gas for t in phase.choices(Reaction.parse(entry[2]))[0]}, set(), entry[0])
 
     def test_condensing_water_stays_in_the_solver_after_the_reactor_view_left_the_page(self):
         # Tab 5 no longer shows the reactor view (23 November 2026), but the calculation is kept.

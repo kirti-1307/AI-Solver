@@ -64,15 +64,20 @@
         `${chem(t.gas)} is used, below it ${chem(t.liquid)}. There ΔH° of this reaction jumps by ` +
         `<strong>${signed(t.dH_jump / 1000, 2)} kJ/mol</strong> (ν × latent heat = ${signed(t.nu, 2).replace(".00", "")} × ${kJ(t.dH_vap)} kJ/mol) ` +
         `and ΔS° by ${signed(t.dS_jump, 1)} J/(mol·K), while ΔG° does not jump.</li>`).join("");
-      html += TS.message("info", `<strong>Phase chosen by the solver.</strong> At ${fix(r.T, 2)} K and 1 bar ` +
-        (swapped ? `the stable phase is not the one typed, so the calculation uses ${swapped}.`
-          : "every species is already in its stable phase, so nothing is changed.") +
+      // Since 23 November 2026 the solver picks the phase only where none is typed (unless asked for every species).
+      const untyped = ph.chosen.filter((c) => c.untyped);
+      const which = untyped.length
+        ? `No phase was typed for ${untyped.map((c) => esc(c.compound.toLowerCase())).join(" and ")}, so the solver uses the phase that is ` +
+          `stable at ${fix(r.T, 2)} K and 1 bar: ${untyped.map((c) => chem(c.species)).join(", ")}.`
+        : `At ${fix(r.T, 2)} K and 1 bar ` + (swapped ? `the stable phase is not the one typed, so the calculation uses ${swapped}.`
+          : "every species is already in its stable phase, so nothing is changed.");
+      html += TS.message("info", `<strong>Phase chosen by the solver.</strong> ${which}` +
         ` The stable phase is the one with the lower Gibbs energy; where the two are equal, the liquid boils.` +
         `<ul class="explain" style="margin:8px 0 0">${lines}</ul>`);
     } else if (!ph.auto && ph.swaps.length) {
       const names = ph.swaps.map((s) => `${chem(s.typed)} (${boil(ph.transitions.find((t) => t.liquid === s.typed || t.gas === s.typed))})`).join("; ");
       html += `<div class="msg info"><strong>Phase:</strong> at ${fix(r.T, 2)} K and 1 bar this is not the stable phase of ${names}. ` +
-        `The numbers below are for the phase that is typed. <button type="button" class="link" id="rx-use-stable">Pick the stable phase</button></div>`;
+        `The numbers below are for the phase that is typed. <button type="button" class="link" id="rx-use-stable">Let the solver choose the phase</button></div>`;
     }
     for (const s of ph.skipped) {
       if (ph.auto || s.why === "data") html += TS.message("info", `<strong>Phase:</strong> ${chem(s.message)}`);
@@ -231,7 +236,17 @@
       ${stepsBlock(r)}${comparisonBlock(r)}${formationBlock(r)}</div>`;
     out.innerHTML = html;
     const useStable = $("#rx-use-stable");
-    if (useStable) useStable.addEventListener("click", () => { $("#rx-auto-phase").checked = true; calculate(); });
+    // "Let the solver choose": the typed phase is taken off that species, so the solver picks its stable
+    // phase at every temperature of the plots (the box applies to species typed without a phase).
+    if (useStable) {
+      useStable.addEventListener("click", () => {
+        let equation = r.phase.equation_typed;
+        for (const s of r.phase.swaps) equation = equation.split(s.typed).join(s.typed.replace(/\([a-z]+\)$/, ""));
+        $("#rx-equation").value = equation;
+        $("#rx-auto-phase").checked = true;
+        calculate();
+      });
+    }
     drawPlots(r);
   }
 
@@ -245,7 +260,8 @@
         from_reference_T: true,       // this tab works from 298.15 K upwards only
         T_min: TS.readNumber("rx-Tmin"),
         T_max: TS.readNumber("rx-Tmax"),
-        auto_phase: $("#rx-auto-phase").checked,
+        // ticked at the start: a species typed without a phase gets the phase that is stable at T and 1 bar
+        auto_phase_untyped: $("#rx-auto-phase").checked,
       });
       render(result);
     });

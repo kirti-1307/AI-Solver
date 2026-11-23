@@ -159,9 +159,9 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 - The graphs (explained below).
 - The step-by-step calculation, if you want to follow the arithmetic.
 
-**The "Pick the stable phase" box.** Normally the solver uses the phase you type. H2O(l) stays a liquid at any temperature, even at 500 K, where it only gets a warning. Tick the box and the solver chooses for you: liquid below the boiling point, vapour above it. The plots then run across the boiling point. The orange ΔH° line has a step there (the latent heat), and the blue ΔG° line only bends. Try `H2 + 1/2 O2 -> H2O(l)`: ΔH° is −283.4 kJ/mol just below 373.2 K and −242.6 kJ/mol just above it.
+**The "Pick the stable phase" box.** It is ticked at the start. If you type water, methanol, ethanol, benzene, cyclohexane or toluene without (g) or (l), the solver chooses the phase for you: it finds the boiling point from its own data and uses the liquid below it and the vapour above it, at 1 bar. Example: `CH4 + 2 O2 -> CO2 + 2 H2O` gives H2O(l) and ΔH° = −890.65 kJ/mol at 298.15 K, and H2O(g) at 500 K. The plots then run across the boiling point. The orange ΔH° line has a step there (the latent heat), and the blue ΔG° line only bends. Try `H2 + 1/2 O2 -> H2O`: ΔH° is −283.4 kJ/mol just below 373.2 K and −242.6 kJ/mol just above it.
 
-The box is off at the start, because a textbook often wants the other form on purpose. The heat of burning methane to H2O(g) at 25 °C is the lower heating value, although water is not a vapour at 25 °C and 1 bar.
+A phase you type is always kept, because a textbook often wants the other form on purpose. The heat of burning methane to H2O(g) at 25 °C (−802.62 kJ/mol) is the lower heating value, although water is not a vapour at 25 °C and 1 bar. Then a blue box says that the typed phase is not the stable one, and its button "Let the solver choose the phase" takes the typed phase away. If you untick the box, a species typed without a phase is taken as a gas.
 
 **The three graphs of tab 1.** Each has a line under it that says how to read it. In short:
 
@@ -328,7 +328,7 @@ The five stress tests of the assignment:
 
 1. **Unbalanced reaction.** CH₄ + O₂ → CO₂ + H₂O is rejected, and CH₄ + 2 O₂ → CO₂ + 2 H₂O is offered.
 2. **Shortcut on Cp.** The Validation tab runs this for every predefined reaction at 1000 K. For the 40 reactions whose Cp data reach 1000 K, a constant ΔCp puts ΔH off by 9.0 kJ/mol on average and by up to 31.5 kJ/mol (benzene hydrogenation); ignoring ΔCp puts it off by 7.5 kJ/mol on average and by up to 26.0 kJ/mol (CO₂ methanation). The other 5 contain a liquid or a solid whose Cp data stop below 1000 K, so they get no numbers. Example, steam reforming: the proper Cp gives ΔH = 225.3 kJ/mol, a constant Cp gives 238.8, and ignoring Cp gives 205.8.
-3. **Liquid or vapour water.** Burning methane gives −890.65 kJ/mol with liquid water and −802.63 with vapour. The gap is the heat needed to boil 2 moles of water. With the "Pick the stable phase" box the solver chooses liquid water at 25 °C by itself.
+3. **Liquid or vapour water.** Burning methane gives −890.65 kJ/mol with liquid water and −802.63 with vapour. The gap is the heat needed to boil 2 moles of water. Typed as just H2O, the solver chooses liquid water at 25 °C by itself.
 4. **Formula out of range.** The solver warns you, and shades that part of the plots. This was checked 1 K inside and 1 K outside both ends of the range for all 45 predefined reactions: a warning every time outside, never inside.
 5. **Published values.** The solver agrees with research papers within 0.5 kJ/mol.
 

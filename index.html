@@ -12,17 +12,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="web/styles.css?v=1.8.8">
+  <link rel="stylesheet" href="web/styles.css?v=1.8.9">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.8.8" defer></script>
-  <script src="web/tab-reaction.js?v=1.8.8" defer></script>
-  <script src="web/tab-pressure.js?v=1.8.8" defer></script>
-  <script src="web/tab-combine.js?v=1.8.8" defer></script>
-  <script src="web/tab-network.js?v=1.8.8" defer></script>
-  <script src="web/tab-heat.js?v=1.8.8" defer></script>
-  <script src="web/tab-data.js?v=1.8.8" defer></script>
-  <script src="web/tab-validation.js?v=1.8.8" defer></script>
-  <script src="web/main.js?v=1.8.8" defer></script>
+  <script src="web/ui.js?v=1.8.9" defer></script>
+  <script src="web/tab-reaction.js?v=1.8.9" defer></script>
+  <script src="web/tab-pressure.js?v=1.8.9" defer></script>
+  <script src="web/tab-combine.js?v=1.8.9" defer></script>
+  <script src="web/tab-network.js?v=1.8.9" defer></script>
+  <script src="web/tab-heat.js?v=1.8.9" defer></script>
+  <script src="web/tab-data.js?v=1.8.9" defer></script>
+  <script src="web/tab-validation.js?v=1.8.9" defer></script>
+  <script src="web/main.js?v=1.8.9" defer></script>
 </head>
 <body>
 <header class="top">
@@ -163,7 +163,8 @@
     <div class="panel" data-bar="Tab 1 · Reaction">
       <h2>Standard reaction thermodynamics</h2>
       <p class="hint">Pick a reaction or type your own. The elemental balance is checked before anything is
-        calculated. Write phases as <code>(g)</code>, <code>(l)</code>, <code>(s)</code>; if you leave the phase out, gas is assumed when available.
+        calculated. Write phases as <code>(g)</code>, <code>(l)</code>, <code>(s)</code>; if you leave the phase out of water, methanol, ethanol, benzene, cyclohexane or toluene, the solver picks the phase that is
+        stable at your temperature (with the box below ticked); any other species without a phase is taken as a gas when there is one.
         The standard state (the ° sign) fixes the pressure at 1 bar; the temperature is yours to choose, from 298.15 K, the reference
         temperature of the data, upwards.</p>
       <div class="form">
@@ -188,8 +189,8 @@
         <button id="rx-run" class="primary">Calculate</button>
       </div>
       <div class="form">
-        <label class="check" title="For water, methanol, ethanol, benzene, cyclohexane and toluene the solver has both the liquid and the gas. With this box ticked it uses the one that is stable at your temperature and 1 bar, whatever phase is typed.">
-          <input type="checkbox" id="rx-auto-phase"><span>Pick the stable phase (liquid or vapour) at this temperature</span></label>
+        <label class="check" title="For water, methanol, ethanol, benzene, cyclohexane and toluene the solver has both the liquid and the gas. With this box ticked, one of them typed without (g) or (l) gets the phase that is stable at your temperature and 1 bar. A phase you type is always kept.">
+          <input type="checkbox" id="rx-auto-phase" checked><span>Pick the stable phase (liquid or vapour) where no phase is typed</span></label>
       </div>
       <small id="rx-TC" class="unit"></small>
     </div>

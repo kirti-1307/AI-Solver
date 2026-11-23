@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from typing import Any, Callable, Dict, List, Optional
 
 from . import benchmarks, eoschoice, heatbalance, library, phase
@@ -388,24 +389,52 @@ def _T_sweep(rxn: Reaction, lo: float, hi: float, n: int, pieces=None) -> dict:
     return out
 
 
-def _phase_choice(typed: Reaction, T: float, auto: bool) -> dict:
+_ASSUMED = re.compile(r"^No phase was given for .+?; (\S+) was assumed")
+
+
+def _untyped(typed: Reaction) -> set:
+    """Species ids that the parser chose because no phase was typed (see species.find_species)."""
+    return {m.group(1) for m in (_ASSUMED.match(n) for n in typed.notes) if m}
+
+
+def _phase_choice(typed: Reaction, T: float, auto: bool, untyped_only: bool = False) -> dict:
     """What the choice of phase does for one reaction at T: which species can
     change phase, where they boil, what is swapped (or would be), and the
-    reaction to calculate with."""
-    used, skipped = phase.choices(typed)
-    stable, swaps = phase.at_temperature(typed, T, used)
+    reaction to calculate with.
+
+    auto: every species that can change phase gets the stable phase, even a typed one.
+    untyped_only (tab 1's default since 23 November 2026): only a species typed
+    without a phase gets the stable phase; a phase that is typed is kept.
+    """
+    candidates, skipped = phase.choices(typed)
+    free = _untyped(typed)
+    if auto:
+        used = candidates
+    elif untyped_only:
+        used = [t for t in candidates if (t.liquid in typed.stoich and t.liquid in free) or (t.gas in typed.stoich and t.gas in free)]
+    else:
+        used = []
+    active = bool(used)
+    stable_all, swaps_all = phase.at_temperature(typed, T, candidates)
+    stable, swaps = phase.at_temperature(typed, T, used) if active else (typed, [])
+    for s in swaps_all + swaps:
+        s["untyped"] = s["typed"] in free
     info = {
-        "auto": auto,
+        "auto": active,
         "equation_typed": typed.equation,
-        "transitions": phase.jumps(typed, used),
+        "transitions": phase.jumps(typed, used if active else candidates),
         "skipped": skipped,
-        "swaps": swaps,                       # typed phase -> stable phase at T (applied only when auto)
-        "equation_stable": stable.equation,
+        # typed phase -> stable phase at T: what was applied (auto) or what would be (hint)
+        "swaps": swaps if active else swaps_all,
+        # the phase the solver uses at T for each species it chose itself, and whether it was typed
+        "chosen": [{"compound": t.compound, "species": phase.stable_id(t, T),
+                    "untyped": (t.liquid in free or t.gas in free)} for t in used],
+        "equation_stable": stable_all.equation,
         "pieces": None,
-        "audit": phase.audit(used) if auto else [],
+        "audit": phase.audit(used) if active else [],
     }
-    return {"info": info, "used": used, "reaction": stable if auto else typed,
-            "pieces": phase.segments(typed, used) if auto and used else None}
+    return {"info": info, "used": used, "reaction": stable if active else typed,
+            "pieces": phase.segments(typed, used) if active else None}
 
 
 def analyze(payload: dict) -> dict:
@@ -424,7 +453,8 @@ def analyze(payload: dict) -> dict:
     floor = _flag(payload, "from_reference_T", "'from_reference_T'")
     if floor and T < T0 - 1e-9:
         raise InputError(f"This tab starts at the reference temperature of the data, {T0:g} K. Choose {T0:g} K or more.")
-    choice = _phase_choice(typed, T, _flag(payload, "auto_phase", "'auto_phase'"))
+    choice = _phase_choice(typed, T, _flag(payload, "auto_phase", "'auto_phase'"),
+                           _flag(payload, "auto_phase_untyped", "'auto_phase_untyped'"))
     rxn, pieces = choice["reaction"], choice["pieces"]
     ev = rxn.evaluate(T)
     warnings = rxn.range_warnings(T)
