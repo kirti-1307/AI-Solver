@@ -86,7 +86,7 @@ thermosolver/           the solver, pure Python, standard library only
     api.py              JSON interface used by the page
 tests/                  automated tests (unittest)
 docs/                   beginner's guide, presentation script, theory, data sources, testing, debug log, review, deploy checklist
-report/                 the two-page assignment report
+report/                 the two-page assignment report (Word and PDF; make_pdf.ps1 makes the PDF from the Word file)
 ```
 
 The web page runs the *same* Python files in the browser through [Pyodide](https://pyodide.org) (Python compiled to WebAssembly), inside a web worker. So the numbers on the hosted page are produced by exactly the code the tests exercise.
