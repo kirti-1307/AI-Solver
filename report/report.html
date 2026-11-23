@@ -25,7 +25,7 @@
 Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: https://github.com/kirti-1307/AI-Solver</p>
 
 <h2>1. What the solver does</h2>
-<p>I built the solver as a web page that runs in any browser. The user picks one of 45 predefined reactions or types a new one. The solver first checks that the reaction is balanced, and only then calculates the heat of reaction, the entropy change and the Gibbs energy change at the chosen temperature. Every result also comes with plots and a short explanation in plain words. The database has 57 species and includes all 26 species suggested in the assignment. The data sources are listed at the end.</p>
+<p>I built the solver as a web page that runs in any browser. The user picks one of 45 predefined reactions, which include all those named in the assignment, or types a new one. The solver first checks that the reaction is balanced, and only then calculates the heat of reaction, the entropy change and the Gibbs energy change at the chosen temperature. Every result also comes with plots and a short explanation in plain words. The database has 57 species, including all 26 suggested in the assignment. For each species it lists the phase, &Delta;H&deg;<sub>f</sub>, &Delta;G&deg;<sub>f</sub> and S&deg; at 298.15 K and 1 bar, the constants of C<sub>p</sub>&deg;(T), and T<sub>c</sub>, P<sub>c</sub> and &omega;, each with its unit and source. The sources are listed at the end.</p>
 
 <h2>2. Models used</h2>
 <table>
@@ -74,7 +74,7 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><td>4. Correlation validity</td><td>Outside a species' temperature range the result comes with a warning. I checked this 1 K inside and outside both ends for all 45 reactions.</td></tr>
 <tr><td>5. Published work</td><td>&Delta;H&deg;<sub>298</sub> of eight reactions agrees with values from research papers within 0.5 kJ/mol [4].</td></tr>
 </table>
-<p id="errors"><b>Errors of the AI-generated solver that I found and corrected.</b> The first versions of the solver gave the following wrong or misleading results.</p>
+<p id="errors"><b>Errors of the AI-generated solver that I found and corrected.</b> The first versions of the solver gave the following eight incorrect, misleading, incomplete or physically unreasonable results.</p>
 <table>
 <tr><th style="width:17%">Type of error</th><th style="width:46%">What went wrong</th><th>How I corrected it</th></tr>
 <tr><td>Physically unreasonable</td><td>CO<sub>2</sub> hydrogenation at 523 K and 100 bar gave 48 % conversion, with liquid water treated as a gas.</td><td>The solver now detects this state and does not report a gas-phase value.</td></tr>
@@ -84,7 +84,7 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><td>Misleading result</td><td>The calorimeter named ethylene oxide gas as the unknown sample, ahead of liquid ethanol.</td><td>Only liquids and solids are compared, since a gas cannot be weighed into a crucible.</td></tr>
 <tr><td>Wrong concept</td><td>The standard state was described as 298.15 K and 1 bar, although it fixes only the pressure.</td><td>The wording is corrected in the app and in the guide.</td></tr>
 <tr><td>Formula out of range</td><td>The textbook C<sub>p</sub> formula was stretched below 298 K and above 2000 K (29 % too low for CO<sub>2</sub> at 200 K).</td><td>Data from NIST are used in these two ranges [2, 3].</td></tr>
-<tr><td>Missing physics</td><td>Every species stayed in the phase that was typed, so liquid water stayed a liquid even at 500 K.</td><td>The solver finds the boiling point from its own data (373.2 K for water).</td></tr>
+<tr><td>Incomplete</td><td>Every species stayed in the phase that was typed, so liquid water stayed a liquid even at 500 K.</td><td>The solver finds the boiling point from its own data (373.2 K for water).</td></tr>
 </table>
 <p>Two independent reviews of the code then found further issues, which I also fixed. All of them are listed in the repository, where 441 automated tests run on every change.</p>
 

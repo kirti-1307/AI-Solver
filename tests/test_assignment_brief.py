@@ -212,6 +212,18 @@ class TestDeliverables(unittest.TestCase):
                      "&Delta;S&deg; with temperature", "&Delta;G&deg; of reaction", "Pressure and residual properties",
                      "Plots against T and P", "Favourability at T and P"):
             self.assertIn(item, report)
+        # the rest of the brief: the named reactions, what the database documents, and the kinds of error
+        for item in ("which include all those named in the assignment", "including all 26 suggested in the assignment",
+                     "it lists the phase", "S&deg; at 298.15 K and 1 bar", "each with its unit and source",
+                     "eight incorrect, misleading, incomplete or physically unreasonable results", "AI platform used"):
+            self.assertIn(item, report)
+        self.assertEqual(report.count("<tr><td>") - report.count("<tr><td>1.") - report.count("<tr><td>2.") - report.count("<tr><td>3.")
+                         - report.count("<tr><td>4.") - report.count("<tr><td>5."), 6 + 7 + 8)   # models, brief table, errors
+        from thermosolver import library
+        ids = {e[0] for e in library.REACTIONS}
+        for rid in ("co2_methanol", "methanol_synthesis", "rwgs", "wgs", "ammonia", "smr"):   # the reactions the brief names
+            self.assertIn(rid, ids)
+        self.assertTrue(os.path.exists(os.path.join(ROOT, "report", "Assignment2_Report.pdf")))
         self.assertIn("kirti-1307.github.io/AI-Solver", report)
 
 
