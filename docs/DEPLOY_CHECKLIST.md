@@ -138,6 +138,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.8 and v1.8.1, 23 November 2026, commits `3312741` (layout) and `655f604` (plain wording):** both workflows green for each. On https://kirti-1307.github.io/AI-Solver/ and on https://ai-solver-seven.vercel.app/ the scripts carry version 1.8.1, the status pill shows "Solver ready", the start page has the graph-paper layout, tab 5 shows the button "Find the heat to add or remove" and the box "Let the water change phase (condense when the outlet is cold enough)", and none of the terms that were taken off the page (dew point, heat duty, dissociation, Shomate) appears. Locally, a sweep of all eight tabs and the condensing-boiler example found none of the removed terms; 402 tests pass. No console errors.
 
+**v1.8.2, 23 November 2026, commit `b900e57`:** both workflows green. On https://ai-solver-seven.vercel.app/ and https://kirti-1307.github.io/AI-Solver/ the scripts carry 1.8.2. Tab 1: the K card reads "Equilibrium constant Kp", no van 't Hoff line, no consistency checks. Tab 2 (ammonia, 723.15 K, 200 bar): the four graphs share a y-span of 30.9 kJ, no "Largest contribution", the Peng/Robinson note is shown. Locally, every tab 4 number of docs/PRESENTATION_SCRIPT.md was reproduced by clicking through the script (74.8 %, 74.9 %, 17.3 %, 7.9 %, 21.3 %, 30.8 % at 100 bar, 0.3 % and 40.1 % at 700 K). 407 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
