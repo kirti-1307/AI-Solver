@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": false,
-  "trailingSlash": false,
+  "framework": null,
   "headers": [
     {
       "source": "/thermosolver/(.*)",

@@ -2,7 +2,7 @@
 
 An interactive solver for the energetics of chemical reactions: heat of reaction, entropy change, Gibbs energy and equilibrium constant as functions of temperature and pressure. Built for Assignment 2 of the Chemical Engineering Thermodynamics course (Prof. M. Ali Haider), on the data and equations of Smith, Van Ness & Abbott, *Introduction to Chemical Engineering Thermodynamics* (SVN).
 
-**Live app:** https://kirti-1307.github.io/AI-Solver/
+**Live app:** https://kirti-1307.github.io/AI-Solver/ (GitHub Pages) and https://ai-solver-seven.vercel.app/ (Vercel). Both serve the same files from the `main` branch.
 
 The page needs no installation. The first visit takes about ten seconds while the browser downloads the Python runtime; after that everything is instant.
 

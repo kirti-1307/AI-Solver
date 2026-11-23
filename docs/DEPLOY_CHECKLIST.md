@@ -2,6 +2,7 @@
 
 **Target:** GitHub Pages, served from the root of the `main` branch of `kirti-1307/AI-Solver`
 **Live URL:** https://kirti-1307.github.io/AI-Solver/
+**Second host (since 23 November 2026):** Vercel, https://ai-solver-seven.vercel.app/ , project `ai-solver`, connected to the same repository. Every push to `main` is deployed there as well. `vercel.json` sets the preset to "Other" (plain static files, no build step) and tells browsers not to keep old copies of the Python files.
 **What ships:** a static site. `index.html`, `web/` and the Python package `thermosolver/`, which the browser runs through Pyodide. No server, no database, no secrets, no build step.
 
 **What changed in v1.1:** the electrochemical tab is replaced by the heat lab (reactor energy balance and virtual bomb calorimeter), the product slate became a live reactor with sliders, and the page got a light/dark switch.
@@ -132,6 +133,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 - [x] v1.7: tab 7 reports 67 of 67, the ten phase-change rows among them
 
 **v1.7 checked on the live page, 23 November 2026, commit `2cd8b28`, version tag 1.7.0:** both workflows green. Tab 1 opens with the box unticked and CO2 hydrogenation at 523 K as before (-57.94 kJ/mol, 0.6 % at 1 bar). `H2 + 1/2 O2 -> H2O(l)` at 500 K shows the blue hint with the button "Pick the stable phase"; after a click the box is ticked, the reaction reads H2O(g), ΔH° = -243.81 kJ/mol, the note names the jump of +40.86 kJ/mol at 373.2 K, five plots, 10 of 10 identities. Tab 5: methane burner 2,069 K with the water box ticked and a dew point card of 328.7 K; "Condensing boiler" gives -847.7 kJ with a fourth step (1.17 mol of water condense, -50.76 kJ), 7 of 7 identities, and -796.9 kJ with a warning when the box is unticked. Tab 7: 67 of 67, the ten phase-change rows among them, no "FAIL". The guide has the section on boiling points and loads the stylesheet of this release. No console errors.
+
+**Vercel, first deployment, 23 November 2026, commit `1fd2b83` (v1.7):** imported from GitHub with the default settings (root folder, preset "Other", no build command). On https://ai-solver-seven.vercel.app/ the status pill turned to "Solver ready", tab 1 showed ΔH° = -57.94 kJ/mol for CO2 hydrogenation at 523 K with five plots, `thermosolver/__init__.py` and `thermosolver/phase.py` were served, and the console showed no errors.
 
 ## Rollback
 
