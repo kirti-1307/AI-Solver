@@ -142,6 +142,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.8.3, 23 November 2026, commit `0416653`:** both workflows green. On both addresses the scripts carry 1.8.3. Tab 2 shows only the two residual cards, with no consistency checks and no model table. Tab 4 shows the solid-carbon and moles-of-gas cards and no conversion anywhere. Locally: tab 3 has no K, the tab 4 switch message lists where the C atoms go, and the soot explanation is shown. 412 tests pass. No console errors.
 
+**v1.8.4, 23 November 2026, commit `2d36f2b`:** both workflows green. On both addresses the scripts carry 1.8.4. Tab 1 has four graphs and no K anywhere. All four tab 2 graphs cover the same range (−28.98 to 1.96 kJ/mol for ammonia). Tab 5 is the bomb calorimeter only, with no reactor or flame text, and 1 g of ethanol gives a 2.31 °C rise. The start page has seven demo cards. 412 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
