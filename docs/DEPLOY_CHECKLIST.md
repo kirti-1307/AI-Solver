@@ -136,6 +136,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **Vercel, first deployment, 23 November 2026, commit `1fd2b83` (v1.7):** imported from GitHub with the default settings (root folder, preset "Other", no build command). On https://ai-solver-seven.vercel.app/ the status pill turned to "Solver ready", tab 1 showed ΔH° = -57.94 kJ/mol for CO2 hydrogenation at 523 K with five plots, `thermosolver/__init__.py` and `thermosolver/phase.py` were served, and the console showed no errors.
 
+**v1.8 and v1.8.1, 23 November 2026, commits `3312741` (layout) and `655f604` (plain wording):** both workflows green for each. On https://kirti-1307.github.io/AI-Solver/ and on https://ai-solver-seven.vercel.app/ the scripts carry version 1.8.1, the status pill shows "Solver ready", the start page has the graph-paper layout, tab 5 shows the button "Find the heat to add or remove" and the box "Let the water change phase (condense when the outlet is cold enough)", and none of the terms that were taken off the page (dew point, heat duty, dissociation, Shomate) appears. Locally, a sweep of all eight tabs and the condensing-boiler example found none of the removed terms; 402 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
