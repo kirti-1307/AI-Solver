@@ -52,27 +52,39 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <p style="text-align:center; margin:4pt 0 0 0"><img src="figure.png" width="672" height="202"></p>
 <p class="cap"><b>Figure.</b> (a) Where the carbon goes for CO<sub>2</sub> + 3H<sub>2</sub> at 50 bar. (b) Temperature rise for 1 g of each fuel in the lab calorimeter.</p>
 
-<h2>5. AI Error Challenge</h2>
+<h2>5. What the assignment asks for, and where the solver does it</h2>
+<table>
+<tr><th style="width:30%">The assignment asks for</th><th>Where the solver does it</th></tr>
+<tr><td>&Delta;H&deg;<sub>298</sub>, exo- or endothermic</td><td>Tab 1: &Delta;H&deg;<sub>298</sub> = &Sigma;&nu;<sub>i</sub>&Delta;H&deg;<sub>f,i</sub>, labelled &ldquo;Gives out heat&rdquo; or &ldquo;Takes in heat&rdquo;</td></tr>
+<tr><td>C<sub>p</sub>&deg;(T) = A + BT + CT<sup>2</sup> + DT<sup>&minus;2</sup></td><td>Tab 1: the sensible enthalpy &int;C<sub>p</sub>dT of each species, in a table and a bar chart</td></tr>
+<tr><td>&Delta;S&deg; with temperature</td><td>Tab 1: &Delta;S&deg;(T) as a number and along the temperature plot</td></tr>
+<tr><td>&Delta;G&deg; of reaction</td><td>Tab 1: &Delta;G&deg;(T) = &Delta;H&deg;(T) &minus; T&Delta;S&deg;(T), as a number and a plot</td></tr>
+<tr><td>Pressure and residual properties</td><td>Tab 2: &Delta;H(T,P) = &Delta;H&deg;(T) + &Sigma;&nu;<sub>i</sub>H<sub>i</sub><sup>R</sup>, each gas with its closest equation of state</td></tr>
+<tr><td>Plots against T and P</td><td>Tab 1 against T, tab 2 against P and T, tab 4 against T or P</td></tr>
+<tr><td>Favourability at T and P</td><td>Tab 1: the sign of &Delta;G&deg; at T. Tab 4: the equilibrium mixture at any T and P</td></tr>
+</table>
+
+<h2>6. AI Error Challenge</h2>
 <p>The assignment lists five stress tests. The solver passes all of them, and they can be run live in the Validation tab.</p>
 <table>
 <tr><th style="width:27%">Stress test</th><th>What the solver does</th></tr>
 <tr><td>1. Stoichiometry</td><td>CH<sub>4</sub> + O<sub>2</sub> &rarr; CO<sub>2</sub> + H<sub>2</sub>O is rejected before any calculation, and the balanced form is offered.</td></tr>
-<tr><td>2. C<sub>p</sub> assumption at 1000 K</td><td>Checked for all 40 predefined reactions whose C<sub>p</sub> data reach 1000 K. A constant &Delta;C<sub>p</sub> puts &Delta;H&deg; off by 9.0 kJ/mol on average and by up to 31.5 kJ/mol (benzene hydrogenation). For steam reforming, &Delta;H&deg; is 225.3 kJ/mol with C<sub>p</sub>(T), 238.8 with a constant &Delta;C<sub>p</sub> and 205.8 if &Delta;C<sub>p</sub> is ignored.</td></tr>
-<tr><td>3. Physical state</td><td>Methane combustion gives &minus;890.7 kJ/mol with H<sub>2</sub>O(l) and &minus;802.6 kJ/mol with H<sub>2</sub>O(g). The gap is the heat needed to vaporise two moles of water. The solver can also choose the phase itself, since it finds the boiling point of water (373.2 K) from its own data.</td></tr>
-<tr><td>4. Correlation validity</td><td>Each species has its own temperature range. Outside it, the result is shown with a warning. I checked this 1 K inside and 1 K outside both ends of the range for all 45 predefined reactions.</td></tr>
+<tr><td>2. C<sub>p</sub> assumption at 1000 K</td><td>All 40 predefined reactions with C<sub>p</sub> data at 1000 K: a constant &Delta;C<sub>p</sub> is 9.0 kJ/mol off on average, up to 31.5 kJ/mol. Steam reforming: 225.3 kJ/mol against 238.8.</td></tr>
+<tr><td>3. Physical state</td><td>Methane combustion: &minus;890.7 kJ/mol with H<sub>2</sub>O(l), &minus;802.6 with H<sub>2</sub>O(g); the gap is the latent heat of two moles of water. Typed as H<sub>2</sub>O, the solver picks the phase itself.</td></tr>
+<tr><td>4. Correlation validity</td><td>Outside a species' temperature range the result comes with a warning. I checked this 1 K inside and outside both ends for all 45 reactions.</td></tr>
 <tr><td>5. Published work</td><td>&Delta;H&deg;<sub>298</sub> of eight reactions agrees with values from research papers within 0.5 kJ/mol [4].</td></tr>
 </table>
 <p id="errors"><b>Errors of the AI-generated solver that I found and corrected.</b> The first versions of the solver gave the following wrong or misleading results.</p>
 <table>
 <tr><th style="width:17%">Type of error</th><th style="width:46%">What went wrong</th><th>How I corrected it</th></tr>
-<tr><td>Physically unreasonable</td><td>For CO<sub>2</sub> hydrogenation at 523 K and 100 bar, the first version predicted 48 % conversion. Water is a liquid at these conditions, but the code treated it as a gas.</td><td>The solver now detects this state and does not report a gas-phase value.</td></tr>
+<tr><td>Physically unreasonable</td><td>CO<sub>2</sub> hydrogenation at 523 K and 100 bar gave 48 % conversion, with liquid water treated as a gas.</td><td>The solver now detects this state and does not report a gas-phase value.</td></tr>
 <tr><td>Incorrect data</td><td>The AI recalled &Delta;G&deg;<sub>f</sub> of ammonia as &minus;16,450 J/mol from an older edition. The current edition prints &minus;16,400.</td><td>I compared every number with the printed tables.</td></tr>
 <tr><td>Inconsistent results</td><td>Two rounded constants (0.675 and 0.722) made two results that should agree differ by 0.06 %.</td><td>The exact constants 0.6752 and 0.7224 are used.</td></tr>
-<tr><td>Misleading text</td><td>The explanation said "practically no reaction" for ammonia synthesis at 723 K, although 43 % converts at 200 bar.</td><td>The text now refers to 1 bar, and the product slate shows the mixture at any pressure.</td></tr>
+<tr><td>Misleading text</td><td>It said "practically no reaction" for ammonia at 723 K, although 43 % converts at 200 bar.</td><td>The text now refers to 1 bar, and the product slate shows the mixture at any pressure.</td></tr>
 <tr><td>Misleading result</td><td>The calorimeter named ethylene oxide gas as the unknown sample, ahead of liquid ethanol.</td><td>Only liquids and solids are compared, since a gas cannot be weighed into a crucible.</td></tr>
 <tr><td>Wrong concept</td><td>The standard state was described as 298.15 K and 1 bar, although it fixes only the pressure.</td><td>The wording is corrected in the app and in the guide.</td></tr>
-<tr><td>Formula out of range</td><td>Below 298 K and above 2000 K the C<sub>p</sub> formula of the textbook was used outside its range (29 % too low for CO<sub>2</sub> at 200 K).</td><td>Data from NIST are used in these two ranges [2, 3].</td></tr>
-<tr><td>Missing physics</td><td>Every species stayed in the phase that was typed, so liquid water stayed a liquid even at 500 K.</td><td>The solver now finds the boiling point from its own data (373.2 K for water) and can use the stable phase.</td></tr>
+<tr><td>Formula out of range</td><td>The textbook C<sub>p</sub> formula was stretched below 298 K and above 2000 K (29 % too low for CO<sub>2</sub> at 200 K).</td><td>Data from NIST are used in these two ranges [2, 3].</td></tr>
+<tr><td>Missing physics</td><td>Every species stayed in the phase that was typed, so liquid water stayed a liquid even at 500 K.</td><td>The solver finds the boiling point from its own data (373.2 K for water).</td></tr>
 </table>
 <p>Two independent reviews of the code then found further issues, which I also fixed. All of them are listed in the repository, where 441 automated tests run on every change.</p>
 

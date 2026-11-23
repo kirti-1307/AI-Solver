@@ -206,6 +206,12 @@ class TestDeliverables(unittest.TestCase):
             report = fh.read()
         for section in ("Models", "Important findings", "Errors of the AI-generated solver"):
             self.assertIn(section, report)
+        # 23 November 2026: the report says where each calculation of the brief is done
+        self.assertIn("What the assignment asks for, and where the solver does it", report)
+        for item in ("exo- or endothermic", "C<sub>p</sub>&deg;(T) = A + BT + CT<sup>2</sup> + DT<sup>&minus;2</sup>",
+                     "&Delta;S&deg; with temperature", "&Delta;G&deg; of reaction", "Pressure and residual properties",
+                     "Plots against T and P", "Favourability at T and P"):
+            self.assertIn(item, report)
         self.assertIn("kirti-1307.github.io/AI-Solver", report)
 
 
