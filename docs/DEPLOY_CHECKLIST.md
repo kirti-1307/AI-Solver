@@ -150,6 +150,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.8.7, 23 November 2026, commit `cbea5ca`:** both workflows green. On both addresses the scripts carry 1.8.7. Tab 1's graphs run from 298.15 to 1500 K. Tab 2, methanol synthesis at 80 bar: the temperature graph starts at 511.8 K, and the paragraph on the choice of equation is gone. Tab 4 has no soot text. 438 tests pass. No console errors.
 
+**v1.8.8, 23 November 2026, commit `17e9e4e`:** both workflows green. On both addresses the scripts carry 1.8.8. Tab 1, CH4 + 2 O2 -> CO2 + 2 H2O at 298.15 K with "Pick the stable phase" ticked: H2O(l), ΔH° = −890.65 kJ/mol, and no "H2O(g) was assumed" note. 439 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
