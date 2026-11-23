@@ -52,7 +52,7 @@ A real gas is different. The residual enthalpy Hᴿ is the real value minus the 
 
 This effect is not the same everywhere. It is 10.6 % for methanol from CO2 at 50 bar, because methanol and water are cold, dense and polar. But it is only 0.2 % for steam reforming at 1100 K, because hot, light gases behave almost ideally.
 
-I use Peng/Robinson by default. Like Soave/Redlich/Kwong, it uses the acentric factor as well as Tc and Pc, and it still works at high pressure, where the virial equation does not. The table under the result compares all five models: Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, while van der Waals and Redlich/Kwong can be off by a few kJ.
+I use Peng/Robinson by default. Like Soave/Redlich/Kwong, it uses the acentric factor as well as Tc and Pc, and it still works at high pressure, where the virial equation does not. If I switch the model in the list, Soave/Redlich/Kwong gives almost the same answer, while van der Waals and Redlich/Kwong can be off by a few kJ.
 
 ### Tab 3: Combine reactions
 
@@ -70,15 +70,15 @@ So in this tab I do not choose a reaction. I only choose which species are allow
 
 *[Click "1. Everything allowed"]*
 
-With every product allowed, methane takes 74.8 % of the carbon, and 74.9 % of the CO2 converts. Methanol gets 0.0 %. So thermodynamics alone does not want methanol at all.
+With every product allowed, methane takes 74.8 % of the carbon, and only 25.1 % stays as CO2. Methanol gets 0.0 %. So thermodynamics alone does not want methanol at all.
 
 *[Click "2. Methane off"]*
 
-Each switch works like a selective catalyst. Switching methane off means the catalyst cannot make methane. Now only 25.2 % of the CO2 converts: 17.3 % of the carbon goes to methanol and 7.9 % to CO.
+Each switch works like a selective catalyst. Switching methane off means the catalyst cannot make methane. Now 74.8 % of the carbon stays as CO2: 17.3 % goes to methanol and 7.9 % to CO.
 
 *[Click "3. Methane and CO off"]*
 
-With only methanol allowed, the conversion is 21.3 %, which is exactly the number tab 1 gave at 50 bar. So the two tabs agree with each other.
+With only methanol allowed, methanol takes 21.3 % of the carbon, which is exactly the conversion tab 1 gave at 50 bar. So the two tabs agree with each other.
 
 The main point is this: thermodynamics favours methane, and it is the catalyst that makes methanol possible.
 
@@ -130,7 +130,7 @@ For 1 g of ethanol the solver predicts a temperature rise of 2.31 °C. The bomb 
 
 *[Click tab 7]*
 
-Every result is checked in three ways. First, the solver reproduces 67 out of 67 reference values from the textbook's worked examples, the course slides, the lab handout and NIST tables. Second, it passes the five stress tests of the assignment, and the heats of reaction agree with published research within 0.5 kJ/mol. Third, there are 407 automated tests, which run every time the code changes.
+Every result is checked in three ways. First, the solver reproduces 67 out of 67 reference values from the textbook's worked examples, the course slides, the lab handout and NIST tables. Second, it passes the five stress tests of the assignment, and the heats of reaction agree with published research within 0.5 kJ/mol. Third, there are 412 automated tests, which run every time the code changes.
 
 While building it, I also found and corrected several errors of the AI. For example, it used an older value of ΔG°f for ammonia, it treated liquid water as a gas at high pressure, and it called the standard state "298.15 K and 1 bar", although the standard state fixes only the pressure.
 
@@ -148,11 +148,23 @@ It is Kp, written with the partial pressures in bar, divided by the standard pre
 **Does Kp change with pressure?**
 No. For an ideal gas, Kp (and Kc too) depends on temperature only. Pressure changes the equilibrium composition, which is why the conversion rises from 0.6 % to 21.3 % at 50 bar.
 
-**Why does the ideal-gas ΔH not change with pressure?**
-For an ideal gas, U depends on T only, and PV = RT, so H = U + RT depends on T only.
+**Why does the ideal-gas ΔH not change with pressure, but the real-gas ΔH does?**
+For an ideal gas, U depends on T only, and PV = RT, so H = U + RT depends on T only. In a real gas the molecules attract each other. Higher pressure pushes them closer, so the attraction lowers the enthalpy more. That is also why Z drops below 1.
+
+**How is the residual part calculated?**
+For each gas: take Tc, Pc and ω from Table B.1, work out Tr and Pr, solve the Peng/Robinson equation for Z, and put these into the textbook's formula for Hᴿ/RT. Then add up ν·Hᴿ over the reaction. For methanol at 523 K and 50 bar: Tr = 1.02, Pr = 0.62, Z = 0.753, Hᴿ = −4.22 kJ/mol.
+
+**Why is Hᴿ more negative close to the critical point?**
+Near the critical point a gas is almost a liquid: the molecules are close and slow enough for their attraction to matter a lot. Methanol at 523 K has Tr = 1.02 and Hᴿ = −4.22 kJ/mol. Hydrogen has Tr = 15.8 and Hᴿ = +0.03 kJ/mol, almost ideal.
+
+**What do the three steps on tab 2 mean?**
+They reach the real-gas ΔH by a detour, like Hess's law: real reactants to ideal gases, react as ideal gases, ideal products back to real gases. H depends only on the start and the end, so the detour gives the same answer.
 
 **Why Peng/Robinson?**
 It uses Tc, Pc and the acentric factor, and it works at high pressure. Soave/Redlich/Kwong gives almost the same answer. van der Waals and Redlich/Kwong use only Tc and Pc, and the virial equation is only for low to moderate pressure. For methanol synthesis at 80 bar, the residual part is −8.63 kJ/mol with Peng/Robinson but −5.05 with van der Waals.
+
+**How do you know whether solid carbon (soot) can form?**
+The solver takes the gas it found and a reaction that makes carbon from it, for example 2 CO → C(s) + CO2. If the gas ratio p(CO2)/p(CO)² is smaller than the Kp of that reaction, the reaction can still go forward, so carbon can form. At 700 K with methane off the ratio is 0.30 and Kp is 4142, so carbon can form.
 
 **Why does methane win on tab 4, if industry makes methanol?**
 Making methane from CO2 and hydrogen lowers the total Gibbs energy much more than making methanol does. Industry uses a catalyst that makes methanol but not methane, which is exactly what the switch imitates.

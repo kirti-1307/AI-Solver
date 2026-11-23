@@ -12,17 +12,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="web/styles.css?v=1.8.2">
+  <link rel="stylesheet" href="web/styles.css?v=1.8.3">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.8.2" defer></script>
-  <script src="web/tab-reaction.js?v=1.8.2" defer></script>
-  <script src="web/tab-pressure.js?v=1.8.2" defer></script>
-  <script src="web/tab-combine.js?v=1.8.2" defer></script>
-  <script src="web/tab-network.js?v=1.8.2" defer></script>
-  <script src="web/tab-heat.js?v=1.8.2" defer></script>
-  <script src="web/tab-data.js?v=1.8.2" defer></script>
-  <script src="web/tab-validation.js?v=1.8.2" defer></script>
-  <script src="web/main.js?v=1.8.2" defer></script>
+  <script src="web/ui.js?v=1.8.3" defer></script>
+  <script src="web/tab-reaction.js?v=1.8.3" defer></script>
+  <script src="web/tab-pressure.js?v=1.8.3" defer></script>
+  <script src="web/tab-combine.js?v=1.8.3" defer></script>
+  <script src="web/tab-network.js?v=1.8.3" defer></script>
+  <script src="web/tab-heat.js?v=1.8.3" defer></script>
+  <script src="web/tab-data.js?v=1.8.3" defer></script>
+  <script src="web/tab-validation.js?v=1.8.3" defer></script>
+  <script src="web/main.js?v=1.8.3" defer></script>
 </head>
 <body>
 <header class="top">
@@ -215,8 +215,8 @@
         equation of state. Here every reactant and product is taken as the pure species at T and P, at constant temperature:
         ΔH(T,P) = ΔH°(T) + Σ ν<sub>i</sub> H<sub>i</sub><sup>R</sup>(T,P).</p>
       <p class="hint">The model starts on Peng/Robinson: like Soave/Redlich/Kwong it uses the acentric factor ω as well as
-        T<sub>c</sub> and P<sub>c</sub>, and it still holds at high pressure, where the virial equation does not. The table under
-        each result shows the same calculation with every model.</p>
+        T<sub>c</sub> and P<sub>c</sub>, and it still holds at high pressure, where the virial equation does not. The other
+        equations of the course can be picked from the list.</p>
       <div class="form">
         <label class="grow2">Predefined reaction
           <select id="pr-select"></select>
@@ -257,7 +257,7 @@
     <div class="panel" data-bar="Tab 3 · Combine reactions">
       <h2>Build a reaction from other reactions (Hess's law)</h2>
       <p class="hint">Add two or more reactions, each with a multiplier. A negative multiplier reverses the
-        reaction. The solver adds the stoichiometry, cancels the intermediates and gets ΔH, ΔS, ΔG and K of the net
+        reaction. The solver adds the stoichiometry, cancels the intermediates and gets ΔH, ΔS and ΔG of the net
         reaction two ways: by summing the steps and directly from the net equation.</p>
       <div class="form">
         <label class="grow3">Worked example

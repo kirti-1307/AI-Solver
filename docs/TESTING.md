@@ -29,7 +29,7 @@ The same benchmarks can be printed as a table with `python -m thermosolver --val
 | 11. Phase change | Does the solver find the right phase? | `tests/test_phase_change.py` | Boiling points against SVN Table B.1, vapour pressure of water against the NIST saturation table, the Clausius/Clapeyron slope, the jumps of ΔH° and ΔS° at a boiling point, continuity of ΔG° and of the conversion, the saturation of the outlet gas, heat duty and outlet temperature as inverses of each other with condensation, the lever rule for an outlet of pure water, and dH = T dS along the condensation |
 | 12. Browser | Does the hosted page work? | manual, see below | Pyodide runs the same Python files, so layers 1 to 11 already cover the numbers |
 
-In total: 407 tests in fifteen files, about 70 seconds. Five of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist and carry the same version tag, the guide page must match its Markdown source, and no thermodynamic constant may appear in the JavaScript.
+In total: 412 tests in fifteen files, about 70 seconds. Five of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist and carry the same version tag, the guide page must match its Markdown source, and no thermodynamic constant may appear in the JavaScript.
 
 ## What is deliberately not tested
 

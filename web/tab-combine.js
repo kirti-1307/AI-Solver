@@ -1,7 +1,7 @@
 /* Tab 3: build a reaction by adding and subtracting other reactions (Hess's law). */
 "use strict";
 (() => {
-  const { $, $$, esc, chem, fix, kJ, int, sig, fmtK, signed } = TS;
+  const { $, $$, esc, chem, fix, kJ, int, sig, signed } = TS;
 
   function addStep(equation = "", multiplier = 1) {
     const row = document.createElement("div");
@@ -33,7 +33,7 @@
     const rows = r.steps.map((s, i) => `<tr>
       <td class="l">${i + 1}</td><td>${signed(s.multiplier, 2).replace(".00", "")}</td>
       <td class="l mono">${chem(s.applied)}</td>
-      <td>${kJ(s.m_dH0)}</td><td>${kJ(s.m_dH)}</td><td>${fix(s.m_dS, 2)}</td><td>${kJ(s.m_dG)}</td><td>${fix(s.m_lnK, 3)}</td></tr>`).join("");
+      <td>${kJ(s.m_dH0)}</td><td>${kJ(s.m_dH)}</td><td>${fix(s.m_dS, 2)}</td><td>${kJ(s.m_dG)}</td></tr>`).join("");
     const c = r.check;
     const exo = d.dH < 0 ? "exo" : "endo";
 
@@ -46,18 +46,17 @@
         <div class="card ${exo}"><div class="k">ΔH°(${T} K)</div><div class="v">${kJ(d.dH)} <span class="u">kJ/mol</span></div><div class="s">${esc(d.thermicity)}</div></div>
         <div class="card"><div class="k">ΔS°(${T} K)</div><div class="v">${fix(d.dS, 2)} <span class="u">J/(mol·K)</span></div></div>
         <div class="card"><div class="k">ΔG°(${T} K)</div><div class="v">${kJ(d.dG)} <span class="u">kJ/mol</span></div><div class="s">${d.favourability.spontaneous_standard ? "products favoured" : "reactants favoured"}</div></div>
-        <div class="card"><div class="k">K = Π K<sub>j</sub><sup>m<sub>j</sub></sup></div><div class="v">${fmtK(d.lnK)}</div><div class="s">ln K = ${fix(d.lnK, 3)}</div></div>
       </div>
       <div class="table-scroll"><table><thead><tr><th class="l">#</th><th>m<sub>j</sub></th><th class="l">Step as applied (m<sub>j</sub> × reaction j)</th>
-        <th>m·ΔH°<sub>298</sub> (kJ)</th><th>m·ΔH°(T) (kJ)</th><th>m·ΔS°(T) (J/K)</th><th>m·ΔG°(T) (kJ)</th><th>m·ln K</th></tr></thead>
+        <th>m·ΔH°<sub>298</sub> (kJ)</th><th>m·ΔH°(T) (kJ)</th><th>m·ΔS°(T) (J/K)</th><th>m·ΔG°(T) (kJ)</th></tr></thead>
         <tbody>${rows}
-        <tr class="sum"><td class="l" colspan="3">Sum of the steps (Hess's law)</td><td>${kJ(c.dH0.hess)}</td><td>${kJ(c.dH.hess)}</td><td>${fix(c.dS.hess, 2)}</td><td>${kJ(c.dG.hess)}</td><td>${fix(c.lnK.hess, 3)}</td></tr>
-        <tr><td class="l" colspan="3">Directly from the net reaction</td><td>${kJ(c.dH0.direct)}</td><td>${kJ(c.dH.direct)}</td><td>${fix(c.dS.direct, 2)}</td><td>${kJ(c.dG.direct)}</td><td>${fix(c.lnK.direct, 3)}</td></tr>
+        <tr class="sum"><td class="l" colspan="3">Sum of the steps (Hess's law)</td><td>${kJ(c.dH0.hess)}</td><td>${kJ(c.dH.hess)}</td><td>${fix(c.dS.hess, 2)}</td><td>${kJ(c.dG.hess)}</td></tr>
+        <tr><td class="l" colspan="3">Directly from the net reaction</td><td>${kJ(c.dH0.direct)}</td><td>${kJ(c.dH.direct)}</td><td>${fix(c.dS.direct, 2)}</td><td>${kJ(c.dG.direct)}</td></tr>
         </tbody></table></div>
       ${TS.message("good", `<strong>Check:</strong> the two routes agree to ${sig(r.max_difference_J, 2)} J/mol. H, S and G are state functions, so the path does not matter.`)}
       <ul class="explain">
-        <li>Adding reactions adds their ΔH°, ΔS° and ΔG°. Since ln K = −ΔG°/RT, the logarithms add and the equilibrium constants multiply: K<sub>net</sub> = Π K<sub>j</sub><sup>m<sub>j</sub></sup>.</li>
-        <li>Reversing a reaction (m = −1) changes the sign of ΔH°, ΔS°, ΔG° and inverts K.</li>
+        <li>Adding reactions adds their ΔH°, ΔS° and ΔG°.</li>
+        <li>Reversing a reaction (m = −1) changes the sign of ΔH°, ΔS° and ΔG°.</li>
         <li>This is the same rule that builds any heat of reaction from formation reactions: ΔH° = Σ ν<sub>i</sub> ΔH°<sub>f,i</sub>.</li>
       </ul></div>`;
     if (r.sweep) html += `<div class="panel"><div class="grid two"><div id="cb-plot-G" class="plot"></div><div id="cb-plot-H" class="plot"></div></div></div>`;

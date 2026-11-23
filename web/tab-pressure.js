@@ -65,16 +65,25 @@
       lines.push("The ideal-gas model is selected, so the residual part is zero. Pick a real-gas model to see what pressure does.");
       return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
     }
-    lines.push(`In a real gas the molecules attract and repel each other. The residual enthalpy ` +
-      `H<sup>R</sup> = H(real gas) − H(ideal gas) measures that for each species at ${T} K and ${P} bar. Added up over the reaction ` +
-      `it is Σν<sub>i</sub>H<sub>i</sub><sup>R</sup> = <strong>${signed(c.residual / 1000, 3)} kJ/mol</strong>.`);
+    lines.push(`Why a real gas is different: its molecules attract each other. Raising the pressure pushes them closer together, ` +
+      `so the attraction counts for more and the enthalpy drops below the ideal-gas value. It is the same effect that makes the ` +
+      `compressibility factor Z smaller than 1. The residual enthalpy H<sup>R</sup> = H(real gas) − H(ideal gas) measures it for each ` +
+      `species at ${T} K and ${P} bar. Added up over the reaction it is Σν<sub>i</sub>H<sub>i</sub><sup>R</sup> = ` +
+      `<strong>${signed(c.residual / 1000, 3)} kJ/mol</strong>.`);
     lines.push(`So the real gas ${heat(c.dH_real)} <strong>${kJ(Math.abs(c.dH_real))} kJ/mol</strong>, which is ` +
       `${fix(Math.abs(c.percent), 2)} % ${c.percent < 0 ? "less" : "more"} than the ideal-gas value. The pressure effect is ` +
       `<strong>${esc(c.size)}</strong> here: a heat balance made with the ideal-gas value would be off by ` +
       `${kJ(Math.abs(c.residual))} kJ for every mole that reacts.`);
-    lines.push(`The three steps above are the same calculation written as a path: take the real reactants to the ideal-gas state, ` +
-      `let them react as ideal gases, and take the ideal-gas products to the real state. Enthalpy is a state function, so the path does not matter.`);
-    lines.push(`The effect grows with pressure (first plot) and fades as the gas gets hotter (third plot), because fast molecules feel each other less.`);
+    const p = c.path;
+    lines.push(`The three boxes above reach the same answer in three steps, in the same way as Hess's law. ` +
+      `Step 1: turn the real reactants into ideal gases, which takes away their H<sup>R</sup> (${signed(p.reactants_to_ideal / 1000, 2)} kJ). ` +
+      `Step 2: let them react as ideal gases, which is ΔH° from tab 1 (${signed(p.ideal_reaction / 1000, 2)} kJ). ` +
+      `Step 3: turn the ideal-gas products into real gases, which adds their H<sup>R</sup> (${signed(p.products_to_real / 1000, 2)} kJ). ` +
+      `H depends only on where you start and where you end, not on the route, so the three steps add up to the real-gas value ` +
+      `(${signed(p.total / 1000, 2)} kJ/mol).`);
+    lines.push(`The gap between real and ideal grows with pressure (first graph), because the molecules are pushed closer together ` +
+      `and attract each other more. It shrinks as the temperature rises (third graph), because hotter molecules move faster and have ` +
+      `more energy, so the pull between them matters less and the gas behaves more like an ideal gas (Z closer to 1).`);
     lines.push(`Pressure also moves the equilibrium composition. That is shown on tab 4 (Product slate), which has a pressure slider.`);
     lines.push("Assumptions: each species is taken as the pure species at T and P, and mixing the gases is taken to change no enthalpy; " +
       "the enthalpy of solids and liquids is taken not to change with pressure.");
@@ -125,18 +134,6 @@
       <th>Z</th><th>H<sup>R</sup> (J/mol)</th><th>S<sup>R</sup> (J/mol·K)</th><th>ν·H<sup>R</sup> (J)</th><th class="l">State</th></tr></thead>
       <tbody>${rows}<tr class="sum"><td class="l" colspan="7">Σ ν<sub>i</sub>H<sub>i</sub><sup>R</sup> = ΔH(T,P) − ΔH°(T)</td>
       <td>${r.at_P.gas_phase_valid ? int(r.at_P.sum_HR) : "not defined"}</td><td></td></tr></tbody></table></div>`;
-  }
-
-  function modelTable(r) {
-    const rows = r.models.map((m) => `<tr><td class="l">${m.model === r.model ? "<strong>" + esc(m.name) + "</strong> (selected)" : esc(m.name)}</td>
-      <td>${int(m.sum_HR)}</td><td>${kJ(m.dH_P, 3)}</td><td>${m.percent === null ? "–" : signed(m.percent, 2) + " %"}</td>
-      <td>${fix(m.sum_SR, 3)}</td></tr>`).join("");
-    return `<details open><summary>Same state, every model</summary>
-      <div class="table-scroll"><table><thead><tr><th class="l">Model</th><th>Σν H<sup>R</sup> (J/mol)</th><th>ΔH(T,P) (kJ/mol)</th>
-      <th>Difference from the ideal gas</th><th>Σν S<sup>R</sup> (J/mol·K)</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="hint" style="margin-top:8px">Peng/Robinson and Soave/Redlich/Kwong use the acentric factor ω as well as
-        T<sub>c</sub> and P<sub>c</sub>, and they agree closely. van der Waals and Redlich/Kwong use T<sub>c</sub> and P<sub>c</sub> only.
-        The virial equation truncated after B is only for low to moderate pressure.</p></details>`;
   }
 
   /* ------------------------------------------------------------ plots */
@@ -228,7 +225,6 @@
     html += TS.notes(a.notes.filter((n) => n.kind === "condensation"));
     html += `<div class="cards">
         <div class="card"><div class="k">Residual part, Σ ν H<sup>R</sup></div><div class="v">${ok ? signed(c.residual / 1000, 3) : "–"} <span class="u">kJ/mol</span></div><div class="s">real gas minus ideal gas</div></div>
-        <div class="card"><div class="k">Change caused by pressure</div><div class="v">${ok && c.percent !== null ? signed(c.percent, 2) : "–"} <span class="u">%</span></div><div class="s">${ok && c.effect ? esc(c.effect) : ""}</div></div>
         <div class="card"><div class="k">Residual entropy part, Σ ν S<sup>R</sup></div><div class="v">${ok ? signed(a.sum_SR, 2) : "–"} <span class="u">J/(mol·K)</span></div><div class="s">real gas minus ideal gas</div></div>
       </div>${pathBlock(r)}<h3>What the numbers mean</h3>${explain(r)}</div>`;
     const hints = [];
@@ -247,7 +243,7 @@
         The first graph is only moved up or down, so that its dashed ideal-gas line sits where the other graphs have zero.</p>
       ${hints.map((h) => `<p class="hint" style="margin:8px 0 0">${h}</p>`).join("")}</div>`;
     html += `<div class="panel"><h3>Residual properties of each species at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar</h3>
-      ${residualTable(r)}${TS.notes(a.notes.filter((n) => n.level === "info" && n.kind !== "condensation"))}${modelTable(r)}${TS.auditTable(r.audit)}</div>`;
+      ${residualTable(r)}${TS.notes(a.notes.filter((n) => n.level === "info" && n.kind !== "condensation"))}</div>`;
     $("#pr-out").innerHTML = html;
     for (const button of $("#pr-out").querySelectorAll(".pr-fix")) {
       button.addEventListener("click", () => {

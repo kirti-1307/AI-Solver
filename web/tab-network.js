@@ -73,9 +73,7 @@
         if (button.getAttribute("aria-disabled") === "true") return;      // faded or needed: nothing to flip
         const sid = button.dataset.id;
         const row = switchInfo[sid];
-        pending = row && row.conversion_if_flipped !== null
-          ? { kind: "switch", sid, on: row.state === "off", primary: row.primary, before: row.conversion_now, after: row.conversion_if_flipped }
-          : null;
+        pending = row ? { kind: "switch", sid, on: row.state === "off" } : null;
         setTourStep(null);
         const chip = chips().find((c) => c.dataset.id === sid);
         const [box] = parts(chip);
@@ -115,12 +113,10 @@
       button.removeAttribute("aria-disabled");
       if (!row || (row.state === "on") !== on) { small.textContent = ""; continue; }   // result not in yet
       const holds = row.share !== null ? `${pct(row.share, 1)} of ${el}` : `y = ${sig(row.y, 3)}`;
-      const move = row.conversion_if_flipped === null ? "" :
-        ` Conversion of ${row.primary} would go from ${pct(row.conversion_now, 1)} to ${pct(row.conversion_if_flipped, 1)}.`;
       if (row.state === "off") {
         small.textContent = row.effect === "none" ? "off · no effect now" : "off";
         button.title = row.effect === "none" ? `Blocked. Allowing ${sid} would change nothing at these settings.`
-          : `Blocked. Click to allow ${sid}.${move}` +
+          : `Blocked. Click to allow ${sid}.` +
             (row.share_if_flipped !== null ? ` It would take ${pct(row.share_if_flipped, 1)} of the ${el} atoms.` : "");
       } else if (row.effect === "needed") {
         small.textContent = "needed";
@@ -139,7 +135,7 @@
         button.title = `Blocking ${sid} would change nothing: it holds ${holds} at these settings. The switch wakes up when that changes.`;
       } else {
         small.textContent = holds;
-        button.title = `Click to block ${sid}.${move}`;
+        button.title = `Click to block ${sid}. It holds ${holds} atoms now.`;
       }
     }
   }
@@ -233,6 +229,10 @@
           (blocked.length ? ` With ${blocked.map(chem).join(", ")} switched off the gas is held away from its full equilibrium, which makes this more likely. ` +
             "Solid carbon is then one more product that a selective catalyst has to avoid: the result says it is possible, not that it forms." : "")
         : "making it from this gas would raise the total Gibbs energy, so no solid carbon is expected from thermodynamics."));
+      lines.push("How the solver decides: it takes the gas it found and a reaction that would make carbon from it, for example " +
+        "2 CO → C(s) + CO<sub>2</sub>. It compares the K<sub>p</sub> of that reaction with the same ratio of partial pressures in the gas, " +
+        "p<sub>CO2</sub>/p<sub>CO</sub><sup>2</sup> (solid carbon does not appear in it). If the gas ratio is smaller than K<sub>p</sub>, " +
+        "the reaction can still go forward, so carbon can form. Every reaction that makes carbon gives the same answer, because the gas is already at equilibrium.");
     }
     if (r.excluded.length) {
       lines.push(`Left out because the feed has none of their elements: ${r.excluded.map(chem).join(", ")}.`);
@@ -268,18 +268,18 @@
     ensureLive();
     const el = r.key_element;
     const dist = r.atom_distribution;
-    const fedIds = Object.keys(r.feed).filter((s) => r.feed[s] > 0);
 
     // What each switch would change now, and one line on what the last click did.
     switchInfo = { __element: el };
     for (const row of r.switches || []) switchInfo[row.species] = row;
     paintSwitches();
     if (pending) {
-      const first = (r.switches || [])[0];
-      const now = first ? ` Conversion of ${chem(first.primary)} is now ${pct(first.conversion_now, 1)}.` : "";
+      // Where the atoms of the key element go now, largest share first (the same numbers as the bars).
+      const shares = Object.keys(dist).filter((s) => dist[s] >= 0.0005).sort((a, b) => dist[b] - dist[a])
+        .map((s) => `${chem(s)} <strong>${pct(dist[s], 1)}</strong>`).join(", ");
+      const now = shares ? ` The ${esc(el)} atoms now go to: ${shares}.` : "";
       say(pending.kind === "tour" ? `${esc(pending.say)}${now}`
-        : `${chem(pending.sid)} switched ${pending.on ? "on" : "off"}: conversion of ${chem(pending.primary)} went from ` +
-          `<strong>${pct(pending.before, 1)}</strong> to <strong>${pct(pending.after, 1)}</strong>.`);
+        : `${chem(pending.sid)} switched ${pending.on ? "on" : "off"}.${now}`);
       pending = null;
     }
 
@@ -297,8 +297,7 @@
       key: sid, label: chem(sid), percent: 100 * r.y[sid], text: sig(r.y[sid], 3), color: TS.colorOf(sid),
     })));
 
-    let cards = fedIds.map((sid) => `<div class="card hero"><div class="k">Equilibrium conversion of ${chem(sid)}</div>
-      <div class="v">${pct(r.conversions[sid], 1)}</div><div class="s">${fix(r.feed[sid], 3)} mol fed</div></div>`).join("");
+    let cards = "";
     if (r.carbon_activity !== null && r.carbon_activity !== undefined) {
       const canForm = r.carbon_activity > 1;
       cards += `<div class="card ${canForm ? "bad" : "good"}"><div class="k">Solid carbon (soot)</div><div class="v">${canForm ? "can form" : "cannot form"}</div>
@@ -342,8 +341,7 @@
     const unit = s.variable === "T" ? "K" : "bar";
     const hasCarbon = s.carbon_activity.some((v) => v !== null);
     out.innerHTML = `<div class="panel"><div class="grid two"><div id="nw-plot-y" class="plot tall"></div><div id="nw-plot-dist" class="plot tall"></div>
-      ${hasCarbon ? '<div id="nw-plot-aC" class="plot"></div>' : ""}
-      <div id="nw-plot-conv" class="plot"></div></div>
+      ${hasCarbon ? '<div id="nw-plot-aC" class="plot"></div>' : ""}</div>
       ${sk.length ? `<p class="hint" style="margin:8px 0 0">Gaps in the curves: ${sk.length} of ${s.x.length} points
         (${fix(Math.min(...sk), 0)} to ${fix(Math.max(...sk), 0)} ${unit}) could not be calculated with this real-gas model.
         ${esc(s.skipped_reason || "")}</p>` : ""}</div>`;
@@ -354,8 +352,6 @@
     // Every graph of this panel uses the same horizontal axis, and the fractions run over
     // the whole 0 to 1 (0 to 100 %) on every graph, so curves can be compared from one to the next.
     const xAxis = { range: [s.x[0], s.x[s.x.length - 1]] };
-    const percent = (list) => list.map((v) => (v === null ? null : 100 * v));
-    const convAxis = { range: TS.span(Object.values(s.conversion).map(percent), [0, 100], 0) };
     TS.plot("nw-plot-y", r.species.map((sid) => ({
       x: s.x, y: s.y[sid], name: sid, mode: "lines", line: { width: 2.2, color: TS.colorOf(sid) },
     })), TS.layout("Equilibrium mole fractions", xTitle, "Mole fraction", { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [0, 1] } }));
@@ -372,10 +368,6 @@
         TS.layout("Can solid carbon (soot) form?", xTitle, "",
           { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [-0.25, 1.25], tickvals: [0, 1], ticktext: ["no", "yes"] }, showlegend: false }));
     }
-    TS.plot("nw-plot-conv", Object.keys(s.conversion).map((sid) => ({
-      x: s.x, y: percent(s.conversion[sid]), name: sid, mode: "lines",
-      line: { width: 2.2, color: TS.colorOf(sid) },
-    })), TS.layout("Equilibrium conversion of the feed species", xTitle, "Conversion (%)", { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: convAxis }));
   }
 
   /* ------------------------------------------------------------- calculations */

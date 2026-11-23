@@ -186,7 +186,51 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         self.assertIn("yaxis: totalAxis", pressure)                            # graph 1, same height per kJ
         self.assertEqual(read("web", "tab-reaction.js").count("xaxis: tAxis"), 4)
         self.assertEqual(read("web", "tab-combine.js").count("...same"), 2)
-        self.assertEqual(read("web", "tab-network.js").count("xaxis: xAxis"), 4)
+        self.assertEqual(read("web", "tab-network.js").count("xaxis: xAxis"), 3)
+
+    def test_tab_2_has_no_checks_no_percent_card_and_no_model_table(self):
+        script = read("web", "tab-pressure.js")
+        for gone in ("auditTable", "Change caused by pressure", "Same state, every model", "modelTable", "r.models"):
+            self.assertNotIn(gone, script)
+        self.assertNotIn("The table under", read("index.html"))
+
+    def test_tab_2_explains_the_three_steps_and_the_pressure_effect_in_plain_words(self):
+        script = read("web", "tab-pressure.js")
+        self.assertIn("in the same way as Hess's law", script)
+        self.assertIn("p.reactants_to_ideal", script)                      # the step values are quoted
+        self.assertIn("hotter molecules move faster", script)
+        self.assertIn("Why a real gas is different", script)
+
+    def test_tab_3_has_no_equilibrium_constant(self):
+        script = read("web", "tab-combine.js")
+        for gone in ("fmtK", "lnK", "ln K", "K<sub>", "equilibrium constant"):
+            self.assertNotIn(gone, script)
+        html = tab_sections(read("index.html"))
+        start, end = html.index('id="tab-combine"'), html.index('id="tab-network"')
+        self.assertNotIn(" and K of the net", html[start:end])
+
+    def test_tab_4_shows_no_conversion_and_says_how_soot_is_decided(self):
+        script = read("web", "tab-network.js")
+        self.assertNotIn("conversion", script.lower())
+        self.assertNotIn("nw-plot-conv", script)
+        self.assertIn("How the solver decides", script)
+        html = tab_sections(read("index.html"))
+        start, end = html.index('id="tab-network"'), html.index('id="tab-heat"')
+        self.assertNotIn("conversion", html[start:end].lower())
+
+    def test_the_soot_test_on_tab_4_is_what_the_solver_does(self):
+        # Kp of 2 CO -> C(s) + CO2 divided by the same pressure ratio of the gas is the
+        # solver's number; carbon can form when it is above 1, as the page says.
+        from thermosolver.reaction import Reaction
+        net = next(n for n in library.NETWORKS if n["id"] == "co2_hydrogenation")
+        for T, off in ((700.0, ["CH4(g)"]), (523.0, [])):
+            r = ok("network", {"species": [s for s in net["species"] if s not in off], "feed": net["feed"],
+                               "T": T, "P": 50.0, "model": "ideal"})
+            p = {s: y * 50.0 for s, y in r["y"].items()}
+            ratio = p["CO2(g)"] / p["CO(g)"] ** 2
+            Kp = Reaction.parse("2 CO -> C(s) + CO2").K(T)
+            self.assertAlmostEqual(Kp / ratio, r["carbon_activity"], delta=1e-6 * r["carbon_activity"])
+            self.assertEqual(ratio < Kp, r["carbon_activity"] > 1)
 
 
 class TestTextsFromTheSolver(unittest.TestCase):

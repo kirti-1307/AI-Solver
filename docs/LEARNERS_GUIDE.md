@@ -192,7 +192,7 @@ A grey band on a plot means the Cp formula is being used outside the temperature
 **You read:**
 
 - The headline: the ideal-gas ΔH, the real-gas ΔH and the difference between them.
-- The three steps: take the real reactants to the ideal-gas state, let them react as ideal gases, take the ideal-gas products to the real state. The three add up to the real-gas ΔH.
+- The three steps. They reach the real-gas ΔH by a detour, in the same way as Hess's law. Step 1: turn the real reactants into ideal gases, which takes away their Hᴿ. Step 2: let them react as ideal gases, which is ΔH° from tab 1. Step 3: turn the ideal-gas products into real gases, which adds their Hᴿ. H depends only on where you start and where you end, so the detour gives the same answer as the direct route. For CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K and 50 bar: +0.64 − 57.94 − 6.76 = −64.06 kJ/mol.
 - The first plot: the ideal gas is a flat line, the real gas is a curve. The shaded gap between them is the residual part. It grows with pressure.
 - The list of bars at the top: six industrial reactions, sorted by how much pressure matters. Click one to load it.
 
@@ -200,7 +200,18 @@ Example: ammonia synthesis at 723 K. The ideal ΔH is −106.50 kJ/mol at any pr
 
 **Why does the ideal-gas ΔH not depend on pressure?** An ideal gas has no forces between its molecules, so its internal energy U depends on temperature only. Also PV = RT for one mole. So H = U + PV = U + RT depends on temperature only, and so does the ΔH of a reaction between ideal gases. A real gas is different: its molecules attract and repel each other, so its H changes with pressure. That change is the residual enthalpy Hᴿ.
 
-**Why Peng/Robinson?** The tab starts on Peng/Robinson, but you can pick any of the five models. Peng/Robinson and Soave/Redlich/Kwong use three properties of each gas: the critical temperature, the critical pressure and the acentric factor ω. van der Waals and Redlich/Kwong use only the first two, so they treat every molecule as if it had the same shape. The virial equation is only meant for low to moderate pressure. For the six industrial cases of the tab, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, while van der Waals and Redlich/Kwong can be off by up to 3.6 kJ/mol (methanol synthesis at 80 bar: −8.63 with Peng/Robinson, −5.05 with van der Waals). The table "Same state, every model" under each result shows this.
+**How is the residual part calculated?** In four steps, for each gas:
+
+1. Take its critical temperature Tc, critical pressure Pc and acentric factor ω from the textbook's Table B.1, and work out Tr = T/Tc and Pr = P/Pc.
+2. Solve the Peng/Robinson equation for the compressibility factor Z of the gas.
+3. Put Z, Tr, Pr and ω into the textbook's formula for Hᴿ/RT that belongs to that equation of state.
+4. Add up ν·Hᴿ over the reaction: products count plus, reactants minus.
+
+Example, methanol at 523 K and 50 bar: Tr = 1.02, Pr = 0.62, Z = 0.753, Hᴿ/RT = −0.971, so Hᴿ = −0.971 × 8.314 × 523.15 = −4.22 kJ/mol.
+
+**Why does Hᴿ get more negative close to the critical point?** Near the critical point (Tr close to 1) a gas is almost a liquid: the molecules are close together and slow enough for their attraction to hold them. That attraction lowers the enthalpy, and Hᴿ measures exactly how much. Methanol at 523 K has Tr = 1.02, so it is just above its critical temperature, and it is also polar, so it attracts strongly: Hᴿ = −4.22 kJ/mol and Z = 0.753. Hydrogen at the same conditions has Tr = 15.8, so it is far from its critical point: Hᴿ = +0.03 kJ/mol and Z = 1.01, almost ideal.
+
+**Why Peng/Robinson?** The tab starts on Peng/Robinson, but you can pick any of the five models. Peng/Robinson and Soave/Redlich/Kwong use three properties of each gas: the critical temperature, the critical pressure and the acentric factor ω. van der Waals and Redlich/Kwong use only the first two, so they treat every molecule as if it had the same shape. The virial equation is only meant for low to moderate pressure. For the six industrial cases of the tab, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, while van der Waals and Redlich/Kwong can be off by up to 3.6 kJ/mol (methanol synthesis at 80 bar: −8.63 with Peng/Robinson, −5.05 with van der Waals). You can see this by switching the model in the list.
 
 When does it matter?
 
@@ -225,7 +236,7 @@ This tab is about the heat of reaction only. How far a reaction goes at high pre
 
 **It answers:** can I build one reaction out of others?
 
-This is Hess's law. If you add reactions, their ΔH values add too. If you reverse a reaction, the sign of ΔH flips.
+This is Hess's law. If you add reactions, their ΔH, ΔS and ΔG values add too. If you reverse a reaction, their signs flip.
 
 Example: (CO₂ + H₂ → CO + H₂O) plus (CO + 2 H₂ → CH₃OH) gives CO₂ + 3 H₂ → CH₃OH + H₂O. At 523 K the two steps are +39.50 and −97.44 kJ, which add up to −57.94 kJ. That is exactly what tab 1 gives for the overall reaction.
 
@@ -248,8 +259,8 @@ Tab 1 looks at one reaction at a time. In a real reactor several reactions compe
 Example: CO₂ + 3 H₂ at 523 K and 50 bar. Press the three "Try this" buttons in turn.
 
 1. **Everything allowed.** 74.8 % of the carbon ends up as methane. Methanol and CO hold 0.0 %, so their switches are faded. Only the methane switch can be clicked.
-2. **Methane off.** Only 25.2 % of the CO₂ reacts now: 17.3 % to methanol and 7.9 % to CO. The methanol and CO switches have woken up.
-3. **Methane and CO off.** Only methanol can form: 21.3 % of the CO₂ reacts. Methanol is now "needed", because it is the only product left.
+2. **Methane off.** Now 74.8 % of the carbon stays as CO₂, 17.3 % goes to methanol and 7.9 % to CO. The methanol and CO switches have woken up.
+3. **Methane and CO off.** Only methanol can form, and it takes 21.3 % of the carbon. Methanol is now "needed", because it is the only product left.
 
 Water is "needed" in all three steps. The oxygen atoms of CO₂ have to go somewhere, and water is the only place.
 
@@ -257,7 +268,9 @@ What this teaches: thermodynamics prefers methane. A methanol plant works becaus
 
 If you want to allow or block any substance freely, open "Build your own system" under the switches.
 
-The "solid carbon" card tells you whether solid carbon (soot) can form. It can form when making it would lower the total Gibbs energy; otherwise it cannot.
+The "solid carbon" card tells you whether solid carbon (soot) can form. The solver takes the gas it found and a reaction that would make carbon from it, for example 2 CO → C(s) + CO₂. It works out the same ratio of partial pressures as in Kp, p(CO₂)/p(CO)², but for the gas, and compares it with Kp. Solid carbon does not appear in the ratio, because it is a pure solid. If the gas ratio is smaller than Kp, the reaction can still go forward, so carbon can form. If it is larger, it cannot. Any reaction that makes carbon gives the same answer, because the gas is already at equilibrium.
+
+Example: with methane switched off, at 700 K and 50 bar the gas has p(CO₂) = 7.46 bar and p(CO) = 5.02 bar, so the ratio is 0.30. Kp of 2 CO → C(s) + CO₂ at 700 K is 4142, far larger, so carbon can form. With everything allowed at 523 K, the gas ratio and Kp are almost equal (Kp is 0.98 of the ratio), so no carbon forms.
 
 ### Tab 5: Heat lab (extra feature 2)
 
@@ -321,7 +334,7 @@ This is the proof that the numbers are right. It has three parts:
 ## 5. Why you can trust the answers
 
 - **The data are traceable.** From 298.15 K upwards, 54 of the 57 substances use only the textbook tables. The other three come from the NIST database and are labelled. Below 298.15 K, where the textbook has no data, the heat capacities come from NIST tables, and the solver says so whenever it uses them.
-- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency checks" under the results of tabs 2 and 5.
+- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency checks" under the results of tab 5.
 - **It has more than 200 automated tests.** They run every time the code changes.
 - **It refuses bad input.** An unbalanced reaction gets no answer at all.
 - **It warns you.** If a formula is used outside its valid temperature range, you see a warning.
@@ -335,7 +348,7 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | Liquid water was treated as a gas at high pressure | It predicted 48 % conversion, which is far too high | The solver notices when a gas would really be a liquid and refuses to give a gas value |
 | An old data value for ammonia | The AI remembered a number from an older edition of the book | Every number was compared with the printed tables |
 | Two rounded constants in a formula | Two results that should agree differed slightly | The exact constants are used |
-| "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now says that K belongs to 1 bar, and tab 4 shows the conversion at your pressure |
+| "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now says that K belongs to 1 bar, and tab 1 shows the conversion at your pressure |
 | The calorimeter named a gas as the unknown sample | A gas cannot be weighed into a crucible | Only liquids and solids are compared |
 | The "excess air for a temperature limit" search gave a wrong value | It never checked its own answer | It now solves again with its answer before showing it |
 | "Standard state" was explained as 298.15 K and 1 bar | Standard state fixes only the pressure (1 bar). 298.15 K is just where the tables list the data | The guide and the page now keep the two apart |

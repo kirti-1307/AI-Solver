@@ -75,7 +75,7 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><td>Formula out of range</td><td>Below 298 K and above 2000 K the C<sub>p</sub> formula of the textbook was used outside its range (29 % too low for CO<sub>2</sub> at 200 K).</td><td>Data from NIST are used in these two ranges [2, 3].</td></tr>
 <tr><td>Missing physics</td><td>Every species stayed in the phase that was typed. A flue gas cooled to 25 &deg;C thus gave only the lower heating value (802.6 kJ/mol for methane).</td><td>Water now condenses once the gas is saturated with it, and 875.6 kJ/mol is released.</td></tr>
 </table>
-<p>Two independent reviews of the code then found further issues, which I also fixed. All of them are listed in the repository, where 407 automated tests run on every change.</p>
+<p>Two independent reviews of the code then found further issues, which I also fixed. All of them are listed in the repository, where 412 automated tests run on every change.</p>
 
 <h2>6. Limitations</h2>
 <p>Phase change is handled on the reaction tab and in the heat lab only. On the pressure tab and in the product slate, a species that would condense is flagged but not condensed, and each gas is treated as a pure species. Moreover, above about 2000 K the hot CO<sub>2</sub> and H<sub>2</sub>O of a real flame partly break apart, which the heat lab ignores, so its flame temperatures are somewhat too high there. Equilibrium results say where a reaction can end up, not how fast it gets there.</p>
