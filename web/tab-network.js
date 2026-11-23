@@ -241,6 +241,7 @@
       <div class="grid two">
         <div><h3 id="nw-live-title"></h3><div id="nw-live-bars"></div>
           <h3 style="margin-top:16px">Mole fractions at equilibrium</h3><div id="nw-live-y"></div>
+          <p class="live-note" id="nw-live-tiny"></p>
           <p class="live-note">Bars follow the sliders. The plots below are redrawn when you let go.</p></div>
         <div><h3>What it means</h3><div id="nw-live-explain"></div></div>
       </div></div>`;
@@ -279,6 +280,14 @@
       key: sid, label: chem(sid), percent: 100 * r.y[sid], text: sig(r.y[sid], 3), color: TS.colorOf(sid),
     })));
 
+    // A product that is switched on but hardly forms has a bar and a line on zero; say which, with its number,
+    // so that it does not look missing (methanol while methane is allowed: about 1e-10).
+    const tiny = r.species.filter((s) => !(r.feed[s] > 0) && r.y[s] < 1e-3);
+    $("#nw-live-tiny").innerHTML = tiny.length
+      ? `Hardly formed at these settings (mole fraction below 0.001), so the bar and the line lie on zero: ` +
+        `${tiny.map((s) => `${chem(s)} ${sig(r.y[s], 2)}`).join(", ")}.`
+      : "";
+
     let cards = "";
     cards += `<div class="card"><div class="k">Moles of gas</div><div class="v">${sig(r.total_moles, 4)}</div>
       <div class="s">from ${sig(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)} mol of feed</div></div>`;
@@ -309,6 +318,8 @@
     const sk = s.skipped || [];
     const unit = s.variable === "T" ? "K" : "bar";
     out.innerHTML = `<div class="panel"><div class="grid two"><div id="nw-plot-y" class="plot tall"></div><div id="nw-plot-dist" class="plot tall"></div></div>
+      <p class="hint" style="margin:8px 0 0">A line lying on zero belongs to a species that hardly forms at these temperatures or pressures.
+        Switching off the product that takes its atoms brings it up: with methane switched off, methanol appears.</p>
       ${sk.length ? `<p class="hint" style="margin:8px 0 0">Gaps in the curves: ${sk.length} of ${s.x.length} points
         (${fix(Math.min(...sk), 0)} to ${fix(Math.max(...sk), 0)} ${unit}) could not be calculated with this real-gas model.
         ${esc(s.skipped_reason || "")}</p>` : ""}</div>`;

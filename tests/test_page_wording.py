@@ -227,6 +227,20 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         start, end = html.index('id="tab-combine"'), html.index('id="tab-network"')
         self.assertNotIn(" and K of the net", html[start:end])
 
+    def test_tab_4_names_the_products_that_hardly_form(self):
+        # 23 November 2026: "Equilibrium mole fraction of CH3OH isn't seen in tab 4". With methane allowed
+        # it is about 1e-10, so its bar and line lie on zero; the page now names it with its number.
+        script = read("web", "tab-network.js")
+        self.assertIn('id="nw-live-tiny"', script)
+        self.assertIn("r.y[s] < 1e-3", script)
+        self.assertIn("with methane switched off, methanol appears", script)
+        net = next(n for n in library.NETWORKS if n["id"] == "co2_hydrogenation")
+        everything = ok("network", {"species": net["species"], "feed": net["feed"], "T": 523.0, "P": 50.0, "model": "auto", "sweep": "none"})
+        self.assertLess(everything["y"]["CH3OH(g)"], 1e-3)
+        no_methane = ok("network", {"species": [s for s in net["species"] if s != "CH4(g)"], "feed": net["feed"], "T": 523.0,
+                                    "P": 50.0, "model": "auto", "sweep": "none"})
+        self.assertGreater(no_methane["y"]["CH3OH(g)"], 0.05)
+
     def test_tab_4_shows_no_conversion(self):
         script = read("web", "tab-network.js")
         self.assertNotIn("conversion", script.lower())
