@@ -144,6 +144,8 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.8.4, 23 November 2026, commit `2d36f2b`:** both workflows green. On both addresses the scripts carry 1.8.4. Tab 1 has four graphs and no K anywhere. All four tab 2 graphs cover the same range (−28.98 to 1.96 kJ/mol for ammonia). Tab 5 is the bomb calorimeter only, with no reactor or flame text, and 1 g of ethanol gives a 2.31 °C rise. The start page has seven demo cards. 412 tests pass. No console errors.
 
+**v1.8.5, 23 November 2026, commit `3a2e695`:** both workflows green. On both addresses the scripts carry 1.8.5. Tab 1 has three graphs, no pressure box and no conversion. Tab 2 writes step 1 as −[1 × 177 + 3 × 195] J for ammonia and no longer points to tab 4. The tab 4 bars are filled (they were 0 px wide before), with no method line and no solid-carbon graph. Stress test 2 on the Validation tab covers 40 of 45 reactions at 1000 K. 420 tests pass. No console errors.
+
 ## Rollback
 
 There is no state to migrate, so rollback is a plain revert.
