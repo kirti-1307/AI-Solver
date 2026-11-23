@@ -126,10 +126,12 @@ The test was run in one browser (Chromium) in a background tab. There the animat
 
 **v1.7 (phase change: stable phase on tab 1, condensing water on tab 5):**
 
-- [ ] v1.7: tab 1 opens with the box "Pick the stable phase" unticked and the same numbers as before
-- [ ] v1.7: tab 1, `H2 + 1/2 O2 -> H2O(l)` at 500 K shows the blue hint with the button; after a click the reaction reads H2O(g), ΔH° = -243.81 kJ/mol, and the note names the jump of +40.86 kJ/mol at 373.2 K
-- [ ] v1.7: tab 5, methane burner still 2,069 K with the water box ticked; the "Condensing boiler" example shows a dew point of 328.7 K, a fourth step and -847.7 kJ, and -796.9 kJ with a warning when the box is unticked
-- [ ] v1.7: tab 7 reports 67 of 67, the ten phase-change rows among them
+- [x] v1.7: tab 1 opens with the box "Pick the stable phase" unticked and the same numbers as before
+- [x] v1.7: tab 1, `H2 + 1/2 O2 -> H2O(l)` at 500 K shows the blue hint with the button; after a click the reaction reads H2O(g), ΔH° = -243.81 kJ/mol, and the note names the jump of +40.86 kJ/mol at 373.2 K
+- [x] v1.7: tab 5, methane burner still 2,069 K with the water box ticked; the "Condensing boiler" example shows a dew point of 328.7 K, a fourth step and -847.7 kJ, and -796.9 kJ with a warning when the box is unticked
+- [x] v1.7: tab 7 reports 67 of 67, the ten phase-change rows among them
+
+**v1.7 checked on the live page, 23 November 2026, commit `2cd8b28`, version tag 1.7.0:** both workflows green. Tab 1 opens with the box unticked and CO2 hydrogenation at 523 K as before (-57.94 kJ/mol, 0.6 % at 1 bar). `H2 + 1/2 O2 -> H2O(l)` at 500 K shows the blue hint with the button "Pick the stable phase"; after a click the box is ticked, the reaction reads H2O(g), ΔH° = -243.81 kJ/mol, the note names the jump of +40.86 kJ/mol at 373.2 K, five plots, 10 of 10 identities. Tab 5: methane burner 2,069 K with the water box ticked and a dew point card of 328.7 K; "Condensing boiler" gives -847.7 kJ with a fourth step (1.17 mol of water condense, -50.76 kJ), 7 of 7 identities, and -796.9 kJ with a warning when the box is unticked. Tab 7: 67 of 67, the ten phase-change rows among them, no "FAIL". The guide has the section on boiling points and loads the stylesheet of this release. No console errors.
 
 ## Rollback
 
