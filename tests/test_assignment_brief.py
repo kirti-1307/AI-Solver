@@ -133,10 +133,11 @@ class TestCalculations(unittest.TestCase):
             tab1 = fh.read()
         with open(os.path.join(ROOT, "web", "tab-pressure.js"), encoding="utf-8") as fh:
             tab2 = fh.read()
-        # tab 1 had a fifth graph, of the equilibrium constant, until the user asked for K to be left off tab 1
-        self.assertEqual(len(set(re.findall(r'TS\.plot\("(rx-plot-[A-Za-z]+)"', tab1))), 4)
+        # tab 1 had a graph of the equilibrium constant and one of the conversion, until the user
+        # asked for both to be left off tab 1 (23 November 2026)
+        self.assertEqual(len(set(re.findall(r'TS\.plot\("(rx-plot-[A-Za-z]+)"', tab1))), 3)
         self.assertEqual(len(set(re.findall(r'TS\.plot\("(pr-plot-[A-Za-z]+)"', tab2))), 4)
-        self.assertEqual(tab1.count("TS.fig("), 4)                       # each with a line on how to read it
+        self.assertEqual(tab1.count("TS.fig("), 3)                       # each with a line on how to read it
         self.assertEqual(tab2.count("TS.fig("), 4)
 
     def test_favourability_at_a_certain_temperature(self):
@@ -148,6 +149,8 @@ class TestCalculations(unittest.TestCase):
 
     def test_favourability_at_a_certain_pressure(self):
         # K belongs to 1 bar. At a chosen pressure the solver gives how far the reaction goes.
+        # Since 23 November 2026 the page shows this on tab 4 (pressure slider of the product
+        # slate), not on tab 1; the number is the same, as the check against "network" below shows.
         self.assertEqual(self.res["P"], 50.0)
         low, high = self.res["equilibrium"], self.res["equilibrium_P"]
         self.assertAlmostEqual(low["conversion"], 0.006, delta=0.001)     # 1 bar

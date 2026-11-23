@@ -1273,22 +1273,37 @@ def challenge(payload: Optional[dict] = None) -> dict:
                           "suggestion": exc.details.get("suggestion")})
     out["stoichiometry"] = cases
 
-    # 2. Constant Cp versus temperature-dependent Cp at 1000 K
+    # 2. Constant Cp versus temperature-dependent Cp at 1000 K, for every predefined reaction.
+    # A reaction whose heat-capacity data stop below 1000 K (a liquid, or a solid) gets no
+    # numbers: comparing two shortcuts of a formula that does not hold there would mean nothing.
+    T = 1000.0
     rows = []
-    for rid in ("smr", "ammonia", "methanol_synthesis", "co2_methanol", "wgs", "dry_reforming"):
-        _, name, eq, *_ = library.reaction_by_id(rid)
+    for rid, name, eq, *_ in library.REACTIONS:
         rxn = Reaction.parse(eq)
-        T = 1000.0
-        ev = rxn.evaluate(T)
-        rows.append({
-            "name": name, "equation": rxn.equation, "T": T,
-            "dH": ev["dH"], "dH_const": ev["constant_cp"]["dH"], "dH_none": ev["dH0"],
-            "dG": ev["dG"], "dG_const": ev["constant_cp"]["dG"], "dG_none": ev["no_cp"]["dG"],
-            "K": ev["K"], "lnK": ev["lnK"],
-            "lnK_const": -ev["constant_cp"]["dG"] / (R * T),
-            "lnK_none": -ev["no_cp"]["dG"] / (R * T),
-        })
+        vr = rxn.valid_range()
+        row: Dict[str, Any] = {"id": rid, "name": name, "equation": rxn.equation, "T": T, "valid_range": vr,
+                               "in_range": vr is not None and vr[0] - 1e-9 <= T <= vr[1] + 1e-9}
+        if row["in_range"]:
+            ev = rxn.evaluate(T)
+            row.update({
+                "dH": ev["dH"], "dH_const": ev["constant_cp"]["dH"], "dH_none": ev["dH0"],
+                "dG": ev["dG"], "dG_const": ev["constant_cp"]["dG"], "dG_none": ev["no_cp"]["dG"],
+                "K": ev["K"], "lnK": ev["lnK"],
+                "lnK_const": -ev["constant_cp"]["dG"] / (R * T),
+                "lnK_none": -ev["no_cp"]["dG"] / (R * T),
+            })
+        rows.append(row)
     out["cp_assumption"] = rows
+    inside = [r for r in rows if r["in_range"]]
+
+    def errors(key: str) -> Dict[str, Any]:
+        errs = [abs(r[key] - r["dH"]) for r in inside]
+        worst = max(inside, key=lambda r: abs(r[key] - r["dH"]))
+        return {"mean": sum(errs) / len(errs), "max": max(errs), "worst": worst["name"],
+                "worst_error": worst[key] - worst["dH"]}
+
+    out["cp_summary"] = {"T": T, "total": len(rows), "in_range": len(inside),
+                         "constant": errors("dH_const"), "ignored": errors("dH_none")}
 
     # 3. Physical state: methane combustion with liquid water versus vapour
     liq = Reaction.parse("CH4 + 2 O2 -> CO2 + 2 H2O(l)")

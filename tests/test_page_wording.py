@@ -136,7 +136,8 @@ class TestPageFiles(unittest.TestCase):
         # the solver's number is only compared with 1; it is never printed or plotted as a value
         self.assertNotRegex(script, r"(sig|fix)\([^)]*carbon_activity")
         self.assertNotRegex(script, r"y: s\.carbon_activity\b")
-        self.assertEqual(len(re.findall(r"carbon_activity > 1|v > 1 \? 1 : 0", script)), 3)
+        # the explanation and the card; the yes/no graph along the plot left the page on 23 November 2026
+        self.assertEqual(len(re.findall(r"carbon_activity > 1|v > 1 \? 1 : 0", script)), 2)
 
     def test_tab_5_is_the_bomb_calorimeter_only(self):
         # 23 November 2026: "can u remove the reactor and flame part in tab 5? i know nothing about it."
@@ -194,9 +195,9 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         self.assertEqual(pressure.count("yaxis: residualAxis"), 4)            # all four graphs: the same range of values
         self.assertNotIn("totalAxis", pressure)
         self.assertIn("y: k(s.sum_HR)", pressure)                              # graph 1 shows the residual part
-        self.assertEqual(read("web", "tab-reaction.js").count("xaxis: tAxis"), 3)
+        self.assertEqual(read("web", "tab-reaction.js").count("xaxis: tAxis"), 2)   # energy and ΔCp graphs
         self.assertEqual(read("web", "tab-combine.js").count("...same"), 2)
-        self.assertEqual(read("web", "tab-network.js").count("xaxis: xAxis"), 3)
+        self.assertEqual(read("web", "tab-network.js").count("xaxis: xAxis"), 2)    # mole fractions and atom shares
 
     def test_tab_2_has_no_checks_no_percent_card_and_no_model_table(self):
         script = read("web", "tab-pressure.js")
@@ -243,6 +244,56 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
             self.assertEqual(ratio < Kp, r["carbon_activity"] > 1)
 
 
+class TestSecondRoundOfTheTwentyThirdOfNovember(unittest.TestCase):
+    """The second list of 23 November 2026 for tabs 1, 2 and 4. What left the page stays in the solver."""
+
+    def test_tab_1_shows_no_conversion_and_no_notes_on_pressure(self):
+        script = read("web", "tab-reaction.js")
+        for gone in ("Favourability at a given pressure", "Standard state and real mixture", "Pressure: ΔG° belongs",
+                     "Pressure: with no change in gas moles", "rx-plot-X", "Equilibrium conversion", "conversion_1bar",
+                     "equilibrium_P", "condensedNote", 'readNumber("rx-P")', "Type another pressure"):
+            self.assertNotIn(gone, script)
+        html = tab_sections(read("index.html"))
+        start, end = html.index('id="tab-reaction"'), html.index('id="tab-pressure"')
+        self.assertNotIn('id="rx-P"', html)
+        self.assertNotIn("conversion", html[start:end].lower())
+        # the solver still works the conversion out (at 1 bar when no pressure is sent)
+        r = ok("analyze", {"equation": "CO2 + 3 H2 -> CH3OH + H2O", "T": 523.15})
+        self.assertEqual(r["P"], 1.0)
+        self.assertAlmostEqual(r["equilibrium"]["conversion"], 0.006, delta=0.001)
+
+    def test_tab_2_no_longer_points_to_tab_4(self):
+        self.assertNotIn("Pressure also moves the equilibrium composition", read("web", "tab-pressure.js"))
+
+    def test_tab_2_writes_out_steps_1_and_3_from_the_table(self):
+        script = read("web", "tab-pressure.js")
+        self.assertIn("That removes their H<sup>R</sup>", script)
+        self.assertIn("That adds their H<sup>R</sup>", script)
+        self.assertIn("terms(false)", script)
+        self.assertIn("terms(true)", script)
+        self.assertIn("table at the bottom of this tab", script)
+        # the sums written out on the page are the solver's step values
+        r = ok("pressure", AMMONIA)
+        species, path = r["at_P"]["species"], r["comparison"]["path"]
+        self.assertAlmostEqual(-sum(-s["nu"] * s["HR"] for s in species if s["nu"] < 0), path["reactants_to_ideal"], places=6)
+        self.assertAlmostEqual(sum(s["nu"] * s["HR"] for s in species if s["nu"] > 0), path["products_to_real"], places=6)
+
+    def test_tab_4_has_no_method_line_no_table_of_numbers_and_no_soot_graph(self):
+        script = read("web", "tab-network.js")
+        for gone in ("Method: the solver", "r.iterations", "nw-live-table", "Equilibrium mixture as numbers",
+                     "nw-plot-aC", "Can solid carbon (soot) form?"):
+            self.assertNotIn(gone, script)
+        self.assertIn("Solid carbon (soot)", script)                                  # the card stays
+        self.assertIn("How the solver decides", script)                               # and so does the explanation
+
+    def test_bars_are_drawn(self):
+        # The fill of a bar is a <span>. Without display: block it is an inline box, which ignores
+        # width and height, so the bars of tab 4 looked empty (found by the user on 23 November 2026).
+        css = read("web", "styles.css")
+        rule = re.search(r"\.bars \.fill \{([^}]*)\}", css).group(1)
+        self.assertIn("display: block", rule)
+
+
 class TestTextsFromTheSolver(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -265,6 +316,9 @@ class TestTextsFromTheSolver(unittest.TestCase):
     def test_no_untaught_term_reaches_the_page(self):
         texts = {name: text_of(res) for name, res in self.results.items()}
         texts["library"] = text_of(self.library, internal=("kind", "id"))
+        # stress test 2 lists every library reaction with its id, which the page does not print
+        texts["challenge"] = text_of(self.results["challenge"], internal=("kind", "id"))
+        self.assertNotIn("x.id", read("web", "tab-validation.js"))
         for name, text in texts.items():
             self.assertGreater(len(text), 500, name)
             for term in FORBIDDEN:

@@ -506,9 +506,20 @@ class Reaction:
                 continue
             if not sp.in_cp_range(T):
                 side = "below" if T < sp.cp_Tmin else "above"
-                # the full name of a NIST source belongs on the species-data tab; here it is "NIST data"
-                source = sp.cp_source_at(T)
-                source = "NIST data" if "NIST" in source else source
+                # The range can join two or three sources (NIST tables below 298.15 K, the textbook
+                # from 298.15 K, NIST equations above the textbook's limit); each is named for its part.
+                # The full name of a NIST source belongs on the species-data tab; here it is "NIST data".
+                main = "NIST data" if "NIST" in (sp.cp_source or "") else sp.cp_source
+                parts = []
+                if sp.cp_low is not None:
+                    parts.append(f"NIST data up to {sp.cp_main_Tmin:g} K")
+                if parts or sp.cp_high is not None:
+                    parts.append(f"{main} from {sp.cp_main_Tmin:g} to {sp.cp_main_Tmax:g} K")
+                else:
+                    parts.append(main)
+                if sp.cp_high is not None:
+                    parts.append(f"NIST data above {sp.cp_main_Tmax:g} K")
+                source = "; ".join(parts)
                 out.append({
                     "level": "warning", "species": sp.id, "kind": "cp_extrapolation",
                     "message": (

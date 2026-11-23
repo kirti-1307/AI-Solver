@@ -29,7 +29,7 @@ The same benchmarks can be printed as a table with `python -m thermosolver --val
 | 11. Phase change | Does the solver find the right phase? | `tests/test_phase_change.py` | Boiling points against SVN Table B.1, vapour pressure of water against the NIST saturation table, the Clausius/Clapeyron slope, the jumps of ΔH° and ΔS° at a boiling point, continuity of ΔG° and of the conversion, the saturation of the outlet gas, heat duty and outlet temperature as inverses of each other with condensation, the lever rule for an outlet of pure water, and dH = T dS along the condensation |
 | 12. Browser | Does the hosted page work? | manual, see below | Pyodide runs the same Python files, so layers 1 to 11 already cover the numbers |
 
-In total: 412 tests in fifteen files, about 70 seconds. Five of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist and carry the same version tag, the guide page must match its Markdown source, and no thermodynamic constant may appear in the JavaScript.
+In total: 420 tests in fifteen files, about 70 seconds. Five of them guard the deployment itself: the browser worker must list every solver module, `.nojekyll` must exist, every script the page loads must exist and carry the same version tag, the guide page must match its Markdown source, and no thermodynamic constant may appear in the JavaScript.
 
 ## What is deliberately not tested
 
@@ -49,11 +49,11 @@ In total: 412 tests in fifteen files, about 70 seconds. Five of them guard the d
 2. The status pill turns green ("Solver ready") within about ten seconds on a first visit.
 3. The start page shows eight question cards; each opens its tab with a result. Then open each of the seven tabs: no red error box, plots drawn.
 4. Type `CH4 + O2 -> CO2 + H2O` on tab 1: it must be rejected and offer the balanced form.
-5. On tab 4, drag the temperature slider: the bars must follow. With everything allowed, the methanol and CO switches must be faded and only methane clickable; after "Methane off" they must show their shares.
+5. On tab 4, the bars must be filled in colour, and when you drag the temperature slider they must follow. With everything allowed, the methanol and CO switches must be faded and only methane clickable; after "Methane off" they must show their shares.
 6. On tab 2, ammonia at 200 bar must show the ideal gas (−106.50 kJ/mol) next to the real gas (−111.66 kJ/mol), and the word "fugacity" must not appear. Picking CO₂ hydrogenation must open at 50 bar with no red box; at 200 bar a blue box must offer "Use 88 bar".
 7. On tab 5 (bomb calorimeter), "Ignite" with 1 g of ethanol must give a rise of 2.31 °C and draw the temperature curve; "Identify" with 1.00 g and 2.30 °C must name ethanol first.
 8. On tab 1, type `H2 + 1/2 O2 -> H2O(l)` at 500 K: a blue box must say that this is not the stable phase and offer "Pick the stable phase"; after a click the reaction must read H2O(g) and the energy plot must show a step at 373.2 K.
-9. Tab 1 shows no equilibrium constant, and the four graphs of tab 2 cover the same range of values.
+9. Tab 1 shows no equilibrium constant, no conversion and no pressure box, and has three graphs. The four graphs of tab 2 cover the same range of values, and the text writes steps 1 and 3 out as sums of ν·Hᴿ. Tab 4 shows no method line, no table of numbers and no soot graph, but keeps the solid-carbon card.
 10. Tab 7 must report every reference value as "pass".
 
 ## Bugs the tests have caught so far

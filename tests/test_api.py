@@ -342,11 +342,31 @@ class TestAIErrorChallenge(unittest.TestCase):
         self.assertTrue(cases["CO + 2 H2 -> CH3OH"]["accepted"])
 
     def test_2_constant_versus_temperature_dependent_cp_at_1000K(self):
-        smr = self.res["cp_assumption"][0]
+        smr = next(r for r in self.res["cp_assumption"] if r["id"] == "smr")
         self.assertEqual(smr["T"], 1000.0)
         self.assertAlmostEqual(smr["dH"], 225255.0, delta=5.0)
         self.assertGreater(abs(smr["dH_const"] - smr["dH"]), 10000.0)   # 13.6 kJ/mol error
         self.assertGreater(abs(smr["dH_none"] - smr["dH"]), 15000.0)    # 19.4 kJ/mol error
+
+    def test_2_covers_every_predefined_reaction(self):
+        # 23 November 2026: the user asked for the test to hold for every reaction of the website,
+        # not for steam reforming alone.
+        from thermosolver import library
+        rows = self.res["cp_assumption"]
+        self.assertEqual([r["id"] for r in rows], [e[0] for e in library.REACTIONS])
+        inside = [r for r in rows if r["in_range"]]
+        outside = {r["id"] for r in rows if not r["in_range"]}
+        self.assertEqual(len(inside), 40)
+        self.assertEqual(outside, {"methane_combustion_l", "hydrogen_combustion_l", "iron_reduction_h2",
+                                   "water_vaporisation", "acetic_acid"})
+        self.assertTrue(all("dH" not in r for r in rows if not r["in_range"]))   # no numbers outside the data
+        s = self.res["cp_summary"]
+        self.assertEqual((s["total"], s["in_range"]), (45, 40))
+        self.assertAlmostEqual(s["constant"]["max"], 31458.0, delta=5.0)             # benzene hydrogenation
+        self.assertEqual(s["constant"]["worst"], next(r["name"] for r in rows if r["id"] == "benzene_hydrogenation"))
+        self.assertAlmostEqual(s["ignored"]["max"], 25972.0, delta=5.0)              # Sabatier
+        self.assertEqual(s["ignored"]["worst"], next(r["name"] for r in rows if r["id"] == "sabatier"))
+        self.assertAlmostEqual(s["constant"]["mean"], sum(abs(r["dH_const"] - r["dH"]) for r in inside) / 40, places=6)
 
     def test_3_physical_state_of_water_in_methane_combustion(self):
         ps = self.res["physical_state"]
@@ -361,6 +381,25 @@ class TestAIErrorChallenge(unittest.TestCase):
         self.assertFalse(by_T[(smr, 1400.0)]["warned"])
         self.assertTrue(by_T[(smr, 2200.0)]["warned"])
         self.assertTrue(all(e["warned"] for e in self.res["extrapolation"] if e["T"] != 1400.0))
+
+    def test_4_every_predefined_reaction_warns_just_outside_its_range_and_not_inside(self):
+        # The Validation tab says this was checked for all 45 reactions; this is that check.
+        from thermosolver import library
+        from thermosolver.reaction import Reaction
+        for rid, _, eq, *_ in library.REACTIONS:
+            rxn = Reaction.parse(eq)
+            lo, hi = rxn.valid_range()
+            ends = [(hi - 1.0, False), (hi + 1.0, True)] + ([(lo + 1.0, False), (lo - 1.0, True)] if lo > 1.5 else [])
+            for T, expected in ends:
+                warned = any(w.get("kind") == "cp_extrapolation" for w in rxn.range_warnings(T))
+                self.assertEqual(warned, expected, f"{rid} at {T} K")
+
+    def test_4_the_warning_names_each_source_of_the_range(self):
+        from thermosolver.reaction import Reaction
+        msg = next(w["message"] for w in Reaction.parse("CH4 + H2O(g) -> CO + 3 H2").range_warnings(2200.0)
+                   if w.get("species") == "CH4(g)")
+        self.assertIn("200 to 1500 K, NIST data up to 298 K; SVN Table C.1", msg)
+        self.assertIn("from 298 to 1500 K", msg)
 
 
 if __name__ == "__main__":

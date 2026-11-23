@@ -1,6 +1,10 @@
 /* Tab 4 (extra feature 1): equilibrium of competing reactions (the mixture with
  * the lowest total Gibbs energy), as a live reactor.
  *
+ * Not shown on the page at the user's request (23 November 2026), but still in the
+ * solver's answer: the method line, the mixture as a table of numbers, and the
+ * solid-carbon test along the plot (sweep.carbon_activity).
+ *
  * Two kinds of request go to the solver: a single point (while a slider is
  * being dragged) and the same point with a sweep for the plots (when the user
  * lets go). The page itself calculates nothing.
@@ -239,13 +243,6 @@
     }
     lines.push("This is the composition the system would reach with unlimited time and a catalyst that can make every species that is switched on. " +
       "Switch a product off to model a catalyst that cannot form it; the difference between the two answers is what catalyst selectivity has to fight against.");
-    // With a real-gas model each pure species also carries its residual Gibbs energy from the equation of state.
-    const realGas = r.model !== "ideal";
-    lines.push(`Method: the solver looks for the mole numbers n<sub>i</sub> that make the total Gibbs energy of the mixture, ` +
-      `G/RT = Σ n<sub>i</sub>[G<sub>i</sub>°/RT + ln(y<sub>i</sub>P/P°)${realGas ? " + G<sub>i</sub><sup>R</sup>/RT" : ""}], as low as possible, ` +
-      `while the number of atoms of every element stays what the feed brought in` +
-      `${realGas ? " (G<sup>R</sup> is the residual Gibbs energy of the pure species)" : ""}. ` +
-      `It is an iterative calculation; this answer took ${r.iterations} steps.`);
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 
@@ -259,8 +256,7 @@
         <div><h3 id="nw-live-title"></h3><div id="nw-live-bars"></div>
           <h3 style="margin-top:16px">Mole fractions at equilibrium</h3><div id="nw-live-y"></div>
           <p class="live-note">Bars follow the sliders. The plots below are redrawn when you let go.</p></div>
-        <div><h3>What it means</h3><div id="nw-live-explain"></div>
-          <details><summary>Equilibrium mixture as numbers</summary><div id="nw-live-table"></div></details></div>
+        <div><h3>What it means</h3><div id="nw-live-explain"></div></div>
       </div></div>`;
   }
 
@@ -306,14 +302,6 @@
     cards += `<div class="card"><div class="k">Moles of gas</div><div class="v">${sig(r.total_moles, 4)}</div>
       <div class="s">from ${sig(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)} mol of feed</div></div>`;
     $("#nw-live-cards").innerHTML = cards;
-
-    const ids = r.species.slice().sort((a, b) => r.y[b] - r.y[a]);
-    $("#nw-live-table").innerHTML = `<div class="table-scroll"><table><thead><tr><th class="l">Species</th><th>Feed (mol)</th>
-      <th>Equilibrium (mol)</th><th>Mole fraction y</th><th>Share of ${esc(el)} atoms</th></tr></thead><tbody>${
-      ids.map((s) => `<tr><td class="l mono">${chem(s)}</td><td>${fix(r.feed[s], 4)}</td><td>${sig(r.moles[s], 5)}</td>
-        <td>${sig(r.y[s], 5)}</td><td>${dist[s] === undefined ? "–" : pct(dist[s], 2)}</td></tr>`).join("")}
-      <tr class="sum"><td class="l">Total</td><td>${fix(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)}</td>
-        <td>${sig(r.total_moles, 6)}</td><td>1</td><td></td></tr></tbody></table></div>`;
     $("#nw-live-explain").innerHTML = explain(r);
 
     // Move the marker on the plots that are already on screen.
@@ -339,9 +327,7 @@
     const el = r.key_element;
     const sk = s.skipped || [];
     const unit = s.variable === "T" ? "K" : "bar";
-    const hasCarbon = s.carbon_activity.some((v) => v !== null);
-    out.innerHTML = `<div class="panel"><div class="grid two"><div id="nw-plot-y" class="plot tall"></div><div id="nw-plot-dist" class="plot tall"></div>
-      ${hasCarbon ? '<div id="nw-plot-aC" class="plot"></div>' : ""}</div>
+    out.innerHTML = `<div class="panel"><div class="grid two"><div id="nw-plot-y" class="plot tall"></div><div id="nw-plot-dist" class="plot tall"></div></div>
       ${sk.length ? `<p class="hint" style="margin:8px 0 0">Gaps in the curves: ${sk.length} of ${s.x.length} points
         (${fix(Math.min(...sk), 0)} to ${fix(Math.max(...sk), 0)} ${unit}) could not be calculated with this real-gas model.
         ${esc(s.skipped_reason || "")}</p>` : ""}</div>`;
@@ -360,14 +346,6 @@
       x: s.x, y: s.distribution[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines",
       stackgroup: "one", line: { width: 0.6, color: TS.colorOf(sid) },
     })), TS.layout(`Where the ${el} atoms go`, xTitle, `% of ${el} atoms`, { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [0, 100] } }));
-
-    if (hasCarbon) {
-      // Yes or no at each point of the plot: the same test as on the card above.
-      const yesNo = s.carbon_activity.map((v) => (v === null ? null : (v > 1 ? 1 : 0)));
-      TS.plot("nw-plot-aC", [{ x: s.x, y: yesNo, name: "solid carbon", mode: "lines", line: { width: 2.5, color: "#475569", shape: "hv" } }],
-        TS.layout("Can solid carbon (soot) form?", xTitle, "",
-          { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [-0.25, 1.25], tickvals: [0, 1], ticktext: ["no", "yes"] }, showlegend: false }));
-    }
   }
 
   /* ------------------------------------------------------------- calculations */

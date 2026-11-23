@@ -75,16 +75,21 @@
       `<strong>${esc(c.size)}</strong> here: a heat balance made with the ideal-gas value would be off by ` +
       `${kJ(Math.abs(c.residual))} kJ for every mole that reacts.`);
     const p = c.path;
-    lines.push(`The three boxes above reach the same answer in three steps, in the same way as Hess's law. ` +
-      `Step 1: turn the real reactants into ideal gases, which takes away their H<sup>R</sup> (${signed(p.reactants_to_ideal / 1000, 2)} kJ). ` +
-      `Step 2: let them react as ideal gases, which is ΔH° from tab 1 (${signed(p.ideal_reaction / 1000, 2)} kJ). ` +
-      `Step 3: turn the ideal-gas products into real gases, which adds their H<sup>R</sup> (${signed(p.products_to_real / 1000, 2)} kJ). ` +
-      `H depends only on where you start and where you end, not on the route, so the three steps add up to the real-gas value ` +
-      `(${signed(p.total / 1000, 2)} kJ/mol).`);
+    // The terms of steps 1 and 3, written out from the table at the bottom of the tab (the sums are the solver's).
+    const J = (v) => TS.int(v).replace("-", "−");
+    const terms = (products) => a.species.filter((s) => (products ? s.nu > 0 : s.nu < 0))
+      .map((s) => `${coeff(s.nu)} × ${s.HR < 0 ? `(${J(s.HR)})` : J(s.HR)}`).join(" + ");
+    lines.push(`The three steps above reach the real-gas value by a detour, in the same way as Hess's law. ` +
+      `<strong>Step 1</strong>: take the reactants from real gas to ideal gas. That removes their H<sup>R</sup>: ` +
+      `−[${terms(false)}] J = ${signed(p.reactants_to_ideal / 1000, 2)} kJ. ` +
+      `<strong>Step 2</strong>: let the ideal gases react. That is ΔH° from tab 1, ${signed(p.ideal_reaction / 1000, 2)} kJ. ` +
+      `<strong>Step 3</strong>: take the products from ideal gas to real gas. That adds their H<sup>R</sup>: ` +
+      `${terms(true)} J = ${signed(p.products_to_real / 1000, 2)} kJ. ` +
+      `Each H<sup>R</sup> is in the table at the bottom of this tab (${esc(a.model_name)}). H depends only on where you start and where ` +
+      `you end, not on the route, so the three steps add up to the real-gas value (${signed(p.total / 1000, 2)} kJ/mol).`);
     lines.push(`The gap between real and ideal grows with pressure (first graph), because the molecules are pushed closer together ` +
       `and attract each other more. It shrinks as the temperature rises (third graph), because hotter molecules move faster and have ` +
       `more energy, so the pull between them matters less and the gas behaves more like an ideal gas (Z closer to 1).`);
-    lines.push(`Pressure also moves the equilibrium composition. That is shown on tab 4 (Product slate), which has a pressure slider.`);
     lines.push("Assumptions: each species is taken as the pure species at T and P, and mixing the gases is taken to change no enthalpy; " +
       "the enthalpy of solids and liquids is taken not to change with pressure.");
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;

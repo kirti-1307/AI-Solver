@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.8.4");
+      this.worker = new Worker("web/worker.js?v=1.8.5");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -453,8 +453,6 @@ TS.GLOSSARY = [
     "The change in disorder. It is positive when the reaction makes more gas molecules and negative when it makes fewer."],
   [/^ΔG/, "Gibbs energy change",
     "ΔG = ΔH − T·ΔS. A negative value means the products are favoured. A positive value means the reactants are favoured; some product still forms, only less."],
-  [/conversion/i, "Conversion",
-    "The fraction of a reactant that has reacted. 25 % means a quarter of what was fed is gone."],
   [/^Solid carbon/, "Solid carbon (soot)",
     "Whether solid carbon (soot) could form from this gas. It can form when making it would lower the total Gibbs energy; otherwise it cannot."],
   [/^Heating value/, "Heating value",

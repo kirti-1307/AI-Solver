@@ -1,7 +1,7 @@
 /* Tab 7: live validation against the textbook, the AI Error Challenge and published research. */
 "use strict";
 (() => {
-  const { $, esc, chem, fix, kJ, sig, fmtK, signed } = TS;
+  const { $, esc, chem, fix, kJ, sig, signed } = TS;
 
   function benchmarks(res) {
     const groups = new Map();
@@ -30,10 +30,17 @@
     const st = c.stoichiometry.map((x) => `<tr><td class="l mono">${chem(x.input)}</td>
       <td class="${x.accepted ? "pass" : "fail"}">${x.accepted ? "accepted" : "rejected"}</td>
       <td class="l mono">${x.suggestion ? chem(x.suggestion) : "–"}</td></tr>`).join("");
-    const cp = c.cp_assumption.map((x) => `<tr><td class="l">${esc(x.name)}</td>
+    // Every predefined reaction. One whose heat-capacity data stop below 1000 K is listed without numbers.
+    const cp = c.cp_assumption.map((x) => (x.in_range ? `<tr><td class="l">${esc(x.name)}</td>
       <td>${kJ(x.dH)}</td><td>${kJ(x.dH_const)}</td><td>${signed((x.dH_const - x.dH) / 1000)}</td>
-      <td>${kJ(x.dH_none)}</td><td>${signed((x.dH_none - x.dH) / 1000)}</td>
-      <td>${fmtK(x.lnK)}</td><td>${fmtK(x.lnK_const)}</td><td>${fmtK(x.lnK_none)}</td></tr>`).join("");
+      <td>${kJ(x.dH_none)}</td><td>${signed((x.dH_none - x.dH) / 1000)}</td></tr>`
+      : `<tr><td class="l">${esc(x.name)}</td><td class="l dim" colspan="5">no comparison: the C<sub>p</sub> data of this reaction hold only from
+        ${x.valid_range ? `${fix(x.valid_range[0], 0)} to ${fix(x.valid_range[1], 0)} K` : "298.15 K"}, not at ${fix(x.T, 0)} K</td></tr>`)).join("");
+    const cs = c.cp_summary;
+    const cpSummary = `For the <strong>${cs.in_range} of ${cs.total}</strong> predefined reactions whose heat-capacity data reach ${fix(cs.T, 0)} K:
+      a constant ΔC<sub>p</sub> (its value at 298.15 K) puts ΔH° off by ${kJ(cs.constant.mean)} kJ/mol on average and by up to
+      <strong>${kJ(cs.constant.max)} kJ/mol</strong> (${esc(cs.constant.worst)}). Ignoring ΔC<sub>p</sub> puts it off by ${kJ(cs.ignored.mean)} kJ/mol
+      on average and by up to <strong>${kJ(cs.ignored.max)} kJ/mol</strong> (${esc(cs.ignored.worst)}).`;
     const ps = c.physical_state;
     const ex = c.extrapolation.map((x) => `<tr><td class="l mono">${chem(x.equation)}</td><td>${fix(x.T, 0)}</td>
       <td>${x.valid_range ? `${fix(x.valid_range[0], 0)}–${fix(x.valid_range[1], 0)}` : "–"}</td>
@@ -45,10 +52,13 @@
       <div class="table-scroll"><table><thead><tr><th class="l">Typed</th><th>Result</th><th class="l">Balanced form offered</th></tr></thead><tbody>${st}</tbody></table></div>
       <p class="hint">The element balance is checked before any property is looked up. A rejected reaction returns no numbers at all.</p>
 
-      <h3>2. C<sub>p</sub> assumptions at 1000 K</h3>
-      <div class="table-scroll"><table><thead><tr><th class="l">Reaction</th><th>ΔH° with C<sub>p</sub>(T) (kJ)</th><th>constant ΔC<sub>p</sub></th><th>error</th>
-        <th>ΔC<sub>p</sub> ignored</th><th>error</th><th>K with C<sub>p</sub>(T)</th><th>K, constant ΔC<sub>p</sub></th><th>K, ΔC<sub>p</sub> ignored</th></tr></thead><tbody>${cp}</tbody></table></div>
-      <p class="hint">A constant ΔC<sub>p</sub> taken at 298 K misses the curvature of C<sub>p</sub>(T). The error in ΔH° is several kJ/mol and the error in K can be a factor of two or more, because K depends exponentially on ΔG°.</p>
+      <h3>2. C<sub>p</sub> assumptions at 1000 K, for every predefined reaction</h3>
+      ${TS.message("info", cpSummary)}
+      <div class="table-scroll"><table><thead><tr><th class="l">Reaction</th><th>ΔH° with C<sub>p</sub>(T) (kJ/mol)</th><th>constant ΔC<sub>p</sub></th><th>error</th>
+        <th>ΔC<sub>p</sub> ignored</th><th>error</th></tr></thead><tbody>${cp}</tbody></table></div>
+      <p class="hint">A constant ΔC<sub>p</sub> taken at 298.15 K misses how C<sub>p</sub> changes with temperature, and ignoring ΔC<sub>p</sub>
+        keeps ΔH° at its 298.15 K value. Any reaction can be checked the same way at any temperature on tab 1, under
+        "How much does the heat-capacity treatment matter".</p>
 
       <h3>3. Physical state: methane combustion with H<sub>2</sub>O(l) or H<sub>2</sub>O(g)</h3>
       <div class="table-scroll"><table><thead><tr><th class="l">Reaction</th><th>ΔH°<sub>298</sub> (kJ/mol)</th><th>ΔG°<sub>298</sub> (kJ/mol)</th><th>ΔS°<sub>298</sub> (J/mol·K)</th></tr></thead><tbody>
@@ -61,7 +71,9 @@
 
       <h3>4. Correlation validity: is extrapolation flagged?</h3>
       <div class="table-scroll"><table><thead><tr><th class="l">Reaction</th><th>T (K)</th><th>Valid range (K)</th><th>Result</th><th class="l"></th></tr></thead><tbody>${ex}</tbody></table></div>
-      <p class="hint">Each species carries the temperature range of its own SVN correlation. Outside it the result is still shown, with a warning and a shaded band on the plots.</p>
+      <p class="hint">Each species carries the temperature range of its heat-capacity data: the textbook's correlation, extended with NIST data
+        below 298.15 K and, for eight gases, above the textbook's limit. Outside that range the result is still shown, with a warning and a
+        shaded band on the plots. Every one of the 45 predefined reactions was checked 1 K inside and 1 K outside each end of its range.</p>
 
       <h3>5. Check against published work</h3>
       <p class="hint">See the next panel.</p>`;

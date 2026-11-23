@@ -30,13 +30,9 @@ The first thing the solver does is check the elemental balance. Here I typed met
 
 Now a real case: CO2 hydrogenation to methanol at 523 K. The reaction gives out heat, ΔH° = −57.94 kJ/mol. But it turns four moles of gas into two, so ΔS° is negative, −199.76 J/(mol·K). At this temperature the entropy term wins, and ΔG° is +46.56 kJ/mol. So the reactants are favoured. That does not mean nothing reacts: some product still forms, only less.
 
-*[Type 50 in the pressure box and press Calculate]*
-
-ΔG° belongs to the standard pressure of 1 bar, so pressure does not change it. But pressure changes how far the reaction goes. At 1 bar only 0.6 % of the CO2 converts. At 50 bar it is 21.3 %, because the reaction makes fewer gas molecules.
-
 *[Scroll to the graphs]*
 
-The graphs show the same quantities against temperature, and all of them use the same temperature axis. The orange line is ΔH°, the blue line is ΔG°, and where the blue line crosses zero, the favoured side changes. The dashed lines show what we would get with a constant Cp or with Cp ignored. This was one of the stress tests of the assignment: at 1000 K for steam reforming the three give 225.3, 238.8 and 205.8 kJ/mol.
+The first graph shows the same quantities against temperature. The orange line is ΔH°, the blue line is ΔG°, and where the blue line crosses zero, the favoured side changes. The dashed lines show what we would get with a constant Cp or with Cp ignored. This was one of the stress tests of the assignment: at 1000 K for steam reforming the three give 225.3, 238.8 and 205.8 kJ/mol. The Validation tab runs the same test for every predefined reaction: for the 40 whose Cp data reach 1000 K, a constant ΔCp is off by 9.0 kJ/mol on average and by up to 31.5 kJ/mol.
 
 ### Tab 2: Pressure and real gas
 
@@ -76,7 +72,7 @@ Each switch works like a selective catalyst. Switching methane off means the cat
 
 *[Click "3. Methane and CO off"]*
 
-With only methanol allowed, methanol takes 21.3 % of the carbon, which is exactly the conversion tab 1 gave at 50 bar. So the two tabs agree with each other.
+With only methanol allowed, methanol takes 21.3 % of the carbon. At 1 bar it would be only 0.6 %, so pressure helps a lot here, because the reaction makes fewer gas molecules.
 
 The main point is this: thermodynamics favours methane, and it is the catalyst that makes methanol possible.
 
@@ -114,7 +110,7 @@ The calorimeter can also work backwards. If 1 g of an unknown sample raises the 
 
 *[Click tab 7]*
 
-Every result is checked in three ways. First, the solver reproduces 67 out of 67 reference values from the textbook's worked examples, the course slides, the lab handout and NIST tables. Second, it passes the five stress tests of the assignment, and the heats of reaction agree with published research within 0.5 kJ/mol. Third, there are 412 automated tests, which run every time the code changes.
+Every result is checked in three ways. First, the solver reproduces 67 out of 67 reference values from the textbook's worked examples, the course slides, the lab handout and NIST tables. Second, it passes the five stress tests of the assignment, and the heats of reaction agree with published research within 0.5 kJ/mol. Third, there are 420 automated tests, which run every time the code changes.
 
 While building it, I also found and corrected several errors of the AI. For example, it used an older value of ΔG°f for ammonia, it treated liquid water as a gas at high pressure, and it called the standard state "298.15 K and 1 bar", although the standard state fixes only the pressure.
 
@@ -127,10 +123,10 @@ To sum up, the solver gives the heat of reaction, entropy and Gibbs energy at an
 ## Questions the professor may ask
 
 **Is your K a Kp or a Kc?**
-K is not shown on tab 1, but the solver uses it for the conversion and for the soot test on tab 4. It is Kp, written with the partial pressures in bar, divided by the standard pressure of 1 bar. The standard state of a gas is 1 bar, so ΔG° = −RT ln K gives Kp.
+K is not shown on tabs 1 and 3, but the solver uses it for the soot test on tab 4, where the page calls it Kp. It is Kp, written with the partial pressures in bar, divided by the standard pressure of 1 bar. The standard state of a gas is 1 bar, so ΔG° = −RT ln K gives Kp.
 
 **Does Kp change with pressure?**
-No. For an ideal gas, Kp (and Kc too) depends on temperature only. Pressure changes the equilibrium composition, which is why the conversion rises from 0.6 % to 21.3 % at 50 bar.
+No. For an ideal gas, Kp (and Kc too) depends on temperature only. Pressure changes the equilibrium composition: on tab 4, with only methanol allowed at 523 K, methanol takes 0.6 % of the carbon at 1 bar and 21.3 % at 50 bar.
 
 **Why does the ideal-gas ΔH not change with pressure, but the real-gas ΔH does?**
 For an ideal gas, U depends on T only, and PV = RT, so H = U + RT depends on T only. In a real gas the molecules attract each other. Higher pressure pushes them closer, so the attraction lowers the enthalpy more. That is also why Z drops below 1.
@@ -142,13 +138,16 @@ For each gas: take Tc, Pc and ω from Table B.1, work out Tr and Pr, solve the P
 Near the critical point a gas is almost a liquid: the molecules are close and slow enough for their attraction to matter a lot. Methanol at 523 K has Tr = 1.02 and Hᴿ = −4.22 kJ/mol. Hydrogen has Tr = 15.8 and Hᴿ = +0.03 kJ/mol, almost ideal.
 
 **What do the three steps on tab 2 mean?**
-They reach the real-gas ΔH by a detour, like Hess's law: real reactants to ideal gases, react as ideal gases, ideal products back to real gases. H depends only on the start and the end, so the detour gives the same answer.
+They reach the real-gas ΔH by a detour, like Hess's law: real reactants to ideal gases, react as ideal gases, ideal products back to real gases. H depends only on the start and the end, so the detour gives the same answer. Step 1 removes the Hᴿ of the reactants and step 3 adds the Hᴿ of the products, each Hᴿ from the table at the bottom of the tab. For ammonia at 723 K and 200 bar: step 1 = −(1 × 177 + 3 × 195) J = −0.76 kJ, step 2 = −106.50 kJ, step 3 = 2 × (−2198) J = −4.40 kJ, total −111.66 kJ/mol.
+
+**Why is there a kink at 298.15 K in the tab 1 graphs?**
+Below 298.15 K the heat capacities come from NIST tables, above it from the textbook's Cp equation, and the two do not match exactly at 298.15 K. For methanol vapour NIST gives 44.06 J/(mol·K) and the textbook equation 46.11, because the equation is fitted over 298 to 1500 K. So ΔCp° jumps by about 2 J/(mol·K) there, and the ΔH° line only changes its slope. It is the seam between two data sources, not an error.
 
 **Does the solver use Peng/Robinson for every calculation?**
 No. Only tab 2 needs an equation of state, and it starts on Peng/Robinson; the list lets me pick any other. Tab 4 can use Peng/Robinson if I choose "real gas", but it starts on the ideal gas. Tabs 1, 3 and 5 use standard values at 1 bar, which need no equation of state.
 
 **What if another equation is better in some cases?**
-That can happen. Each equation is a model, and the best one depends on the gas and the conditions. That is why the list is there: switching the model shows how much the answer depends on it. For the six industrial cases, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, so the answer hardly depends on which of the two I use. Only measured data could say which equation is closest to the truth, and the course tables do not give measured residual enthalpies.
+That can happen. Each equation is a model, and the best one depends on the gas and the conditions. That is why the list is there: switching the model shows how much the answer depends on it. For the six industrial cases, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, so the answer hardly depends on which of the two I use. To judge a case, I switch the model: where all five agree, as for hot, light gases, the choice does not matter; where they spread out, as for methanol near its critical point, the answer is uncertain by about that spread. Only measured data, such as the steam tables for water, could say which equation is closest to the truth.
 
 **Why Peng/Robinson?**
 It uses Tc, Pc and the acentric factor, and it works at high pressure. Soave/Redlich/Kwong gives almost the same answer. van der Waals and Redlich/Kwong use only Tc and Pc, and the virial equation is only for low to moderate pressure. For methanol synthesis at 80 bar, the residual part is −8.63 kJ/mol with Peng/Robinson but −5.05 with van der Waals.

@@ -279,3 +279,11 @@ These were not found by a test. They were raised as questions about the page and
 
 - **Actual:** at 50 bar the conversion fell from 88.4 % to 66.2 % at 373.2 K, because the first fix looked for condensation only below the boiling point at 1 bar.
 - **Fix:** a species can condense while P_sat(T) < P and T is below its critical temperature. Above 373 K this uses the liquid data beyond their range, so the result is marked as approximate on the page. At 523 K and 50 bar nothing condenses, and the 21.3 % of the report is unchanged.
+
+## Round 13: the user's list of 23 November 2026 (v1.8.5)
+
+### 39. The bars of tab 4 were empty
+
+- **Actual:** on tab 4 the rows "Where the C atoms go" and "Mole fractions at equilibrium" showed their labels, numbers and empty grey tracks, but no coloured bar. Found by the user.
+- **Root cause:** each fill is a `<span>`. The new stylesheet of v1.8 gave it a width and a height but no `display: block`, and an inline box ignores both, so every bar was 0 px wide although its width was set (25.15 % for CO2 at the start). The bars of tab 2 are `<div>` elements, which is why they still worked there.
+- **Fix:** `display: block` on `.bars .fill`; a test (`test_bars_are_drawn`) now checks the rule.

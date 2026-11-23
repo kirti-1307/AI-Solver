@@ -155,34 +155,31 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 
 **It answers:** how much heat, and which side is favoured?
 
-**You do:** pick a reaction or type one, set the temperature, press Calculate. The pressure box is only for the equilibrium conversion; ΔH°, ΔS° and ΔG° are standard values at 1 bar.
+**You do:** pick a reaction or type one, set the temperature, press Calculate. ΔH°, ΔS° and ΔG° are standard values at 1 bar.
 
 **You read:**
 
 - The headline at the top: "Gives out heat" or "Takes in heat", and "Products favoured" or "Reactants favoured". The second one looks at the sign of ΔG°. It never means that nothing reacts.
-- The cards: ΔH, ΔS and ΔG at your temperature, and how much reacts at your pressure.
+- The cards: ΔH° at 298.15 K, and ΔH°, ΔS° and ΔG° at your temperature.
 - "What the numbers mean": the same result in sentences.
 - The graphs (explained below).
 - The step-by-step calculation, if you want to follow the arithmetic.
-
-**Favourable at which pressure?** ΔG° belongs to the standard pressure of 1 bar, so it depends on temperature only. But how far a reaction goes also depends on pressure. Example: CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K converts 0.6 % at 1 bar and 21.3 % at 50 bar. Four gas molecules become two, so squeezing the gas helps.
 
 **The "Pick the stable phase" box.** Normally the solver uses the phase you type. H2O(l) stays a liquid at any temperature, even at 500 K, where it only gets a warning. Tick the box and the solver chooses for you: liquid below the boiling point, vapour above it. The plots then run across the boiling point. The orange ΔH° line has a step there (the latent heat), and the blue ΔG° line only bends. Try `H2 + 1/2 O2 -> H2O(l)`: ΔH° is −283.4 kJ/mol just below 373.2 K and −242.6 kJ/mol just above it.
 
 The box is off at the start, because a textbook often wants the other form on purpose. The heat of burning methane to H2O(g) at 25 °C is the lower heating value, although water is not a vapour at 25 °C and 1 bar.
 
-One more point. Below its boiling point a product is not automatically a liquid. In a gas mixture it stays a vapour as long as its partial pressure is below its vapour pressure. The "equilibrium conversion" card works this way: a product leaves as liquid only once the gas is saturated with it, and the card says when that happens.
-
-**The four graphs of tab 1.** Each has a line under it that says how to read it. In short:
+**The three graphs of tab 1.** Each has a line under it that says how to read it. In short:
 
 1. **Energy changes versus temperature.** Orange is ΔH° (heat), blue is ΔG° (which side is favoured), green is T·ΔS°. Blue is always orange minus green. Where the blue line crosses zero, the favoured side changes. The dots show your temperature.
-2. **Equilibrium conversion.** How much has reacted when the reaction comes to rest. Grey dashed is at 1 bar, blue is at your pressure.
-3. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
-4. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
+2. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
+3. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
 
-The three graphs against temperature share the same temperature axis, so you can follow one temperature from graph to graph.
+The two graphs against temperature share the same temperature axis, so you can follow one temperature from one to the other.
 
 A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens. For gases the range now starts at 200 K, so the plots start there too.
+
+**Why is there a kink at 298.15 K?** Below 298.15 K the heat capacities come from NIST tables, and from 298.15 K up from the textbook's Cp equation. The two do not give exactly the same Cp at 298.15 K. For methanol vapour the NIST table gives 44.06 J/(mol·K) and the textbook equation 46.11 J/(mol·K): the equation is fitted over 298 to 1500 K and is a little off at its lower end. So the ΔCp° line of CO₂ + 3 H₂ → CH₃OH + H₂O jumps by about 2 J/(mol·K) at 298.15 K, and the ΔH° line changes its slope there, without a jump. It is the seam between two data sources, not an error in the calculation.
 
 ### Tab 2: Pressure and real gas
 
@@ -191,7 +188,7 @@ A grey band on a plot means the Cp formula is being used outside the temperature
 **You read:**
 
 - The headline: the ideal-gas ΔH, the real-gas ΔH and the difference between them.
-- The three steps. They reach the real-gas ΔH by a detour, in the same way as Hess's law. Step 1: turn the real reactants into ideal gases, which takes away their Hᴿ. Step 2: let them react as ideal gases, which is ΔH° from tab 1. Step 3: turn the ideal-gas products into real gases, which adds their Hᴿ. H depends only on where you start and where you end, so the detour gives the same answer as the direct route. For CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K and 50 bar: +0.64 − 57.94 − 6.76 = −64.06 kJ/mol.
+- The three steps. They reach the real-gas ΔH by a detour, in the same way as Hess's law. Step 1: take the reactants from real gas to ideal gas, which removes their Hᴿ. Step 2: let them react as ideal gases, which is ΔH° from tab 1. Step 3: take the ideal-gas products to real gas, which adds their Hᴿ. H depends only on where you start and where you end, so the detour gives the same answer as the direct route. Each Hᴿ is in the table at the bottom of the tab. Example, ammonia at 723 K and 200 bar (N₂ + 3 H₂ → 2 NH₃): step 1 = −(1 × 177 + 3 × 195) J = −0.76 kJ; step 2 = −106.50 kJ; step 3 = 2 × (−2198) J = −4.40 kJ. Total: −111.66 kJ/mol.
 - The first graph: the ideal gas is the flat zero line, and the orange curve is the residual part, how much the real gas differs from it. It grows with pressure.
 - The list of bars at the top: six industrial reactions, sorted by how much pressure matters. Click one to load it.
 
@@ -212,6 +209,8 @@ Example, methanol at 523 K and 50 bar: Tr = 1.02, Pr = 0.62, Z = 0.753, Hᴿ/RT 
 
 **Why Peng/Robinson?** The tab starts on Peng/Robinson, but you can pick any of the five models. Peng/Robinson and Soave/Redlich/Kwong use three properties of each gas: the critical temperature, the critical pressure and the acentric factor ω. van der Waals and Redlich/Kwong use only the first two, so they treat every molecule as if it had the same shape. The virial equation is only meant for low to moderate pressure. For the six industrial cases of the tab, Peng/Robinson and Soave/Redlich/Kwong agree within 0.05 kJ/mol, while van der Waals and Redlich/Kwong can be off by up to 3.6 kJ/mol (methanol synthesis at 80 bar: −8.63 with Peng/Robinson, −5.05 with van der Waals). You can see this by switching the model in the list.
 
+**How do I know the model is right for my reaction?** The solver cannot prove it; only measured data can. Three things help. First, switch the model: where all five give nearly the same number (hot, light gases, or low pressure), the choice does not matter. Where they spread out (cold, polar gases close to their critical point, at high pressure), the answer is uncertain by about that spread. Second, the virial equation is meant for low to moderate pressure only. Third, where measured data exist, such as the steam tables for water, they decide.
+
 When does it matter?
 
 - **A lot** for cold, dense gases such as methanol, water and ammonia. CO₂ + 3 H₂ → CH₃OH + H₂O at 523 K and 50 bar: 10.6 %.
@@ -228,8 +227,6 @@ When does it matter?
 All four graphs cover exactly the same range of values, in kJ/mol, so you can read a number across from one graph to another. The value of graph 1 at your pressure, the sum of the bars in graph 2 and the dot in graph 3 are the same number.
 
 **"No gas-phase value".** If a substance would be a liquid at your temperature and pressure, there is no gas reaction to calculate. The tab says so in a blue box and offers a pressure, or a temperature, where it works. Example: at 523 K water is a liquid above about 90 bar, so CO₂ hydrogenation at 200 bar has no gas-phase value. This is a limit of the conditions, not an error.
-
-This tab is about the heat of reaction only. How far a reaction goes at high pressure is shown on tab 1 (the pressure box) and on tab 4 (the pressure slider).
 
 ### Tab 3: Combine reactions
 
@@ -324,21 +321,21 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | Liquid water was treated as a gas at high pressure | It predicted 48 % conversion, which is far too high | The solver notices when a gas would really be a liquid and refuses to give a gas value |
 | An old data value for ammonia | The AI remembered a number from an older edition of the book | Every number was compared with the printed tables |
 | Two rounded constants in a formula | Two results that should agree differed slightly | The exact constants are used |
-| "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now says that K belongs to 1 bar, and tab 1 shows the conversion at your pressure |
+| "Practically no reaction" for ammonia | True at 1 bar, but at 200 bar 43 % reacts | The text now speaks of 1 bar only, and tab 4 shows the mixture at any pressure |
 | The calorimeter named a gas as the unknown sample | A gas cannot be weighed into a crucible | Only liquids and solids are compared |
 | "Standard state" was explained as 298.15 K and 1 bar | Standard state fixes only the pressure (1 bar). 298.15 K is just where the tables list the data | The guide and the page now keep the two apart |
 | Below 298 K the textbook Cp formulas were simply stretched | They are valid from 298 K only. For CO₂ at 200 K the stretched formula is 29 % too low | NIST table values are used from 200 K to 298.15 K |
 | The headline said "Not favourable" | It read as if the reaction could not happen, so its ΔH looked meaningless | It now says "Reactants favoured" and adds that some product still forms |
 | Tab 2 showed a red error for CO₂ hydrogenation | The pressure was still 200 bar from the ammonia example. Water is a liquid there, so there is no gas value | The example opens at its own conditions (50 bar), and a blue box offers a pressure that works |
-| After tab 2 was narrowed down to the heat of reaction, no tab said how pressure changes favourability | The assignment asks for favourability at a given pressure and temperature | Tab 1 has a pressure box and shows the equilibrium conversion at that pressure |
+| After tab 2 was narrowed down to the heat of reaction, no tab said how pressure changes favourability | The assignment asks for favourability at a given pressure and temperature | Tab 4 has a pressure slider and shows the mixture that forms at that pressure |
 | Every substance stayed in the phase that was typed | Liquid water stayed liquid at 500 K | The solver finds the boiling point from its own data, and tab 1 can pick the stable phase |
 
 The five stress tests of the assignment:
 
 1. **Unbalanced reaction.** CH₄ + O₂ → CO₂ + H₂O is rejected, and CH₄ + 2 O₂ → CO₂ + 2 H₂O is offered.
-2. **Shortcut on Cp.** For steam reforming at 1000 K, the proper Cp gives ΔH = 225.3 kJ/mol. A constant Cp gives 238.8, and ignoring Cp gives 205.8. K changes from 25.8 to 50.3 or 2.8.
+2. **Shortcut on Cp.** The Validation tab runs this for every predefined reaction at 1000 K. For the 40 reactions whose Cp data reach 1000 K, a constant ΔCp puts ΔH off by 9.0 kJ/mol on average and by up to 31.5 kJ/mol (benzene hydrogenation); ignoring ΔCp puts it off by 7.5 kJ/mol on average and by up to 26.0 kJ/mol (CO₂ methanation). The other 5 contain a liquid or a solid whose Cp data stop below 1000 K, so they get no numbers. Example, steam reforming: the proper Cp gives ΔH = 225.3 kJ/mol, a constant Cp gives 238.8, and ignoring Cp gives 205.8.
 3. **Liquid or vapour water.** Burning methane gives −890.65 kJ/mol with liquid water and −802.63 with vapour. The gap is the heat needed to boil 2 moles of water. With the "Pick the stable phase" box the solver chooses liquid water at 25 °C by itself.
-4. **Formula out of range.** The solver warns you.
+4. **Formula out of range.** The solver warns you, and shades that part of the plots. This was checked 1 K inside and 1 K outside both ends of the range for all 45 predefined reactions: a warning every time outside, never inside.
 5. **Published values.** The solver agrees with research papers within 0.5 kJ/mol.
 
 ## 7. How it is built
