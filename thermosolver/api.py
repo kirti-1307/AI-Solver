@@ -452,10 +452,17 @@ def analyze(payload: dict) -> dict:
             sp = SPECIES[row["id"]]
             if sp.cp_low is not None:
                 row["cp_Tmin"] = sp.cp_main_Tmin
+    notes = rxn.notes
+    if pieces is not None:
+        # The solver chose the phase of these species itself, so the note that a gas was
+        # assumed for a species typed without a phase would contradict what was used.
+        handled = {sid.split("(")[0] for t in choice["used"] for sid in (t.liquid, t.gas)}
+        notes = [n for n in notes if not (n.startswith("No phase was given for ") and
+                                          n[len("No phase was given for "):].split(";")[0] in handled)]
     result = {
         "equation": rxn.equation,
         "name": rxn.name,
-        "notes": rxn.notes,
+        "notes": notes,
         "stoich": rxn.stoich,
         "T": T,
         "P": P,

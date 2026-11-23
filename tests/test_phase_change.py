@@ -212,6 +212,22 @@ class TestStablePhaseOfAReaction(unittest.TestCase):
 
 
 class TestAnalyzeWithAutoPhase(unittest.TestCase):
+    def test_methane_combustion_the_solver_picks_the_state_of_water(self):
+        # Water typed without a phase: gas is assumed, and a note says so. With the stable phase
+        # chosen by the solver, liquid water below 373.2 K and vapour above, and no contradicting note.
+        base = {"equation": "CH4 + 2 O2 -> CO2 + 2 H2O", "T": 298.15}
+        plain = api.analyze(base)
+        self.assertIn("H2O(g)", plain["stoich"])
+        self.assertAlmostEqual(plain["at_T"]["dH"], -802625.0, delta=1.0)
+        self.assertTrue(any(n.startswith("No phase was given for H2O") for n in plain["notes"]))
+        cold = api.analyze({**base, "auto_phase": True})
+        self.assertIn("H2O(l)", cold["stoich"])
+        self.assertAlmostEqual(cold["at_T"]["dH"], -890649.0, delta=1.0)
+        self.assertEqual(cold["notes"], [])
+        hot = api.analyze({**base, "T": 500.0, "auto_phase": True})
+        self.assertIn("H2O(g)", hot["stoich"])
+        self.assertEqual(hot["notes"], [])
+
     def test_off_by_default_and_nothing_changes(self):
         base = {"equation": "H2 + 1/2 O2 -> H2O(l)", "T": 500.0}
         plain = api.analyze(base)
