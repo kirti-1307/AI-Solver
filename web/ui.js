@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.8.6");
+      this.worker = new Worker("web/worker.js?v=1.8.7");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -233,6 +233,24 @@ TS.span = (lists, extra = [], margin = 0.06) => {
   const width = hi - lo || Math.abs(hi) || 1;
   return [lo - margin * width, hi + margin * width];
 };
+
+/* The x axis of a graph covers only where it has data (the user's request of 23 November 2026):
+ * from the first to the last x at which at least one of the series has a value. Null when
+ * no series has two points, so the caller can fall back to the plot's own range. */
+TS.xExtent = (x, series) => {
+  let lo = Infinity;
+  let hi = -Infinity;
+  x.forEach((v, i) => {
+    if (series.some((ys) => ys && ys[i] !== null && ys[i] !== undefined && Number.isFinite(ys[i]))) {
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    }
+  });
+  return Number.isFinite(lo) && hi > lo ? [lo, hi] : null;
+};
+
+/* An axis object for Plotly from a range, or nothing when there is none. */
+TS.axis = (range) => (range ? { range } : {});
 
 /* A plot with one line underneath that says how to read it. */
 TS.fig = (id, caption, cls = "") => `<figure class="fig"><div id="${id}" class="plot ${cls}"></div>
@@ -453,8 +471,6 @@ TS.GLOSSARY = [
     "The change in disorder. It is positive when the reaction makes more gas molecules and negative when it makes fewer."],
   [/^ΔG/, "Gibbs energy change",
     "ΔG = ΔH − T·ΔS. A negative value means the products are favoured. A positive value means the reactants are favoured; some product still forms, only less."],
-  [/^Solid carbon/, "Solid carbon (soot)",
-    "Whether solid carbon (soot) could form from this gas. It can form when making it would lower the total Gibbs energy; otherwise it cannot."],
   [/^Heating value/, "Heating value",
     "Heat released by burning 1 kg of the fuel. Lower: the water leaves as vapour. Higher: the water is condensed, so its latent heat is collected too."],
   [/^Calorific value/, "Calorific value",

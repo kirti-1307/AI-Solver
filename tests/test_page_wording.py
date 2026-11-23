@@ -129,15 +129,20 @@ class TestPageFiles(unittest.TestCase):
         for term in SOURCE_NAMES:
             self.assertNotIn(term, html[start:end])
 
-    def test_tab_4_says_whether_solid_carbon_can_form_without_the_number(self):
+    def test_tab_4_says_nothing_about_solid_carbon(self):
+        # 23 November 2026: "in tab 4, remove all details about carbon soot". The solver still works
+        # carbon_activity out (tests/test_equilibrium.py); the page no longer uses it.
         script = read("web", "tab-network.js")
-        self.assertIn("Solid carbon (soot)", script)
-        self.assertIn("can form", script)
-        # the solver's number is only compared with 1; it is never printed or plotted as a value
-        self.assertNotRegex(script, r"(sig|fix)\([^)]*carbon_activity")
-        self.assertNotRegex(script, r"y: s\.carbon_activity\b")
-        # the explanation and the card; the yes/no graph along the plot left the page on 23 November 2026
-        self.assertEqual(len(re.findall(r"carbon_activity > 1|v > 1 \? 1 : 0", script)), 2)
+        for gone in ("Solid carbon (soot)", "can form", "How the solver decides", "r.carbon_activity", "soot", "nw-plot-aC"):
+            self.assertNotIn(gone, script)
+        self.assertNotIn("Solid carbon", read("web", "ui.js"))                       # no glossary entry either
+        html = tab_sections(read("index.html"))
+        start, end = html.index('id="tab-network"'), html.index('id="tab-heat"')
+        self.assertNotIn("soot", html[start:end].lower())
+        self.assertNotIn("solid carbon", html[start:end].lower())
+        for net in library.NETWORKS:                                                 # the notes shown on tab 4
+            self.assertNotIn("soot", net["note"].lower(), net["id"])
+            self.assertNotIn("solid-carbon", net["note"].lower(), net["id"])
 
     def test_tab_5_is_the_bomb_calorimeter_only(self):
         # 23 November 2026: "can u remove the reactor and flame part in tab 5? i know nothing about it."
@@ -187,13 +192,10 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         script = read("web", "tab-pressure.js")
         self.assertIn("H = U + PV = U + RT", script)
         html = read("index.html")
-        self.assertIn("You do not pick the equation of state: the solver does, for each gas.", html)
-        # the page names the fallback equation and the number of measured gases; both must be the solver's
-        from thermosolver import eoschoice, realgas
-        o = eoschoice.overall()
-        self.assertIn(f"A gas that NIST does not cover uses\n        {realgas.MODEL_NAMES[o['best']]}", html)
-        self.assertIn(f"NIST for {o['gases']} gases", html)
-        self.assertIn(f"the closest over all {o['gases']} gases together", html)
+        # 23 November 2026: the paragraph on how the equation is chosen was taken off tab 2 at the user's
+        # request; the table at the bottom still names each gas's equation, and the Validation tab the comparison
+        self.assertNotIn("You do not pick the equation of state", html)
+        self.assertIn("equationCell(s)", script)
 
     def test_graphs_that_are_compared_share_their_scales(self):
         pressure = read("web", "tab-pressure.js")
@@ -225,11 +227,10 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         start, end = html.index('id="tab-combine"'), html.index('id="tab-network"')
         self.assertNotIn(" and K of the net", html[start:end])
 
-    def test_tab_4_shows_no_conversion_and_says_how_soot_is_decided(self):
+    def test_tab_4_shows_no_conversion(self):
         script = read("web", "tab-network.js")
         self.assertNotIn("conversion", script.lower())
         self.assertNotIn("nw-plot-conv", script)
-        self.assertIn("How the solver decides", script)
         html = tab_sections(read("index.html"))
         start, end = html.index('id="tab-network"'), html.index('id="tab-heat"')
         self.assertNotIn("conversion", html[start:end].lower())
@@ -288,8 +289,6 @@ class TestSecondRoundOfTheTwentyThirdOfNovember(unittest.TestCase):
         for gone in ("Method: the solver", "r.iterations", "nw-live-table", "Equilibrium mixture as numbers",
                      "nw-plot-aC", "Can solid carbon (soot) form?"):
             self.assertNotIn(gone, script)
-        self.assertIn("Solid carbon (soot)", script)                                  # the card stays
-        self.assertIn("How the solver decides", script)                               # and so does the explanation
 
     def test_bars_are_drawn(self):
         # The fill of a bar is a <span>. Without display: block it is an inline box, which ignores
@@ -297,6 +296,53 @@ class TestSecondRoundOfTheTwentyThirdOfNovember(unittest.TestCase):
         css = read("web", "styles.css")
         rule = re.search(r"\.bars \.fill \{([^}]*)\}", css).group(1)
         self.assertIn("display: block", rule)
+
+
+class TestRangesOfTheGraphs(unittest.TestCase):
+    """23 November 2026: tab 1 starts at 298.15 K, and every graph's axes cover only where it has data."""
+
+    METHANOL = {"equation": "CO2 + 3 H2 -> CH3OH + H2O", "T": 523.15}
+
+    def test_tab_1_starts_at_298_15_K(self):
+        self.assertIn("from_reference_T: true", read("web", "tab-reaction.js"))
+        html = read("index.html")
+        self.assertIn('<input id="rx-T" type="number" step="any" min="298.15"', html)
+        self.assertIn('<input id="rx-Tmin" type="number" step="any" min="298.15"', html)
+        self.assertNotIn("200 K upwards", html)
+        for gone in ("low_T_species", "Below 298.15 K the heat capacities", "cp_from_low_T_table"):
+            self.assertNotIn(gone, read("web", "tab-reaction.js"))
+        r = ok("analyze", dict(self.METHANOL, from_reference_T=True))
+        self.assertEqual(r["sweep"]["T"][0], 298.15)
+        self.assertEqual(r["valid_range"][0], 298.15)
+        self.assertEqual(r["crossover"], [])                     # dG changes sign at 276 K, below the range
+        rows = {x["id"]: x for x in r["species"]}
+        self.assertEqual(rows["CO2(g)"]["cp_Tmin"], 298.0)       # the textbook's own range
+        for payload, words in ((dict(self.METHANOL, T=250, from_reference_T=True), "298.15 K or more"),
+                               (dict(self.METHANOL, T_min=200, from_reference_T=True), "starts at 298.15 K")):
+            out = json.loads(api.call("analyze", json.dumps(payload)))
+            self.assertFalse(out["ok"])
+            self.assertIn(words, out["error"]["message"])
+        # without the flag (other callers, the tests of the data below 298.15 K) nothing changed
+        plain = ok("analyze", self.METHANOL)
+        self.assertEqual(plain["sweep"]["T"][0], 200.0)
+        self.assertAlmostEqual(plain["crossover"][0], 276.3, delta=0.3)
+
+    def test_every_graph_covers_only_its_data(self):
+        uses = {"tab-reaction.js": 1, "tab-pressure.js": 3, "tab-network.js": 1, "tab-combine.js": 1, "tab-data.js": 1}
+        for name, count in uses.items():
+            self.assertEqual(read("web", name).count("TS.xExtent("), count, name)
+        self.assertNotIn("yaxis: { range: [0, 1] }", read("web", "tab-network.js"))
+        self.assertNotIn(".map(k), [0])", read("web", "tab-combine.js"))
+        self.assertIn("dT * 1.04", read("web", "tab-heat.js"))
+
+    def test_tab_2_temperature_graph_starts_where_the_gas_phase_values_begin(self):
+        # methanol synthesis at 80 bar: methanol has no gas state of its own below about 525 K
+        r = ok("pressure", {"equation": "CO + 2 H2 -> CH3OH", "T": 523.15, "P": 80})
+        t = r["sweep_T"]
+        self.assertTrue(500.0 < t["gas_from"] < 530.0)
+        self.assertEqual(t["T"][0], t["gas_from"])
+        self.assertTrue(all(v is not None for v in t["residual"]))
+        self.assertIn("The temperature graph starts at", read("web", "tab-pressure.js"))
 
 
 class TestTextsFromTheSolver(unittest.TestCase):

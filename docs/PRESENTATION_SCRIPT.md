@@ -112,7 +112,7 @@ The calorimeter can also work backwards. If 1 g of an unknown sample raises the 
 
 *[Click tab 7]*
 
-Every result is checked in three ways. First, the solver reproduces 67 out of 67 reference values from the textbook's worked examples, the course slides, the lab handout and NIST tables. Second, it passes the five stress tests of the assignment, and the heats of reaction agree with published research within 0.5 kJ/mol. Third, there are 435 automated tests, which run every time the code changes.
+Every result is checked in three ways. First, the solver reproduces 67 out of 67 reference values from the textbook's worked examples, the course slides, the lab handout and NIST tables. Second, it passes the five stress tests of the assignment, and the heats of reaction agree with published research within 0.5 kJ/mol. Third, there are 438 automated tests, which run every time the code changes.
 
 While building it, I also found and corrected several errors of the AI. For example, it used an older value of ΔG°f for ammonia, it treated liquid water as a gas at high pressure, and it called the standard state "298.15 K and 1 bar", although the standard state fixes only the pressure.
 
@@ -125,7 +125,7 @@ To sum up, the solver gives the heat of reaction, entropy and Gibbs energy at an
 ## Questions the professor may ask
 
 **Is your K a Kp or a Kc?**
-K is not shown on tabs 1 and 3, but the solver uses it for the soot test on tab 4, where the page calls it Kp. It is Kp, written with the partial pressures in bar, divided by the standard pressure of 1 bar. The standard state of a gas is 1 bar, so ΔG° = −RT ln K gives Kp.
+K is not shown on the page, but the solver works it out from ΔG°. It is Kp, written with the partial pressures in bar, divided by the standard pressure of 1 bar. The standard state of a gas is 1 bar, so ΔG° = −RT ln K gives Kp.
 
 **Does Kp change with pressure?**
 No. For an ideal gas, Kp (and Kc too) depends on temperature only. Pressure changes the equilibrium composition: on tab 4, with only methanol allowed at 523 K, methanol takes 0.6 % of the carbon at 1 bar and 24.5 % at 50 bar.
@@ -142,9 +142,6 @@ Near the critical point a gas is almost a liquid: the molecules are close and sl
 **What do the three steps on tab 2 mean?**
 They reach the real-gas ΔH by a detour, like Hess's law: real reactants to ideal gases, react as ideal gases, ideal products back to real gases. H depends only on the start and the end, so the detour gives the same answer. Step 1 removes the Hᴿ of the reactants and step 3 adds the Hᴿ of the products, each Hᴿ from the table at the bottom of the tab. For ammonia at 723 K and 200 bar: step 1 = −(1 × 177 + 3 × 325) J = −1.15 kJ, step 2 = −106.50 kJ, step 3 = 2 × (−1949) J = −3.90 kJ, total −111.55 kJ/mol.
 
-**Why is there a kink at 298.15 K in the tab 1 graphs?**
-Below 298.15 K the heat capacities come from NIST tables, above it from the textbook's Cp equation, and the two do not match exactly at 298.15 K. For methanol vapour NIST gives 44.06 J/(mol·K) and the textbook equation 46.11, because the equation is fitted over 298 to 1500 K. So ΔCp° jumps by about 2 J/(mol·K) there, and the ΔH° line only changes its slope. It is the seam between two data sources, not an error.
-
 **Which equation of state does the solver use, and who chooses it?**
 The solver chooses, for each gas, and only where an equation of state is needed: tabs 2 and 4. For the 24 gases NIST has measured data for, it compared each equation's Hᴿ with the measured one at 380 points, and each gas uses the equation with the smallest average difference: Soave/Redlich/Kwong for 14 gases, Peng/Robinson for 6 and Redlich/Kwong for 4. The virial equation and van der Waals are never the closest. A gas without measured data uses Soave/Redlich/Kwong, the closest on average (0.137 kJ/mol, against 0.160 for Peng/Robinson). Tabs 1, 3 and 5 use standard values at 1 bar, which need no equation of state.
 
@@ -153,9 +150,6 @@ No, it is only the closest of the five. For ammonia, Soave/Redlich/Kwong is stil
 
 **Why is Redlich/Kwong, the older equation, chosen for methane?**
 Because the measured data say so. For small, light molecules such as methane, CO, hydrogen and oxygen, Redlich/Kwong happens to come closest, although the differences are tiny: for methane 0.046 kJ/mol against 0.051 for Soave/Redlich/Kwong. The solver does not prefer a newer equation; it prefers the one that matches the measurements.
-
-**How do you know whether solid carbon (soot) can form?**
-The solver takes the gas it found and a reaction that makes carbon from it, for example 2 CO → C(s) + CO2. If the gas ratio p(CO2)/p(CO)² is smaller than the Kp of that reaction, the reaction can still go forward, so carbon can form. Because the gases are real gases, each partial pressure is first multiplied by exp(Gᴿ/RT) of its gas. At 700 K with methane off the ratio is 0.27 and Kp is 4142, so carbon can form.
 
 **Why does methane win on tab 4, if industry makes methanol?**
 Making methane from CO2 and hydrogen lowers the total Gibbs energy much more than making methanol does. Industry uses a catalyst that makes methanol but not methane, which is exactly what the switch imitates.

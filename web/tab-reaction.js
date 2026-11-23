@@ -1,6 +1,7 @@
 /* Tab 1: standard heat of reaction, entropy and Gibbs energy versus temperature.
  * The equilibrium constant and the equilibrium conversion are not shown on this tab (the user's
- * requests of 23 November 2026); the solver still works both out (api.analyze). */
+ * requests of 23 November 2026); the solver still works both out (api.analyze).
+ * The tab starts at 298.15 K: it asks the solver for nothing below it (from_reference_T). */
 "use strict";
 (() => {
   const { $, esc, chem, fix, kJ, int, sig, signed, coeff } = TS;
@@ -40,11 +41,6 @@
         `and every mole that does react ${e.dH < 0 ? "releases" : "absorbs"} ${kJ(Math.abs(e.dH))} kJ. ` +
         `The reverse reaction has the same ΔH° with the opposite sign.`);
     }
-    if (e.low_T_species && e.low_T_species.length) {
-      lines.push(`The standard state fixes the pressure at 1 bar, not the temperature, so ΔH°, ΔS° and ΔG° are defined at ${fix(T, 2)} K as well. ` +
-        `SVN's heat-capacity tables start at 298 K; below that the solver uses tabulated values from NIST (200 to 298.15 K).`);
-    }
-
     if (r.crossover && r.crossover.length) {
       const Tx = r.crossover[0];
       lines.push(`ΔG° changes sign at <strong>${fix(Tx, 0)} K</strong>. ` +
@@ -90,7 +86,7 @@
       <td>${s.nu > 0 ? "+" : "−"}${coeff(s.nu)}</td>
       <td>${int(s.dHf)}</td><td>${int(s.dGf)}</td>
       <td>${fix(s.cp_T, 2)}</td><td>${int(s.sensible_dH)}</td><td>${int(s.nu_sensible_dH)}</td>
-      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}${s.cp_from_low_T_table ? ' <span class="badge neutral" title="Below 298.15 K the heat capacity is from NIST tables">NIST</span>' : ""}${s.cp_from_high_T_equation ? ' <span class="badge neutral" title="Above the SVN range the heat capacity is from a NIST equation">NIST</span>' : ""}</td>
+      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}${s.cp_from_high_T_equation ? ' <span class="badge neutral" title="Above the SVN range the heat capacity is from a NIST equation">NIST</span>' : ""}</td>
     </tr>`).join("");
     const total = r.species.reduce((a, s) => a + (s.nu_sensible_dH || 0), 0);
     return `<div class="table-scroll"><table><thead><tr>
@@ -157,17 +153,20 @@
     const boilNotes = boiling.map((t, i) => ({ x: t.T_boil, y: 1 - 0.07 * (i % 3), yref: "paper", xanchor: "left", yanchor: "top",
       text: ` ${t.compound.toLowerCase()} boils`, showarrow: false, font: { size: 10.5, color: "#c2410c" } }));
     const shapes = outside.concat(boilLines, [TS.vline(r.T)]);
-    // Every graph against temperature uses the same temperature axis, so a point can be followed from one to the next.
-    const tAxis = { range: [first, last] };
+    // Every graph against temperature uses the same temperature axis, so a point can be followed from one to
+    // the next; it covers only temperatures with data, and each y axis only the values that are drawn.
+    const energy = [k(s.dH), k(s.dG), k(s.TdS), k(s.dH_const_cp), k(s.dG_no_cp)];
+    const tAxis = TS.axis(TS.xExtent(s.T, energy.concat([s.dCp])) || [first, last]);
     TS.plot("rx-plot-energy", [
-      { x: s.T, y: k(s.dH), name: "ΔH°", mode: "lines", line: { width: 2.5, color: "#c2410c" } },
-      { x: s.T, y: k(s.dG), name: "ΔG°", mode: "lines", line: { width: 2.5, color: "#0b5cad" } },
-      { x: s.T, y: k(s.TdS), name: "T·ΔS°", mode: "lines", line: { width: 1.8, color: "#11734b" } },
-      { x: s.T, y: k(s.dH_const_cp), name: "ΔH°, constant ΔCp", mode: "lines", line: { width: 1.3, dash: "dash", color: "#c2410c" } },
-      { x: s.T, y: k(s.dG_no_cp), name: "ΔG°, ΔCp ignored", mode: "lines", line: { width: 1.3, dash: "dot", color: "#0b5cad" } },
+      { x: s.T, y: energy[0], name: "ΔH°", mode: "lines", line: { width: 2.5, color: "#c2410c" } },
+      { x: s.T, y: energy[1], name: "ΔG°", mode: "lines", line: { width: 2.5, color: "#0b5cad" } },
+      { x: s.T, y: energy[2], name: "T·ΔS°", mode: "lines", line: { width: 1.8, color: "#11734b" } },
+      { x: s.T, y: energy[3], name: "ΔH°, constant ΔCp", mode: "lines", line: { width: 1.3, dash: "dash", color: "#c2410c" } },
+      { x: s.T, y: energy[4], name: "ΔG°, ΔCp ignored", mode: "lines", line: { width: 1.3, dash: "dot", color: "#0b5cad" } },
       { x: [r.T, r.T], y: [e.dH / 1000, e.dG / 1000], name: `at ${fix(r.T, 0)} K`, mode: "markers",
         marker: { size: 9, color: ["#c2410c", "#0b5cad"], line: { width: 1.5, color: "#fff" } }, showlegend: false },
-    ], TS.layout("Energy changes versus temperature", "Temperature (K)", "kJ per mol of reaction", { shapes, annotations: boilNotes, xaxis: tAxis }));
+    ], TS.layout("Energy changes versus temperature", "Temperature (K)", "kJ per mol of reaction",
+      { shapes, annotations: boilNotes, xaxis: tAxis, yaxis: TS.axis(TS.span(energy, [], 0.04)) }));
 
     const sp = r.species.filter((x) => x.nu_sensible_dH !== null);
     TS.plot("rx-plot-sensible", [{
@@ -181,7 +180,8 @@
       { x: s.T, y: s.dCp, name: "ΔCp°(T)", mode: "lines", line: { width: 2.5, color: "#0e7490" } },
       { x: [s.T[0], s.T[s.T.length - 1]], y: [e.dCp0, e.dCp0], name: "ΔCp° at 298.15 K (constant-Cp assumption)", mode: "lines",
         line: { width: 1.3, dash: "dash", color: "#0e7490" } },
-    ], TS.layout("Heat-capacity change of reaction", "Temperature (K)", "J/(mol·K)", { shapes: outside.concat(boilLines, [TS.hline(0)]), xaxis: tAxis }));
+    ], TS.layout("Heat-capacity change of reaction", "Temperature (K)", "J/(mol·K)",
+      { shapes: outside.concat(boilLines, [TS.hline(0)]), xaxis: tAxis, yaxis: TS.axis(TS.span([s.dCp, [e.dCp0]], [], 0.06)) }));
   }
 
   function render(r) {
@@ -222,9 +222,7 @@
           heat-capacity correlation (valid ${r.valid_range ? `${fix(r.valid_range[0], 0)} to ${fix(r.valid_range[1], 0)} K` : "at 298.15 K only"} for this reaction).
           The dotted vertical line is the selected temperature.${r.phase && r.phase.auto && r.phase.transitions.length ? ` Each orange dotted line is a boiling point.
           There the orange ΔH° line has a step, which is the latent heat, and the ΔC<sub>p</sub>° line has one too, because liquid and vapour have
-          different heat capacities. The blue ΔG° line only bends.` : ""}${r.valid_range && r.valid_range[0] < 298 ? ` Below 298.15 K the heat capacities
-          come from NIST tables and above it from SVN. The two do not give exactly the same C<sub>p</sub> at 298.15 K, which is the small step in the
-          ΔC<sub>p</sub> plot; ΔH° and ΔG° stay continuous.` : ""}</p></div>`;
+          different heat capacities. The blue ΔG° line only bends.` : ""}</p></div>`;
     } else {
       html += `<div class="panel">${TS.message("info", "SVN gives no heat capacity for at least one species of this reaction, so only the 298.15 K values are available and no temperature plot is drawn.")}</div>`;
     }
@@ -244,6 +242,7 @@
       const result = await TS.engine.call("analyze", {
         equation: $("#rx-equation").value,
         T: TS.readNumber("rx-T"),
+        from_reference_T: true,       // this tab works from 298.15 K upwards only
         T_min: TS.readNumber("rx-Tmin"),
         T_max: TS.readNumber("rx-Tmax"),
         auto_phase: $("#rx-auto-phase").checked,

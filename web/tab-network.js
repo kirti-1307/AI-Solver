@@ -2,8 +2,8 @@
  * the lowest total Gibbs energy), as a live reactor.
  *
  * Not shown on the page at the user's request (23 November 2026), but still in the
- * solver's answer: the method line, the mixture as a table of numbers, and the
- * solid-carbon test along the plot (sweep.carbon_activity).
+ * solver's answer: the method line, the mixture as a table of numbers, and everything
+ * about solid carbon (carbon_activity, at the point and along the plot).
  *
  * Two kinds of request go to the solver: a single point (while a slider is
  * being dragged) and the same point with a sweep for the plots (when the user
@@ -224,22 +224,6 @@
       lines.push(`At ${fix(r.T, 0)} K and ${fix(r.P, 1)} bar, ${pct(dist[top], 1)} of the ${esc(el)} atoms end up in ` +
         `<strong>${chem(top)}</strong>` + (products[1] ? `, then ${pct(dist[products[1]], 2)} in ${chem(products[1])}.` : "."));
     }
-    if (r.carbon_activity !== null && r.carbon_activity !== undefined) {
-      // The solver's number is above 1 when solid carbon would lower the total Gibbs energy. Only that yes or no is shown.
-      const canForm = r.carbon_activity > 1;
-      const blocked = system.filter((s) => !r.species.includes(s));
-      lines.push("Solid carbon (soot): " + (canForm
-        ? "making it from this gas would lower the total Gibbs energy further, so <strong>solid carbon can form</strong> at these conditions." +
-          (blocked.length ? ` With ${blocked.map(chem).join(", ")} switched off the gas is held away from its full equilibrium, which makes this more likely. ` +
-            "Solid carbon is then one more product that a selective catalyst has to avoid: the result says it is possible, not that it forms." : "")
-        : "making it from this gas would raise the total Gibbs energy, so no solid carbon is expected from thermodynamics."));
-      lines.push("How the solver decides: it takes the gas it found and a reaction that would make carbon from it, for example " +
-        "2 CO → C(s) + CO<sub>2</sub>. It compares the K<sub>p</sub> of that reaction with the same ratio of partial pressures in the gas, " +
-        "p<sub>CO2</sub>/p<sub>CO</sub><sup>2</sup> (solid carbon does not appear in it). If the gas ratio is smaller than K<sub>p</sub>, " +
-        "the reaction can still go forward, so carbon can form. Every reaction that makes carbon gives the same answer, because the gas is already at equilibrium. " +
-        "The gases here are real gases, so each partial pressure is first multiplied by exp(G<sup>R</sup>/RT) of its gas, the real-gas correction " +
-        "from its equation of state (at 1 bar this factor is almost exactly 1).");
-    }
     if (r.excluded.length) {
       lines.push(`Left out because the feed has none of their elements: ${r.excluded.map(chem).join(", ")}.`);
     }
@@ -296,11 +280,6 @@
     })));
 
     let cards = "";
-    if (r.carbon_activity !== null && r.carbon_activity !== undefined) {
-      const canForm = r.carbon_activity > 1;
-      cards += `<div class="card ${canForm ? "bad" : "good"}"><div class="k">Solid carbon (soot)</div><div class="v">${canForm ? "can form" : "cannot form"}</div>
-        <div class="s">making it would ${canForm ? "lower" : "raise"} the total Gibbs energy</div></div>`;
-    }
     cards += `<div class="card"><div class="k">Moles of gas</div><div class="v">${sig(r.total_moles, 4)}</div>
       <div class="s">from ${sig(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)} mol of feed</div></div>`;
     $("#nw-live-cards").innerHTML = cards;
@@ -339,10 +318,15 @@
     const here = s.variable === "T" ? r.T : r.P;
     // Every graph of this panel uses the same horizontal axis, and the fractions run over
     // the whole 0 to 1 (0 to 100 %) on every graph, so curves can be compared from one to the next.
-    const xAxis = { range: [s.x[0], s.x[s.x.length - 1]] };
+    // Both axes cover only where there is data: the x axis from the first to the last point with a
+    // result, the mole fractions from 0 to the largest one drawn (the shares of the atoms always add up to 100 %).
+    const ys = r.species.map((sid) => s.y[sid]);
+    const xAxis = TS.axis(TS.xExtent(s.x, ys) || [s.x[0], s.x[s.x.length - 1]]);
+    const yTop = TS.span(ys, [0], 0.04);
     TS.plot("nw-plot-y", r.species.map((sid) => ({
       x: s.x, y: s.y[sid], name: sid, mode: "lines", line: { width: 2.2, color: TS.colorOf(sid) },
-    })), TS.layout("Equilibrium mole fractions", xTitle, "Mole fraction", { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: { range: [0, 1] } }));
+    })), TS.layout("Equilibrium mole fractions", xTitle, "Mole fraction",
+      { shapes: [TS.vline(here)], xaxis: xAxis, yaxis: TS.axis(yTop && [0, Math.min(1, yTop[1])]) }));
 
     TS.plot("nw-plot-dist", Object.keys(s.distribution).map((sid) => ({
       x: s.x, y: s.distribution[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines",

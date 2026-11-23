@@ -44,7 +44,7 @@
 
   function thermogram(dT) {
     const W = 420, H = 210, L = 46, R = 12, T = 12, B = 32;
-    const top = dT * 1.15;
+    const top = dT * 1.04;          // the axis ends just above the rise: no empty band over the curve
     const x = (t) => L + t * (W - L - R);
     const y = (v) => H - B - (v / top) * (H - T - B);
     const pts = [];

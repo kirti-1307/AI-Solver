@@ -88,7 +88,9 @@
       TS.plot("sh-plot", [
         { x: r.curve.T, y: r.curve.cp, name: "Cp(T)", mode: "lines", fill: "tozeroy", line: { width: 2.5, color: "#0b5cad" }, fillcolor: "rgba(11,92,173,0.12)" },
       ], TS.layout(`Heat capacity of ${r.species.id}: the shaded area is the sensible heat`, "Temperature (K)", "Cp (J/(mol·K))",
-        { showlegend: false, shapes: TS.rangeShapes(r.curve.T, [r.species.cp_Tmin, r.species.cp_Tmax]) }));
+        { showlegend: false, shapes: TS.rangeShapes(r.curve.T, [r.species.cp_Tmin, r.species.cp_Tmax]),
+          // the temperatures asked for; Cp starts at zero because the shaded area is the sensible heat
+          xaxis: TS.axis(TS.xExtent(r.curve.T, [r.curve.cp])) }));
     });
   }
 

@@ -12,17 +12,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="web/styles.css?v=1.8.6">
+  <link rel="stylesheet" href="web/styles.css?v=1.8.7">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.8.6" defer></script>
-  <script src="web/tab-reaction.js?v=1.8.6" defer></script>
-  <script src="web/tab-pressure.js?v=1.8.6" defer></script>
-  <script src="web/tab-combine.js?v=1.8.6" defer></script>
-  <script src="web/tab-network.js?v=1.8.6" defer></script>
-  <script src="web/tab-heat.js?v=1.8.6" defer></script>
-  <script src="web/tab-data.js?v=1.8.6" defer></script>
-  <script src="web/tab-validation.js?v=1.8.6" defer></script>
-  <script src="web/main.js?v=1.8.6" defer></script>
+  <script src="web/ui.js?v=1.8.7" defer></script>
+  <script src="web/tab-reaction.js?v=1.8.7" defer></script>
+  <script src="web/tab-pressure.js?v=1.8.7" defer></script>
+  <script src="web/tab-combine.js?v=1.8.7" defer></script>
+  <script src="web/tab-network.js?v=1.8.7" defer></script>
+  <script src="web/tab-heat.js?v=1.8.7" defer></script>
+  <script src="web/tab-data.js?v=1.8.7" defer></script>
+  <script src="web/tab-validation.js?v=1.8.7" defer></script>
+  <script src="web/main.js?v=1.8.7" defer></script>
 </head>
 <body>
 <header class="top">
@@ -164,7 +164,8 @@
       <h2>Standard reaction thermodynamics</h2>
       <p class="hint">Pick a reaction or type your own. The elemental balance is checked before anything is
         calculated. Write phases as <code>(g)</code>, <code>(l)</code>, <code>(s)</code>; if you leave the phase out, gas is assumed when available.
-        The standard state (the ° sign) fixes the pressure at 1 bar; the temperature is yours to choose, from 200 K upwards for gases.</p>
+        The standard state (the ° sign) fixes the pressure at 1 bar; the temperature is yours to choose, from 298.15 K, the reference
+        temperature of the data, upwards.</p>
       <div class="form">
         <label class="grow2">Predefined reaction
           <select id="rx-select"></select>
@@ -176,10 +177,10 @@
       </div>
       <div class="form">
         <label>Temperature (K)
-          <input id="rx-T" type="number" step="any" value="298.15">
+          <input id="rx-T" type="number" step="any" min="298.15" value="298.15">
         </label>
         <label>Plot from (K)
-          <input id="rx-Tmin" type="number" step="any" placeholder="auto">
+          <input id="rx-Tmin" type="number" step="any" min="298.15" placeholder="auto">
         </label>
         <label>Plot to (K)
           <input id="rx-Tmax" type="number" step="any" placeholder="auto">
@@ -203,11 +204,6 @@
         between the two is the residual enthalpy, H<sup>R</sup> = H(real gas) − H(ideal gas), which comes from an
         equation of state. Here every reactant and product is taken as the pure species at T and P, at constant temperature:
         ΔH(T,P) = ΔH°(T) + Σ ν<sub>i</sub> H<sub>i</sub><sup>R</sup>(T,P).</p>
-      <p class="hint">You do not pick the equation of state: the solver does, for each gas. It has compared the five equations
-        of the course (virial, van der Waals, Redlich/Kwong, Soave/Redlich/Kwong, Peng/Robinson) with measured enthalpies from
-        NIST for 24 gases, and each gas uses the equation that came closest for it. A gas that NIST does not cover uses
-        Soave/Redlich/Kwong, the closest over all 24 gases together. The table at the bottom shows which equation each gas uses;
-        the Validation tab shows the whole comparison.</p>
       <div class="form">
         <label class="grow2">Predefined reaction
           <select id="pr-select"></select>

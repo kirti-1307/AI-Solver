@@ -96,13 +96,7 @@ Example from the textbook: CO + 2 H₂ → CH₃OH has ΔH° = −90,135 J at 29
 
 ### Below 298.15 K
 
-The textbook's Cp formulas start at 298 K. They must not be stretched downwards: for CO₂ at 200 K the formula gives a Cp that is 29 % too low.
-
-So from 200 K to 298.15 K the solver uses Cp values from NIST tables instead (the NIST-JANAF tables and the NIST Chemistry WebBook). This covers every gas of the textbook and six solids. Above 298.15 K nothing changes.
-
-Example: CO₂ + 3 H₂ → CH₃OH + H₂O has ΔH° = −46.77 kJ/mol at 250 K. There ΔG° = −4.51 kJ/mol, so the reaction is favourable when it is cold. ΔG° changes sign at 276 K.
-
-One thing to remember: at 250 K and 1 bar, real methanol and water are not gases. The solver still treats them as ideal gases, because that is what the standard state of a gas means. It tells you so in a note.
+The textbook's Cp formulas start at 298 K, and they must not be stretched downwards: for CO₂ at 200 K the formula gives a Cp that is 29 % too low. Tab 1 therefore starts at 298.15 K, the reference temperature of the data, and does not accept a lower temperature. The solver does hold heat capacities from NIST tables between 200 K and 298.15 K; they are listed on the Species data tab.
 
 ### Above 2000 K
 
@@ -175,11 +169,9 @@ The box is off at the start, because a textbook often wants the other form on pu
 2. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
 3. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
 
-The two graphs against temperature share the same temperature axis, so you can follow one temperature from one to the other.
+The two graphs against temperature share the same temperature axis, so you can follow one temperature from one to the other. On every tab the axes of a graph cover only the range where it has data, so no graph has an empty stretch.
 
-A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens. For gases the range now starts at 200 K, so the plots start there too.
-
-**Why is there a kink at 298.15 K?** Below 298.15 K the heat capacities come from NIST tables, and from 298.15 K up from the textbook's Cp equation. The two do not give exactly the same Cp at 298.15 K. For methanol vapour the NIST table gives 44.06 J/(mol·K) and the textbook equation 46.11 J/(mol·K): the equation is fitted over 298 to 1500 K and is a little off at its lower end. So the ΔCp° line of CO₂ + 3 H₂ → CH₃OH + H₂O jumps by about 2 J/(mol·K) at 298.15 K, and the ΔH° line changes its slope there, without a jump. It is the seam between two data sources, not an error in the calculation.
+A grey band on a plot means the Cp formula is being used outside the temperature range it was made for. The solver warns you when that happens. The plots start at 298.15 K, and this tab does not accept a lower temperature.
 
 ### Tab 2: Pressure and real gas
 
@@ -225,7 +217,7 @@ When does it matter?
 
 1. **Real gas minus ideal gas, against pressure.** The grey dashed line at zero is the ideal gas; it is flat. The orange line is the residual part, Σ ν Hᴿ. Add it to the ideal-gas ΔH to get the real-gas ΔH.
 2. **Where the difference comes from.** One bar per substance. The tallest bar is the gas that is furthest from ideal.
-3. **Residual part against temperature.** The same gap at your pressure, at other temperatures. It shrinks as the gas gets hotter.
+3. **Residual part against temperature.** The same gap at your pressure, at other temperatures. It shrinks as the gas gets hotter. It starts at the temperature from which every gas of the reaction has a gas state at your pressure; below that there is nothing to plot.
 4. **Residual enthalpy of each pure gas.** A line near zero is an almost ideal gas. A line that falls steeply is a gas close to its critical point.
 
 All four graphs cover exactly the same range of values, in kJ/mol, so you can read a number across from one graph to another. The value of graph 1 at your pressure, the sum of the bars in graph 2 and the dot in graph 3 are the same number.
@@ -269,12 +261,6 @@ Water is "needed" in all three steps. The oxygen atoms of CO₂ have to go somew
 What this teaches: thermodynamics prefers methane. A methanol plant works because its catalyst does not make methane.
 
 If you want to allow or block any substance freely, open "Build your own system" under the switches.
-
-The "solid carbon" card tells you whether solid carbon (soot) can form. The solver takes the gas it found and a reaction that would make carbon from it, for example 2 CO → C(s) + CO₂. It works out the same ratio of partial pressures as in Kp, p(CO₂)/p(CO)², but for the gas, and compares it with Kp. Solid carbon does not appear in the ratio, because it is a pure solid. If the gas ratio is smaller than Kp, the reaction can still go forward, so carbon can form. If it is larger, it cannot. Any reaction that makes carbon gives the same answer, because the gas is already at equilibrium.
-
-The gases of tab 4 are real gases, so each partial pressure is first multiplied by exp(Gᴿ/RT) of its gas, the real-gas correction from its equation of state. At 1 bar this factor is almost exactly 1.
-
-Example: with methane switched off, at 700 K and 50 bar the gas has p(CO₂) = 7.35 bar and p(CO) = 5.13 bar. With the real-gas factors (1.000 for CO₂, 1.014 for CO) the ratio is 0.27. Kp of 2 CO → C(s) + CO₂ at 700 K is 4142, far larger, so carbon can form. With everything allowed at 523 K the two are very close: Kp is 1.14 times the gas ratio, so carbon can just form. With ideal gases it would be 0.98 times and no carbon would form, so in this case the real-gas correction decides.
 
 ### Tab 5: Bomb calorimeter (extra feature 2)
 

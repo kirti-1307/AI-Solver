@@ -174,7 +174,11 @@
     const scale = TS.span([k(s.sum_HR), bars.map((x) => x.contribution / 1000), t ? k(t.residual) : [],
       ...gas.map((x) => k(s.species_HR[x.species]))], [0]);
     const residualAxis = scale ? { range: scale } : {};
-    const pAxis = { range: [s.P[0], s.P[s.P.length - 1]] };
+    // Each x axis covers only the pressures or temperatures at which its graph has a value:
+    // where a species would be a liquid there is no gas-phase value, and the axis stops.
+    const full = [s.P[0], s.P[s.P.length - 1]];
+    const pAxis = TS.axis(TS.xExtent(s.P, [s.sum_HR]) || full);
+    const pAxisSpecies = TS.axis(TS.xExtent(s.P, gas.map((x) => s.species_HR[x.species])) || full);
 
     // 1. Real gas minus ideal gas along the isotherm. The ideal gas is the zero line.
     const traces = [
@@ -209,7 +213,7 @@
       }
       TS.plot("pr-plot-T", tTraces,
         TS.layout(`Residual part at ${fix(r.P, 0)} bar: it fades as the gas gets hotter`, "Temperature (K)", "Σ ν Hᴿ (kJ per mol of reaction)",
-          { showlegend: false, shapes: [TS.vline(r.T), TS.hline(0)], yaxis: residualAxis }));
+          { showlegend: false, shapes: [TS.vline(r.T), TS.hline(0)], xaxis: TS.axis(TS.xExtent(t.T, [t.residual])), yaxis: residualAxis }));
     }
 
     // 4. Residual enthalpy of each pure species along the isotherm.
@@ -217,7 +221,7 @@
     TS.plot("pr-plot-HR", gas.map((x, i) => ({
       x: s.P, y: k(s.species_HR[x.species]), name: x.species, mode: "lines", line: { width: 2, color: palette[i % palette.length] },
     })), TS.layout(`Residual enthalpy of each pure species at ${fix(r.T, 0)} K${real ? "" : " (ideal gas: zero)"}`, "Pressure (bar)",
-      "Hᴿ (kJ per mol of the species)", { shapes: mark.concat([TS.hline(0)]), xaxis: pAxis, yaxis: residualAxis }));
+      "Hᴿ (kJ per mol of the species)", { shapes: mark.concat([TS.hline(0)]), xaxis: pAxisSpecies, yaxis: residualAxis }));
   }
 
   /* ----------------------------------------------------------- render */
@@ -250,8 +254,8 @@
     if (r.sweep.first_invalid_P) {
       hints.push(`The real-gas curve stops near ${fix(r.sweep.first_invalid_P, 0)} bar: above that, a species is a liquid at this temperature, so a gas-phase value does not exist.`);
     }
-    if (r.sweep_T && r.sweep_T.first_valid_T !== null && r.sweep_T.first_valid_T > r.sweep_T.T[0]) {
-      hints.push(`The temperature curve starts near ${fix(r.sweep_T.first_valid_T, 0)} K: below that, a species is a liquid at ${fix(r.P, 0)} bar.`);
+    if (r.sweep_T && r.sweep_T.gas_from) {
+      hints.push(`The temperature graph starts at ${fix(r.sweep_T.gas_from, 0)} K: below that, a species is a liquid at ${fix(r.P, 0)} bar, so there is no gas-phase value to plot.`);
     }
     html += `<div class="panel"><div class="grid two">
       ${TS.fig("pr-plot-dH", "how much the real-gas heat of reaction differs from the ideal-gas value, at each pressure. The dashed grey line at zero is the ideal gas: it is flat, because pressure does not change the enthalpy of an ideal gas. The orange line is the residual part, Σ ν Hᴿ, and it grows as the pressure rises. The dot marks your pressure; the real-gas value is the ideal value plus this number.")}

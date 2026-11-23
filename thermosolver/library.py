@@ -180,7 +180,7 @@ NETWORKS = [
             {"label": "Water off", "off": ["H2O(g)"],
              "say": "No reverse shift: methane and CO2 now convert to exactly the same extent."},
         ],
-        "note": "Watch the solid-carbon card: at the lower temperatures solid carbon (soot) can form.",
+        "note": "",
     },
     {
         "id": "ammonia",

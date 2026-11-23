@@ -70,9 +70,11 @@
         x: s.T, y: k(y), name: `step ${i + 1} × ${r.steps[i].multiplier}`, mode: "lines",
         line: { width: 1.6, dash: "dash", color: palette[(i + 1) % palette.length] } }));
       // The ΔG° and ΔH° graphs share both axes, so a value can be read across from one to the other.
+      // The axes cover only the temperatures and values that are drawn.
+      const lists = [...s.steps, ...s.steps_dH, s.net_dG, s.net_dH].map(k);
       const same = {
-        xaxis: { range: [s.T[0], s.T[s.T.length - 1]] },
-        yaxis: { range: TS.span([...s.steps, ...s.steps_dH, s.net_dG, s.net_dH].map(k), [0]) },
+        xaxis: TS.axis(TS.xExtent(s.T, lists) || [s.T[0], s.T[s.T.length - 1]]),
+        yaxis: TS.axis(TS.span(lists, [], 0.05)),
       };
       TS.plot("cb-plot-G", stepTraces(s.steps).concat([
         { x: s.T, y: k(s.net_dG), name: "net reaction", mode: "lines", line: { width: 3, color: palette[0] } },

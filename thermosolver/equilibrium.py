@@ -232,8 +232,7 @@ def gibbs_minimize(species_ids: Sequence[str], feed: Dict[str, float], T: float,
     for sid in ids:
         if SPECIES[sid].phase != "g":
             raise InputError(
-                f"{sid} is not a gas. The product slate works with a gas mixture only; "
-                f"for solid carbon it reports whether it can form."
+                f"{sid} is not a gas. The product slate works with a gas mixture only."
             )
     if len(ids) < 2:
         raise InputError("Choose at least two species for an equilibrium calculation.")

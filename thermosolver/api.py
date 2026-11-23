@@ -184,13 +184,17 @@ def _hull(pieces, limits) -> Optional[tuple]:
     return min(s[0] for s in spans), max(s[1] for s in spans)
 
 
-def _sweep_range(rxn: Reaction, payload: dict, pieces=None):
+def _sweep_range(rxn: Reaction, payload: dict, pieces=None, floor: bool = False):
+    """The temperatures of the plots. With ``floor`` (tab 1) they start at
+    298.15 K at the lowest, and a lower start typed by the user is refused."""
     rng = rxn.plot_range() if pieces is None else _hull(pieces, lambda v: v.plot_range())
     if rng is None:
         return None
     lo = _num(payload, "T_min", None, 1.0, T_ABS_MAX, "Minimum temperature")
     hi = _num(payload, "T_max", None, 1.0, T_ABS_MAX, "Maximum temperature")
-    lo = rng[0] if lo is None else lo
+    if floor and lo is not None and lo < T0 - 1e-9:
+        raise InputError(f"The plot starts at {T0:g} K at the lowest, the reference temperature of the data.")
+    lo = (max(rng[0], T0) if floor else rng[0]) if lo is None else lo
     hi = rng[1] if hi is None else hi
     if lo == 298.0 and payload.get("T_min") in (None, ""):
         lo = T0                        # SVN prints "298 K" for 298.15 K
@@ -415,6 +419,11 @@ def analyze(payload: dict) -> dict:
     typed = _reaction(payload)
     T = _temperature(payload)
     P = _pressure(payload)          # only for the equilibrium conversion; the standard values are at 1 bar
+    # Tab 1 sends "from_reference_T": it works from 298.15 K upwards only (the user's request of
+    # 23 November 2026). The NIST data below 298.15 K stay in the solver for everything else.
+    floor = _flag(payload, "from_reference_T", "'from_reference_T'")
+    if floor and T < T0 - 1e-9:
+        raise InputError(f"This tab starts at the reference temperature of the data, {T0:g} K. Choose {T0:g} K or more.")
     choice = _phase_choice(typed, T, _flag(payload, "auto_phase", "'auto_phase'"))
     rxn, pieces = choice["reaction"], choice["pieces"]
     ev = rxn.evaluate(T)
@@ -432,6 +441,17 @@ def analyze(payload: dict) -> dict:
     else:
         crossover = rxn.crossover_temperatures()
         valid_range = rxn.valid_range()
+    species_rows = rxn.species_table(T)
+    if floor:
+        # Nothing below 298.15 K: a sign change of dG below it is not reported, the valid range
+        # is cut there, and a gas's Cp range is the textbook's own (from 298 K, without the NIST rows).
+        crossover = [x for x in crossover if x >= T0 - 1e-9]
+        if valid_range is not None:
+            valid_range = (max(valid_range[0], T0), valid_range[1])
+        for row in species_rows:
+            sp = SPECIES[row["id"]]
+            if sp.cp_low is not None:
+                row["cp_Tmin"] = sp.cp_main_Tmin
     result = {
         "equation": rxn.equation,
         "name": rxn.name,
@@ -440,7 +460,7 @@ def analyze(payload: dict) -> dict:
         "T": T,
         "P": P,
         "at_T": ev,
-        "species": rxn.species_table(T),
+        "species": species_rows,
         "warnings": warnings,
         "valid_range": valid_range,
         "crossover": crossover,
@@ -452,7 +472,7 @@ def analyze(payload: dict) -> dict:
         "sweep": None,
         "equilibrium": None,
     }
-    rng = _sweep_range(rxn, payload, pieces)
+    rng = _sweep_range(rxn, payload, pieces, floor)
     if rng:
         result["sweep"] = _T_sweep(rxn, rng[0], rng[1], _points(payload, 81), pieces)
         if pieces is not None:
@@ -579,8 +599,30 @@ def _residual_T_sweep(rxn: Reaction, P: float, model: str, n: int = 61) -> Optio
     rng = rxn.plot_range()
     if rng is None or rng[1] <= rng[0]:
         return None
+    lo, hi = rng
+
+    def valid(t: float) -> bool:
+        return reaction_at_pressure(rxn, t, P, model)["gas_phase_valid"]
+
+    # The curve starts where every species has a gas state at this pressure. Below that
+    # there is no gas-phase value, and the plot would only show an empty stretch of axis
+    # (the user's request of 23 November 2026), so the points are spent where there is data.
+    gas_from = None
+    if not valid(lo):
+        grid = _grid(lo, hi, n)
+        first = next((i for i, t in enumerate(grid) if valid(t)), None)
+        if first is not None:
+            a, b = grid[first - 1], grid[first]
+            for _ in range(40):
+                mid = 0.5 * (a + b)
+                if valid(mid):
+                    b = mid
+                else:
+                    a = mid
+            lo = gas_from = b
     out: Dict[str, list] = {k: [] for k in ("T", "dH_ideal", "dH_real", "residual", "percent")}
-    for T in _grid(rng[0], rng[1], n):
+    out["gas_from"] = gas_from
+    for T in _grid(lo, hi, n):
         point = reaction_at_pressure(rxn, T, P, model)
         ok = point["gas_phase_valid"]
         out["T"].append(T)

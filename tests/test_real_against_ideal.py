@@ -104,14 +104,18 @@ class TestTemperatureSweep(unittest.TestCase):
         t = res["sweep_T"]
         self.assertEqual(len(t["T"]), 61)
         self.assertEqual(t["P"], 200.0)
-        self.assertEqual((t["T"][0], t["T"][-1]), (200.0, 1800.0))
         for key in ("dH_ideal", "dH_real", "residual", "percent"):
             self.assertEqual(len(t[key]), 61, key)
-        # below about 410 K ammonia is a liquid at 200 bar: no gas-phase value there
-        self.assertIsNone(t["residual"][0])
-        self.assertTrue(400.0 < t["first_valid_T"] < 430.0)
+        # Below about 410 K ammonia is a liquid at 200 bar: no gas-phase value there. Since 23 November
+        # 2026 the sweep starts where the gas-phase values begin, so the graph has no empty stretch.
+        self.assertTrue(400.0 < t["gas_from"] < 430.0)
+        self.assertEqual((t["T"][0], t["T"][-1]), (t["gas_from"], 1800.0))
+        self.assertEqual(t["first_valid_T"], t["T"][0])
+        self.assertTrue(all(v is not None for v in t["residual"]))
+        just_below = reaction_at_pressure(Reaction.parse("N2 + 3 H2 -> 2 NH3"), t["gas_from"] - 0.01, 200.0, "pr")
+        self.assertFalse(just_below["gas_phase_valid"])
         usable = [(T, v) for T, v in zip(t["T"], t["residual"]) if v is not None]
-        self.assertGreater(len(usable), 40)
+        self.assertEqual(len(usable), 61)
         # the effect fades as the gas gets hotter
         sizes = [abs(v) for _, v in usable]
         self.assertTrue(all(a > b for a, b in zip(sizes, sizes[1:])))
@@ -127,6 +131,7 @@ class TestTemperatureSweep(unittest.TestCase):
         t = res["sweep_T"]
         self.assertEqual((t["T"][0], t["T"][-1]), (290.0, 320.0))
         self.assertEqual(len(t["T"]), 61)
+        self.assertIsNone(t["gas_from"])                    # a gas-phase value exists from the start
 
 
 class TestOverview(unittest.TestCase):
