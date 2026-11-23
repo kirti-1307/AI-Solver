@@ -68,7 +68,7 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <p>The assignment lists five stress tests. The solver passes all of them, and they can be run live in the Validation tab.</p>
 <table>
 <tr><th style="width:27%">Stress test</th><th>What the solver does</th></tr>
-<tr><td>1. Stoichiometry</td><td>CH<sub>4</sub> + O<sub>2</sub> &rarr; CO<sub>2</sub> + H<sub>2</sub>O is rejected before any calculation, and the balanced form is offered.</td></tr>
+<tr><td>1. Stoichiometry</td><td>Every reaction, predefined or typed, is checked element by element before any calculation. An unbalanced one is rejected with no numbers, and the balanced form is offered.</td></tr>
 <tr><td>2. C<sub>p</sub> assumption at 1000 K</td><td>All 40 predefined reactions with C<sub>p</sub> data at 1000 K: a constant &Delta;C<sub>p</sub> is 9.0 kJ/mol off on average, up to 31.5 kJ/mol. Steam reforming: 225.3 kJ/mol against 238.8.</td></tr>
 <tr><td>3. Physical state</td><td>Methane combustion: &minus;890.7 kJ/mol with H<sub>2</sub>O(l), &minus;802.6 with H<sub>2</sub>O(g); the gap is the latent heat of two moles of water. Typed as H<sub>2</sub>O, the solver picks the phase itself.</td></tr>
 <tr><td>4. Correlation validity</td><td>Outside a species' temperature range the result comes with a warning. I checked this 1 K inside and outside both ends for all 45 reactions.</td></tr>
