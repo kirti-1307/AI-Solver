@@ -29,7 +29,7 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 
 <h2>2. Models used</h2>
 <table>
-<tr><th style="width:27%">What is calculated</th><th>Equation</th></tr>
+<tr><th style="width:27%">What is calculated</th><th>Equation [1]</th></tr>
 <tr><td>Sensible heat</td><td>C<sub>p</sub>/R = A + BT + CT<sup>2</sup> + DT<sup>&minus;2</sup>; &nbsp; Q = R&int;(C<sub>p</sub>/R)dT</td></tr>
 <tr><td>Heat of reaction</td><td>&Delta;H&deg;<sub>298</sub> = &Sigma;&nu;<sub>i</sub>&Delta;H&deg;<sub>f,i</sub>; &nbsp; &Delta;H&deg;(T) = &Delta;H&deg;<sub>298</sub> + R&int;(&Delta;C<sub>p</sub>&deg;/R)dT</td></tr>
 <tr><td>Entropy and Gibbs energy</td><td>&Delta;S&deg;(T) = &Delta;S&deg;<sub>298</sub> + R&int;(&Delta;C<sub>p</sub>&deg;/R)dT/T; &nbsp; &Delta;G&deg; = &Delta;H&deg; &minus; T&Delta;S&deg;; &nbsp; ln K = &minus;&Delta;G&deg;/RT</td></tr>
@@ -37,7 +37,6 @@ Live app: https://kirti-1307.github.io/AI-Solver/ &nbsp;|&nbsp; Code and tests: 
 <tr><td>Combining reactions</td><td>&Delta;H = &Sigma;m<sub>j</sub>&Delta;H<sub>j</sub> and &Delta;G = &Sigma;m<sub>j</sub>&Delta;G<sub>j</sub> (Hess's law)</td></tr>
 <tr><td>Bomb calorimeter</td><td>&Delta;U<sub>c</sub> = &Delta;H<sub>c</sub> &minus; &Delta;n<sub>gas</sub>RT; &nbsp; &Delta;T = (m &times; calorific value + corrections)/C<sub>cal</sub></td></tr>
 </table>
-<p>Every result is also calculated a second time by an independent route, and the solver reproduces 67 of 67 reference values from the textbook [1], the course material and NIST.</p>
 
 <h2>3. Important findings</h2>
 <ul>
