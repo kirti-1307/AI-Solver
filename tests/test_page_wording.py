@@ -33,9 +33,6 @@ SOURCE_NAMES = ("nist-janaf", "webbook")
 # that block under the test.
 BLOCKS_NOT_CHECKED = (
     r"<head>.*?</head>",
-    r'<header class="top">.*?</header>',
-    r'<section id="tab-home".*?</section>',
-    r"<footer.*?</footer>",
 )
 
 METHANOL = {"equation": "CO2 + 3 H2 -> CH3OH + H2O", "T": 523}
@@ -100,9 +97,9 @@ def heat_payload(example_id):
 class TestPageFiles(unittest.TestCase):
     def test_the_tab_sections_are_what_is_checked(self):
         html = tab_sections(read("index.html"))
-        for tab in ("reaction", "pressure", "combine", "network", "heat", "data", "validation"):
+        for tab in ("home", "reaction", "pressure", "combine", "network", "heat", "data", "validation"):
             self.assertIn(f'id="tab-{tab}"', html)
-        self.assertNotIn('id="tab-home"', html)
+        self.assertNotIn("<head>", html)
 
     def test_no_untaught_term_in_the_markup_or_the_scripts(self):
         files = {"index.html": tab_sections(read("index.html"))}
