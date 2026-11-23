@@ -18,7 +18,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.7.0");
+      this.worker = new Worker("web/worker.js?v=1.8.0");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");
@@ -169,7 +169,7 @@ TS.layout = (title, xTitle, yTitle, extra = {}) => {
   const ink = TS.css("--ink");
   const line = TS.css("--line");
   const base = {
-    title: { text: title, font: { size: 14, color: ink }, x: 0.02, xanchor: "left" },
+    title: { text: title, font: { family: TS.css("--display") || "system-ui", size: 17, color: ink }, x: 0.02, xanchor: "left" },
     margin: { l: 64, r: 18, t: 44, b: 48 },
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",

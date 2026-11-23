@@ -110,6 +110,9 @@ def render(markdown: str, version: str) -> str:
   <script>
     try {{ const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; }} catch (e) {{}}
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
   <link rel="stylesheet" href="web/styles.css?v={version}">
 </head>
 <body>
@@ -119,7 +122,7 @@ def render(markdown: str, version: str) -> str:
       <div class="mark" aria-hidden="true">ΔH</div>
       <div>
         <h1>{html.escape(title)}</h1>
-        <p class="sub">Thermodynamic Reaction Energy Solver, explained in plain words.</p>
+        <p class="sub">Thermodynamic Reaction Energy Solver · explained in plain words</p>
       </div>
     </div>
     <div class="top-tools">
@@ -142,8 +145,11 @@ def render(markdown: str, version: str) -> str:
 </main>
 
 <footer class="wrap foot">
-  <p>Data and equations: Smith, Van Ness &amp; Abbott, <em>Introduction to Chemical Engineering Thermodynamics</em>.
-    <a href="index.html">Back to the solver</a>.</p>
+  <div class="title-block">
+    <div><span class="tb-label">Document</span><span class="tb-value">Beginner's guide</span></div>
+    <div><span class="tb-label">Data and equations</span><span class="tb-value">Smith, Van Ness &amp; Abbott</span></div>
+    <div><span class="tb-label">Back to</span><span class="tb-value"><a href="index.html">the solver</a></span></div>
+  </div>
 </footer>
 <script>
   (() => {{

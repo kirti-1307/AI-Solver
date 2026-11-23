@@ -9,17 +9,20 @@
     // Apply a saved light/dark choice before the first paint.
     try { const t = localStorage.getItem("ts-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-  <link rel="stylesheet" href="web/styles.css?v=1.7.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+  <link rel="stylesheet" href="web/styles.css?v=1.8.0">
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="web/ui.js?v=1.7.0" defer></script>
-  <script src="web/tab-reaction.js?v=1.7.0" defer></script>
-  <script src="web/tab-pressure.js?v=1.7.0" defer></script>
-  <script src="web/tab-combine.js?v=1.7.0" defer></script>
-  <script src="web/tab-network.js?v=1.7.0" defer></script>
-  <script src="web/tab-heat.js?v=1.7.0" defer></script>
-  <script src="web/tab-data.js?v=1.7.0" defer></script>
-  <script src="web/tab-validation.js?v=1.7.0" defer></script>
-  <script src="web/main.js?v=1.7.0" defer></script>
+  <script src="web/ui.js?v=1.8.0" defer></script>
+  <script src="web/tab-reaction.js?v=1.8.0" defer></script>
+  <script src="web/tab-pressure.js?v=1.8.0" defer></script>
+  <script src="web/tab-combine.js?v=1.8.0" defer></script>
+  <script src="web/tab-network.js?v=1.8.0" defer></script>
+  <script src="web/tab-heat.js?v=1.8.0" defer></script>
+  <script src="web/tab-data.js?v=1.8.0" defer></script>
+  <script src="web/tab-validation.js?v=1.8.0" defer></script>
+  <script src="web/main.js?v=1.8.0" defer></script>
 </head>
 <body>
 <header class="top">
@@ -27,9 +30,8 @@
     <div class="brand">
       <div class="mark" aria-hidden="true">ΔH</div>
       <div>
-        <h1>Thermodynamic Reaction Energy Solver</h1>
-        <p class="sub">Heat of reaction, entropy, Gibbs energy and equilibrium, on the data and equations of
-          Smith, Van Ness &amp; Abbott.</p>
+        <h1>Thermodynamic Reaction Energy <span class="hl">Solver</span></h1>
+        <p class="sub">Assignment 2 · data and equations of Smith, Van Ness &amp; Abbott</p>
       </div>
     </div>
     <div class="top-tools">
@@ -64,74 +66,109 @@
 
   <!-- ============================================================ start -->
   <section id="tab-home" role="tabpanel" aria-labelledby="tabbtn-home" class="tab active">
-    <div class="hero-panel">
-      <h2>What do you want to find out?</h2>
-      <p>Pick a question. Each card opens the right tab with a worked example that you can change.</p>
+    <div class="intro">
+      <div class="intro-main">
+        <p class="eyebrow">Assignment 2 · Chemical Engineering Thermodynamics</p>
+        <h2>What do you want to find out?</h2>
+        <p class="wordmark-the" aria-hidden="true">The</p>
+        <p class="wordmark" aria-hidden="true">Reaction<br><span class="hl">Energy</span> Solver</p>
+        <p class="lead">Heat of reaction, entropy, Gibbs energy and equilibrium for any balanced reaction.</p>
+        <p class="intro-text">Pick a question below. Each card opens the right tab with a worked example that you can change.
+          The solver first checks that the reaction is balanced, and only then calculates.</p>
+        <p class="intro-text">Every number on this site is calculated in your browser by the same Python code that the tests check.</p>
+      </div>
+      <aside class="intro-side">
+        <div class="panel legend" data-bar="How to read a result">
+          <div class="chips-row">
+            <span class="chip-key exo">gives out heat (exothermic)</span>
+            <span class="chip-key endo">takes in heat (endothermic)</span>
+            <span class="chip-key good">products favoured, or a check that passed</span>
+            <span class="chip-key bad">reactants favoured, or a check that failed</span>
+            <span class="chip-key warn">used outside its valid range</span>
+          </div>
+          <p class="hint" style="margin:12px 0 0">A small <span class="term-btn static" aria-hidden="true">i</span> next to a term opens a one-line explanation.</p>
+        </div>
+      </aside>
     </div>
     <div class="qgrid">
       <button class="qcard demo" type="button" data-demo="methanol">
-        <span class="qtag">Tab 1</span>
-        <span class="qtitle">Heat, entropy and Gibbs energy</span>
-        <span class="qtext">Does the reaction give out heat, and can it go at my temperature?</span>
+        <span class="tile navy" aria-hidden="true"><span class="tile-no">01</span><span class="tile-sym">ΔH</span><span class="tile-name">heat</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 1</span>
+          <span class="qtitle">Heat, entropy and Gibbs energy</span>
+          <span class="qtext">Does the reaction give out heat, and can it go at my temperature?</span>
+        </span>
       </button>
       <button class="qcard demo" type="button" data-demo="ammonia">
-        <span class="qtag">Tab 2</span>
-        <span class="qtitle">What does pressure change?</span>
-        <span class="qtext">Ideal gas against real gas: how much the heat of reaction changes at high pressure, and why.</span>
+        <span class="tile" aria-hidden="true"><span class="tile-no">02</span><span class="tile-sym">P</span><span class="tile-name">pressure</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 2</span>
+          <span class="qtitle">What does pressure change?</span>
+          <span class="qtext">Ideal gas against real gas: how much the heat of reaction changes at high pressure, and why.</span>
+        </span>
       </button>
       <button class="qcard demo" type="button" data-demo="hess">
-        <span class="qtag">Tab 3</span>
-        <span class="qtitle">Build a reaction from others</span>
-        <span class="qtext">Add and subtract reactions (Hess's law) and check the sum against the direct result.</span>
+        <span class="tile navy" aria-hidden="true"><span class="tile-no">03</span><span class="tile-sym">Σ</span><span class="tile-name">Hess</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 3</span>
+          <span class="qtitle">Build a reaction from others</span>
+          <span class="qtext">Add and subtract reactions (Hess's law) and check the sum against the direct result.</span>
+        </span>
       </button>
       <button class="qcard demo extra" type="button" data-demo="slate">
-        <span class="qtag">Tab 4 · extra feature</span>
-        <span class="qtitle">What actually forms?</span>
-        <span class="qtext">A live reactor: drag temperature and pressure, and switch products off like choosing a catalyst.</span>
+        <span class="tile" aria-hidden="true"><span class="tile-no">04</span><span class="tile-sym">G</span><span class="tile-name">slate</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 4 · extra feature</span>
+          <span class="qtitle">What actually forms?</span>
+          <span class="qtext">A live reactor: drag temperature and pressure, and switch products off like choosing a catalyst.</span>
+        </span>
       </button>
       <button class="qcard demo extra" type="button" data-demo="flame">
-        <span class="qtag">Tab 5 · extra feature</span>
-        <span class="qtitle">How hot does it get?</span>
-        <span class="qtext">Flame temperature and heat duty from an energy balance around the reactor.</span>
+        <span class="tile" aria-hidden="true"><span class="tile-no">05</span><span class="tile-sym">T</span><span class="tile-name">flame</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 5 · extra feature</span>
+          <span class="qtitle">How hot does it get?</span>
+          <span class="qtext">Flame temperature and the heat to add or remove, from an energy balance around the reactor.</span>
+        </span>
       </button>
       <button class="qcard demo extra" type="button" data-demo="bomb">
-        <span class="qtag">Tab 5 · extra feature</span>
-        <span class="qtitle">Bomb calorimeter</span>
-        <span class="qtext">The lab experiment on screen: ignite a sample, read ΔU, ΔH and the heating values.</span>
+        <span class="tile" aria-hidden="true"><span class="tile-no">05</span><span class="tile-sym">ΔU</span><span class="tile-name">bomb</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 5 · extra feature</span>
+          <span class="qtitle">Bomb calorimeter</span>
+          <span class="qtext">The lab experiment on screen: ignite a sample, read ΔU, ΔH and the heating values.</span>
+        </span>
       </button>
       <button class="qcard demo" type="button" data-demo="break">
-        <span class="qtag">Tab 1</span>
-        <span class="qtitle">Try to break it</span>
-        <span class="qtext">An unbalanced reaction is rejected, and the balanced form is offered.</span>
+        <span class="tile" aria-hidden="true"><span class="tile-no">01</span><span class="tile-sym">≠</span><span class="tile-name">balance</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 1</span>
+          <span class="qtitle">Try to break it</span>
+          <span class="qtext">An unbalanced reaction is rejected, and the balanced form is offered.</span>
+        </span>
       </button>
       <button class="qcard demo" type="button" data-demo="validation">
-        <span class="qtag">Tab 7</span>
-        <span class="qtitle">Can I trust the numbers?</span>
-        <span class="qtext">Reference values from the textbook, recalculated while you watch.</span>
+        <span class="tile navy" aria-hidden="true"><span class="tile-no">07</span><span class="tile-sym">✓</span><span class="tile-name">check</span></span>
+        <span class="qbody">
+          <span class="qtag">Tab 7</span>
+          <span class="qtitle">Can I trust the numbers?</span>
+          <span class="qtext">Reference values from the textbook, recalculated while you watch.</span>
+        </span>
       </button>
       <a class="qcard" href="guide.html">
-        <span class="qtag">Guide</span>
-        <span class="qtitle">New here?</span>
-        <span class="qtext">The whole solver explained in plain words, with questions to check yourself.</span>
+        <span class="tile" aria-hidden="true"><span class="tile-no">00</span><span class="tile-sym">?</span><span class="tile-name">guide</span></span>
+        <span class="qbody">
+          <span class="qtag">Guide</span>
+          <span class="qtitle">New here?</span>
+          <span class="qtext">The whole solver explained in plain words, with questions to check yourself.</span>
+        </span>
       </a>
-    </div>
-    <div class="panel legend">
-      <h3>How to read a result</h3>
-      <div class="chips-row">
-        <span class="chip-key exo">gives out heat (exothermic)</span>
-        <span class="chip-key endo">takes in heat (endothermic)</span>
-        <span class="chip-key good">products favoured, or a check that passed</span>
-        <span class="chip-key bad">reactants favoured, or a check that failed</span>
-        <span class="chip-key warn">used outside its valid range</span>
-      </div>
-      <p class="hint" style="margin:10px 0 0">A small <span class="term-btn static" aria-hidden="true">i</span> next to a term opens a one-line explanation.
-        Every number on this site is calculated in your browser by the same Python code that the tests check.</p>
     </div>
   </section>
 
   <!-- ============================================================ 1 -->
   <section id="tab-reaction" role="tabpanel" aria-labelledby="tabbtn-reaction" class="tab">
-    <div class="panel">
+    <div class="panel" data-bar="Tab 1 · Reaction">
       <h2>Standard reaction thermodynamics</h2>
       <p class="hint">Pick a reaction or type your own. The elemental balance is checked before anything is
         calculated. Write phases as <code>(g)</code>, <code>(l)</code>, <code>(s)</code>; if you leave the phase out, gas is assumed when available.
@@ -171,7 +208,7 @@
 
   <!-- ============================================================ 2 -->
   <section id="tab-pressure" role="tabpanel" aria-labelledby="tabbtn-pressure" class="tab">
-    <div class="panel">
+    <div class="panel" data-bar="Tab 2 · Pressure and real gas">
       <h2>Ideal gas against real gas: what pressure does to the heat of reaction</h2>
       <p class="hint">For an ideal gas, enthalpy does not depend on pressure. For a real gas it does. The difference
         between the two is the residual enthalpy, H<sup>R</sup> = H(real gas) − H(ideal gas), which comes from an
@@ -214,7 +251,7 @@
 
   <!-- ============================================================ 3 -->
   <section id="tab-combine" role="tabpanel" aria-labelledby="tabbtn-combine" class="tab">
-    <div class="panel">
+    <div class="panel" data-bar="Tab 3 · Combine reactions">
       <h2>Build a reaction from other reactions (Hess's law)</h2>
       <p class="hint">Add two or more reactions, each with a multiplier. A negative multiplier reverses the
         reaction. The solver adds the stoichiometry, cancels the intermediates and gets ΔH, ΔS, ΔG and K of the net
@@ -238,7 +275,7 @@
 
   <!-- ============================================================ 4 -->
   <section id="tab-network" role="tabpanel" aria-labelledby="tabbtn-network" class="tab">
-    <div class="panel">
+    <div class="panel" data-bar="Tab 4 · Product slate">
       <h2>Product slate: what actually forms? <span class="tag">extra feature 1</span></h2>
       <p class="hint">Put the feed gases in a reactor and wait until nothing changes: what mixture comes out?
         One ΔG cannot tell, because several reactions compete for the same atoms. Here you only say which species
@@ -311,7 +348,7 @@
 
   <!-- ============================================================ 5 -->
   <section id="tab-heat" role="tabpanel" aria-labelledby="tabbtn-heat" class="tab">
-    <div class="panel">
+    <div class="panel" data-bar="Tab 5 · Heat lab">
       <h2>Heat lab: how hot does it get, and how much heat is needed? <span class="tag">extra feature 2</span></h2>
       <p class="hint">An energy balance around the reactor: Q = ΔH<sub>R</sub> + ΔH°<sub>298</sub> + ΔH<sub>P</sub>
         (feed to 298.15 K, reaction there, products to the outlet). With Q = 0 it gives the flame temperature.
@@ -324,7 +361,7 @@
     </div>
 
     <div id="hl-reactor">
-      <div class="panel">
+      <div class="panel" data-bar="Reactor and flame · settings">
         <div class="form">
           <label class="grow2">Example
             <select id="hb-select"></select>
@@ -405,7 +442,7 @@
     </div>
 
     <div id="hl-calorimeter" hidden>
-      <div class="panel">
+      <div class="panel" data-bar="Bomb calorimeter · settings">
         <h3>1. The calorimeter constant</h3>
         <div class="form">
           <div class="seg" id="bc-cal-mode" aria-label="How the calorimeter constant is known">
@@ -462,7 +499,7 @@
 
   <!-- ============================================================ 6 -->
   <section id="tab-data" role="tabpanel" aria-labelledby="tabbtn-data" class="tab">
-    <div class="panel">
+    <div class="panel" data-bar="Tab 6 · Sensible heat">
       <h2>Sensible heat of one species</h2>
       <p class="hint">Heat needed to take a species from T<sub>1</sub> to T<sub>2</sub> at constant pressure with no
         phase change: Q = n R ∫ (C<sub>p</sub>/R) dT.</p>
@@ -483,7 +520,7 @@
       </div>
       <div id="sh-out" aria-live="polite"></div>
     </div>
-    <div class="panel">
+    <div class="panel" data-bar="Tab 6 · Species data">
       <h2>Property database</h2>
       <p class="hint" id="db-summary"></p>
       <div class="form">
@@ -498,18 +535,18 @@
 
   <!-- ============================================================ 7 -->
   <section id="tab-validation" role="tabpanel" aria-labelledby="tabbtn-validation" class="tab">
-    <div class="panel">
+    <div class="panel" data-bar="Tab 7 · Reference values">
       <h2>Solver versus the textbook</h2>
       <p class="hint">These checks are computed live in your browser by the same code that produced every other
         number on this site. Expected values are the ones printed in Smith, Van Ness &amp; Abbott, in the course
         slides and in the bomb-calorimeter lab handout; each row names its source.</p>
       <div id="vl-bench"></div>
     </div>
-    <div class="panel">
+    <div class="panel" data-bar="Tab 7 · Stress tests">
       <h2>AI Error Challenge: five stress tests</h2>
       <div id="vl-challenge"></div>
     </div>
-    <div class="panel">
+    <div class="panel" data-bar="Tab 7 · Published research">
       <h2>Solver versus published research</h2>
       <div id="vl-literature"></div>
     </div>
@@ -517,6 +554,12 @@
 </main>
 
 <footer class="wrap foot">
+  <div class="title-block">
+    <div><span class="tb-label">Project</span><span class="tb-value">Assignment 2 · Reaction energetics</span></div>
+    <div><span class="tb-label">Data and equations</span><span class="tb-value">Smith, Van Ness &amp; Abbott</span></div>
+    <div><span class="tb-label">Standard state</span><span class="tb-value">Pure species at 1 bar</span></div>
+    <div><span class="tb-label">Runs</span><span class="tb-value">In your browser</span></div>
+  </div>
   <p><strong>Data:</strong> Smith, Van Ness &amp; Abbott, <em>Introduction to Chemical Engineering Thermodynamics</em>:
     Table C.1 (gas heat capacities), C.2 (solids), C.3 (liquids), C.4 (formation properties at 298.15 K) and
     B.1 (critical constants). Hydrogen peroxide and acetic acid, which SVN does not fully cover, use the NIST Chemistry WebBook
