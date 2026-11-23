@@ -539,9 +539,9 @@ class TestHeatBalanceWithCondensation(unittest.TestCase):
     def test_every_check_passes_when_water_condenses(self):
         r = self.solve(mode="duty", T_out=305.0, condense=True)
         names = [c["name"] for c in r["audit"]]
-        for expected in ("Atoms are conserved", "Two routes to the heat duty", "Energy balance closes",
+        for expected in ("Atoms are conserved", "Two routes to the heat Q", "Energy balance closes",
                          "The gas is saturated with water", "Clausius/Clapeyron equation for water",
-                         "First and second law along the condensation"):
+                         "Enthalpy and entropy of the outlet agree while water condenses"):
             self.assertIn(expected, names)
         for c in r["audit"]:
             self.assertTrue(c["passed"], c["name"])

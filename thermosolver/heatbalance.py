@@ -431,7 +431,7 @@ def outlet_temperature(feed: Stream, outlet: Stream, T_in: float, Q: float = 0.0
     if outlet.H(hi) - target < 0.0:
         raise InputError(
             f"The energy balance has no solution below {hi:.0f} K. Complete reaction of this feed would be "
-            f"hotter than the heat-capacity correlations can describe (real products dissociate long before). "
+            f"hotter than the heat-capacity correlations can describe (real products break apart long before). "
             f"Add excess air or an inert, lower the conversion or remove heat.", {"limit": "above"})
     T = T0
     for _ in range(200):
@@ -472,7 +472,7 @@ def outlet_temperature_split(feed: Stream, split: WaterSplit, T_in: float, Q: fl
     if split.H(hi) - target < 0.0:
         raise InputError(
             f"The energy balance has no solution below {hi:.0f} K. Complete reaction of this feed would be "
-            f"hotter than the heat-capacity correlations can describe (real products dissociate long before). "
+            f"hotter than the heat-capacity correlations can describe (real products break apart long before). "
             f"Add excess air or an inert, lower the conversion or remove heat.", {"limit": "above"})
     for _ in range(200):
         mid = 0.5 * (lo + hi)
@@ -673,7 +673,8 @@ def phase_notes(water: Optional[dict], case: dict, T_out: float) -> List[dict]:
         T_dew, n_w = water["T_dew"], water["n_total"]
         n_l, n_v = water["n_liquid"], water["n_vapour"]
         if n_l > 1e-9:
-            dew = (f"is below its dew point of {T_dew:.1f} K ({T_dew - 273.15:.1f} °C)" if water["n_other_gas"] > _TINY
+            dew = (f"is below {T_dew:.1f} K ({T_dew - 273.15:.1f} °C), the temperature at which its water vapour "
+                   f"becomes saturated" if water["n_other_gas"] > _TINY
                    else f"is at or below the boiling point of water ({water['T_boil']:.1f} K)")
             text = (f"The outlet {dew}, so it cannot carry all of its water as vapour: {n_l:.3g} of the {n_w:.3g} mol "
                     f"of water leave as liquid, and condensing gives up {-water['dH_phase'] / 1000.0:,.1f} kJ "
@@ -696,8 +697,8 @@ def phase_notes(water: Optional[dict], case: dict, T_out: float) -> List[dict]:
                 f"{water['n_written_liquid'] * water['dH_vap_298'] / 1000.0:,.1f} kJ, which is counted in step 2.")})
     elif water["n_vapour"] - water["n_vapour_possible"] > 1e-9:
         notes.append({"level": "warning", "kind": "would_condense", "message": (
-            f"At {_kelvin(T_out)} K the outlet is below its dew point of {water['T_dew']:.1f} K: "
-            f"{water['n_vapour'] - water['n_vapour_possible']:.3g} "
+            f"At {_kelvin(T_out)} K the outlet is colder than {water['T_dew']:.1f} K, the temperature at which its "
+            f"water vapour becomes saturated: {water['n_vapour'] - water['n_vapour_possible']:.3g} "
             f"of the {water['n_total']:.3g} mol of water would condense and give up more heat. This is left out because the water is "
             f"kept in the phase that is written. Tick \"Let the water change phase\" to include it.")})
     elif water["n_written_liquid"] - (water["n_total"] - water["n_vapour_possible"]) > 1e-9:
@@ -724,13 +725,13 @@ def temperature_notes(high: List[str], svn_only: Optional[dict], mode: str, T_in
     SVN range, and that dissociation is not part of the energy balance."""
     notes: List[dict] = []
     if high:
-        text = (f"Above the range of SVN's formula the heat capacities of {', '.join(high)} are taken from the "
-                f"Shomate equations of the NIST Chemistry WebBook (valid to {HIGH_T_MAX:,.0f} K), so nothing is extrapolated.")
+        text = (f"Above the range of SVN's formula the heat capacities of {', '.join(high)} are taken from "
+                f"NIST equations (valid to {HIGH_T_MAX:,.0f} K), so nothing is extrapolated.")
         if svn_only is not None and mode == "adiabatic":
             text += (f" With SVN's formula stretched beyond its range, as the textbook's own flame example does, "
                      f"the outlet would be {svn_only['T_out']:,.0f} K instead of {T_out:,.0f} K.")
         elif svn_only is not None:
-            text += (f" With SVN's formula stretched beyond its range the heat duty would be "
+            text += (f" With SVN's formula stretched beyond its range the heat Q would be "
                      f"{svn_only['Q'] / 1000.0:,.1f} kJ.")
         notes.append({"level": "info", "kind": "high_T_data", "species": ", ".join(high), "message": text})
     hottest = max(T_in, T_out)
@@ -812,7 +813,7 @@ def audit(case: dict, T_in: float, T_out: float, Q: float, split: Optional[Water
     # are large (for example a great excess of inert), so the round-off that
     # can be expected scales with the terms that are added, not with their sum.
     slack = 1e-11 * (sum(abs(h) for h in h_out) + sum(abs(h) for h in h_in))
-    checks.append(_check("Two routes to the heat duty", relation,
+    checks.append(_check("Two routes to the heat Q", relation,
                          path, direct, 1e-10, 1e-6 + slack))
     # ... plus, for a solved outlet temperature, the tolerance of the root (1e-9 K)
     checks.append(_check("Energy balance closes", "H_out(T_out) - H_in(T_in) = Q",
@@ -831,7 +832,7 @@ def audit(case: dict, T_in: float, T_out: float, Q: float, split: Optional[Water
         if T_out < T0:
             numeric = -numeric
         checks.append(_check("Sensible heat of the products",
-                             "analytical integral of sum n_i Cp_i dT = Simpson quadrature",
+                             "integral of sum n_i Cp_i dT from the formula = numerical integration",
                              outlet.sensible(T0, T_out), numeric, 1e-8, 1e-6))
 
     if split is not None and split.n_water - n_vapour > 1e-9:
@@ -852,7 +853,7 @@ def audit(case: dict, T_in: float, T_out: float, Q: float, split: Optional[Water
         if split.n_other_gas > _TINY and split.n_water - split.vapour(T_out + h) > 1e-9:
             dH = split.H(T_out + h) - split.H(T_out - h)
             dS = split.S(T_out + h) - split.S(T_out - h)
-            checks.append(_check("First and second law along the condensation",
+            checks.append(_check("Enthalpy and entropy of the outlet agree while water condenses",
                                  "dH = T dS at constant pressure (enthalpy and entropy of the outlet)",
                                  dH, T_out * dS, 1e-6, 1e-9))
     return checks

@@ -480,8 +480,7 @@ class Reaction:
                 "level": "info", "species": ", ".join(low), "kind": "low_T_data",
                 "message": (
                     f"Below {T0} K the heat capacities are not from SVN, whose tables start at 298 K. "
-                    f"From {data.LOW_T_MIN:g} K to {T0} K they come from NIST tables (NIST-JANAF and the "
-                    f"NIST Chemistry WebBook) for: {', '.join(low)}."
+                    f"From {data.LOW_T_MIN:g} K to {T0} K they come from NIST data for: {', '.join(low)}."
                 ),
             })
         high = self.uses_high_T_data(T)
@@ -490,8 +489,8 @@ class Reaction:
                 "level": "info", "species": ", ".join(high), "kind": "high_T_data",
                 "message": (
                     f"{T:g} K is above the range of SVN's heat-capacity formula for {', '.join(high)}. "
-                    f"Above that range, up to {data.HIGH_T_MAX:g} K, their heat capacities come from the "
-                    f"Shomate equations of the NIST Chemistry WebBook."
+                    f"Above that range, up to {data.HIGH_T_MAX:g} K, their heat capacities come from "
+                    f"NIST equations."
                 ),
             })
         for sp in self.species:
@@ -507,11 +506,14 @@ class Reaction:
                 continue
             if not sp.in_cp_range(T):
                 side = "below" if T < sp.cp_Tmin else "above"
+                # the full name of a NIST source belongs on the species-data tab; here it is "NIST data"
+                source = sp.cp_source_at(T)
+                source = "NIST data" if "NIST" in source else source
                 out.append({
                     "level": "warning", "species": sp.id, "kind": "cp_extrapolation",
                     "message": (
                         f"{sp.id}: T = {T:g} K is {side} the validity range of its heat-capacity "
-                        f"correlation ({sp.cp_Tmin:g} to {sp.cp_Tmax:g} K, {sp.cp_source_at(T)}). "
+                        f"correlation ({sp.cp_Tmin:g} to {sp.cp_Tmax:g} K, {source}). "
                         f"The polynomial is being extrapolated and the result is unreliable."
                     ),
                 })
@@ -521,8 +523,8 @@ class Reaction:
                     out.append({
                         "level": "info", "species": sp.id, "kind": "phase",
                         "message": (
-                            f"{sp.id}: at 1 bar this liquid boils at {crit.Tn:g} K, so a liquid "
-                            f"standard state at {T:g} K is hypothetical. Consider the gas species."
+                            f"{sp.id}: at 1 bar this liquid boils at {crit.Tn:g} K, so at {T:g} K it "
+                            f"would not exist as a liquid at 1 bar. Consider the gas species."
                         ),
                     })
                 elif sp.phase == "g" and T < crit.Tn - 0.5:
@@ -642,7 +644,7 @@ class Reaction:
 
 def thermicity(dH: float) -> str:
     if abs(dH) < 1e-6:
-        return "thermoneutral"
+        return "neither exothermic nor endothermic"
     return "exothermic" if dH < 0 else "endothermic"
 
 

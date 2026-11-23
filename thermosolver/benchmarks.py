@@ -135,17 +135,17 @@ def build() -> List[dict]:
     # Course slide: Peng/Robinson roots for CO2 at 283 K, 49 bar (slide uses omega = 0.225)
     co2 = SPECIES["CO2(g)"].critical
     slide = lambda: cubic_Z_roots("pr", 283.0 / co2.Tc, 49.0 / co2.Pc, 0.225)
-    add("Real gas", "CO2 at 283 K, 49 bar, Peng/Robinson: vapour root Z",
+    add("Real gas", "CO2 at 283 K, 49 bar, Peng/Robinson: Z of the vapour",
         0.5501, lambda: slide()[-1], "-", 1e-3, "Course EOS slides (cubic-EOS program output)")
-    add("Real gas", "CO2 at 283 K, 49 bar, Peng/Robinson: liquid root Z",
+    add("Real gas", "CO2 at 283 K, 49 bar, Peng/Robinson: Z of the liquid",
         0.1099, lambda: slide()[0], "-", 2e-3, "Course EOS slides (cubic-EOS program output)")
 
     # --- Gibbs minimisation (SVN multireaction example) ------------------------
     expected_y = {"CH4(g)": 0.0196, "H2O(g)": 0.0980, "CO(g)": 0.1743, "CO2(g)": 0.0371, "H2(g)": 0.6710}
     for sid, y in expected_y.items():
-        add("Gibbs minimisation", f"Steam reforming at 1000 K, 1 bar: y of {sid}",
+        add("Equilibrium mixture", f"Steam reforming at 1000 K, 1 bar: y of {sid}",
             y, lambda s=sid: _svn_gibbs_example()["y"][s], "-", 6e-3,
-            "SVN Gibbs-minimisation example")
+            "SVN example: several reactions at once, mixture with the lowest total Gibbs energy")
 
     # --- Formation of water vapour at 60 C (values quoted in SVN) -----------------
     h2o = Reaction.parse("H2 + 1/2 O2 -> H2O(g)")
@@ -247,8 +247,8 @@ def build() -> List[dict]:
     add("Phase change at 1 bar", "Water: latent heat at 25 C",
         43987.5, lambda: phase.latent_heat(water, 298.15), "J/mol", 2e-3,
         "NIST Chemistry WebBook, saturation properties of water: 45.876 - 1.8885 kJ/mol")
-    add("Phase change at 1 bar", "Methane burned with 20 % excess air: dew point of the flue gas "
-        "(water vapour at 0.16092 bar)",
+    add("Phase change at 1 bar", "Methane burned with 20 % excess air: temperature at which the water vapour "
+        "of the flue gas becomes saturated (water vapour at 0.16092 bar)",
         328.58, lambda: heatbalance.WaterSplit(flame_case()["outlet"]).T_dew, "K", 5e-4,
         "NIST Chemistry WebBook, saturation temperature of water at 0.16092 bar")
     return rows

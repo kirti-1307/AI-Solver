@@ -26,7 +26,7 @@
     if (e.dH < 0 && e.dS > 0) drive = "At this temperature both enthalpy and entropy favour the products, so ΔG° is negative. As long as ΔH° and ΔS° keep these signs, that holds at any temperature.";
     else if (e.dH < 0 && e.dS < 0) drive = "The reaction is enthalpy-driven: heat release favours it, but the entropy loss works against it more and more as T rises, so it is favoured at low temperature.";
     else if (e.dH > 0 && e.dS > 0) drive = "The reaction is entropy-driven: it must absorb heat, and only the T·ΔS° term can pay for that, so it is favoured at high temperature.";
-    else if (e.dH > 0 && e.dS < 0) drive = "At this temperature both enthalpy and entropy oppose the products, so ΔG° is positive. As long as ΔH° and ΔS° keep these signs, no temperature makes it favourable.";
+    else if (e.dH > 0 && e.dS < 0) drive = "At this temperature both enthalpy and entropy oppose the products, so ΔG° is positive. As long as ΔH° and ΔS° keep these signs, the reactants stay favoured at every temperature.";
     if (drive) lines.push(drive);
 
     lines.push(`ΔG° = ΔH° − TΔS° = ${kJ(e.dG)} kJ/mol, so K = ${fmtK(e.lnK)}. ${esc(e.favourability.text)}`);
@@ -72,7 +72,7 @@
           "its vapour pressure. The conversion is calculated that way: a product leaves as liquid only once the gas is saturated with it.");
       }
     }
-    lines.push("Thermodynamics fixes where the equilibrium lies, not how fast it is reached. A favourable ΔG° can still need a catalyst.");
+    lines.push("Thermodynamics fixes where the equilibrium lies, not how fast it is reached. A reaction with a negative ΔG° can still need a catalyst to go at a useful speed.");
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 
@@ -118,7 +118,7 @@
       <td>${s.nu > 0 ? "+" : "−"}${coeff(s.nu)}</td>
       <td>${int(s.dHf)}</td><td>${int(s.dGf)}</td>
       <td>${fix(s.cp_T, 2)}</td><td>${int(s.sensible_dH)}</td><td>${int(s.nu_sensible_dH)}</td>
-      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}${s.cp_from_low_T_table ? ' <span class="badge neutral" title="Below 298.15 K the heat capacity is from NIST tables">NIST</span>' : ""}${s.cp_from_high_T_equation ? ' <span class="badge neutral" title="Above the SVN range the heat capacity is from the NIST Shomate equation">NIST</span>' : ""}</td>
+      <td class="${s.in_cp_range ? "" : "fail"}">${s.cp_Tmin === null ? "298.15 only" : `${fix(s.cp_Tmin, 0)}–${fix(s.cp_Tmax, 0)}`}${s.in_cp_range ? "" : " ⚠"}${s.cp_from_low_T_table ? ' <span class="badge neutral" title="Below 298.15 K the heat capacity is from NIST tables">NIST</span>' : ""}${s.cp_from_high_T_equation ? ' <span class="badge neutral" title="Above the SVN range the heat capacity is from a NIST equation">NIST</span>' : ""}</td>
     </tr>`).join("");
     const total = r.species.reduce((a, s) => a + (s.nu_sensible_dH || 0), 0);
     return `<div class="table-scroll"><table><thead><tr>

@@ -47,7 +47,7 @@ SQRT2 = math.sqrt(2.0)
 
 MODEL_NAMES = {
     "ideal": "Ideal gas",
-    "virial": "Generalized virial (Pitzer/Abbott)",
+    "virial": "Generalized virial correlation",
     "vdw": "van der Waals",
     "rk": "Redlich/Kwong",
     "srk": "Soave/Redlich/Kwong",
@@ -331,8 +331,8 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
         res.notes.append({
             "level": "info", "species": sp.id, "kind": "condensed",
             "message": (
-                f"{sp.id} is a condensed phase. Its enthalpy and entropy change very little "
-                f"with pressure, so no pressure correction is applied (activity = 1)."
+                f"{sp.id} is a {'liquid' if sp.phase == 'l' else 'solid'}. Its enthalpy and entropy change very little "
+                f"with pressure, so no pressure correction is applied."
             ),
         })
         return res
@@ -366,8 +366,8 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
             res.notes.append({
                 "level": "warning", "species": sp.id, "kind": "virial_range",
                 "message": (
-                    f"{sp.id}: reduced volume V/Vc = {Vr:.2f} is below 2. The virial equation "
-                    f"truncated after B is only reliable at low to moderate pressure; use a "
+                    f"{sp.id}: its molar volume is only {Vr:.2f} times its critical volume (below 2). The virial "
+                    f"equation truncated after B is only reliable at low to moderate pressure; use a "
                     f"cubic equation of state here."
                 ),
             })
@@ -375,8 +375,8 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
             res.notes.append({
                 "level": "info", "species": sp.id, "kind": "quantum_gas",
                 "message": (
-                    "H2 is a quantum gas: the virial correlation uses the temperature-dependent "
-                    "effective critical constants of SVN Sec. 3.7 with omega = 0."
+                    "For H2 the virial correlation uses the special critical constants that SVN gives "
+                    "for hydrogen (Sec. 3.7), which change with temperature, and an acentric factor of 0."
                 ),
             })
     else:
@@ -385,13 +385,14 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
             res.notes.append({
                 "level": "info", "species": sp.id, "kind": "alpha_range",
                 "message": (
-                    f"{sp.id}: at Tr = {res.Tr:.1f} the alpha function of the {MODEL_NAMES[model]} "
-                    f"equation has fallen to zero, so only the repulsive (co-volume) term is left."
+                    f"{sp.id}: at Tr = {res.Tr:.1f} the gas is so far above its critical temperature that the "
+                    f"attraction term of the {MODEL_NAMES[model]} equation has fallen to zero. Only the term for "
+                    f"the volume of the molecules (the constant b) is left."
                 ),
             })
         roots = cubic_Z_roots(model, res.Tr, res.Pr, crit.omega)
         if not roots:
-            raise InputError(f"The {MODEL_NAMES[model]} equation has no physical root for {sp.id}.")
+            raise InputError(f"The {MODEL_NAMES[model]} equation gives no usable volume for {sp.id}.")
         Z = roots[-1]  # vapour-like root
         hr_rt, sr_r, lnphi = _cubic_properties(model, Z, res.Tr, res.Pr, crit.omega)
         res.Z, res.HR, res.SR, res.lnphi = Z, R * T * hr_rt, R * sr_r, lnphi
@@ -405,7 +406,7 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
                         f"{sp.id}: on its own this species would be a liquid at {T:g} K and {P:g} bar "
                         f"(the {MODEL_NAMES[model]} equation gives its liquid the lower Gibbs energy). "
                         f"In a reactor it is diluted by the other gases and stays a vapour, so the "
-                        f"values shown are for the vapour-like state of the equation."
+                        f"values shown are those of the vapour."
                     ),
                 })
         elif T < crit.Tc and Z * res.Tr / res.Pr < eos.Zc:
@@ -417,8 +418,8 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
             res.notes.append({
                 "level": "error", "species": sp.id, "kind": "no_vapour_root",
                 "message": (
-                    f"{sp.id}: at {T:g} K and {P:g} bar the {MODEL_NAMES[model]} equation has only "
-                    f"a liquid root (Z = {Z:.3f}). The number shown belongs to a liquid, so it "
+                    f"{sp.id}: at {T:g} K and {P:g} bar the {MODEL_NAMES[model]} equation describes "
+                    f"a liquid, not a gas (Z = {Z:.3f}). The number shown belongs to a liquid, so it "
                     f"must not be used for a gas-phase reaction."
                 ),
             })
@@ -433,7 +434,7 @@ def residual(sp: Species, T: float, P: float, model: str = "pr") -> Residual:
                 f"{sp.id}: {P:g} bar is above its estimated vapour pressure at {T:g} K "
                 f"(about {psat:.3g} bar, Lee/Kesler correlation), so on its own it would be a liquid. "
                 f"In a reactor it is diluted by the other gases and stays a vapour, so the values "
-                f"shown are for that vapour-like state."
+                f"shown are those of the vapour."
             ),
         })
     return res
@@ -443,8 +444,8 @@ def require_vapour(res: Residual) -> None:
     """Raise if a residual result is not usable for a gas-phase calculation."""
     if res.state == "liquid_like":
         raise PhaseError(
-            f"{res.species} has no vapour-like state at {res.T:g} K and {res.P:g} bar with the "
-            f"{MODEL_NAMES[res.model]} equation (the pure species is a liquid there), so a "
+            f"{res.species} is a liquid, not a gas, at {res.T:g} K and {res.P:g} bar according to the "
+            f"{MODEL_NAMES[res.model]} equation, so a "
             f"gas-phase equilibrium cannot be calculated. Lower the pressure, raise the "
             f"temperature, or use the ideal-gas or virial model.",
             {"species": res.species},

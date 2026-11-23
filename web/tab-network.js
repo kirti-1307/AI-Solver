@@ -1,5 +1,5 @@
-/* Tab 4 (extra feature 1): equilibrium of competing reactions by Gibbs-energy
- * minimisation, as a live reactor.
+/* Tab 4 (extra feature 1): equilibrium of competing reactions (the mixture with
+ * the lowest total Gibbs energy), as a live reactor.
  *
  * Two kinds of request go to the solver: a single point (while a slider is
  * being dragged) and the same point with a sweep for the plots (when the user
@@ -225,13 +225,14 @@
         `<strong>${chem(top)}</strong>` + (products[1] ? `, then ${pct(dist[products[1]], 2)} in ${chem(products[1])}.` : "."));
     }
     if (r.carbon_activity !== null && r.carbon_activity !== undefined) {
-      const a = r.carbon_activity;
+      // The solver's number is above 1 when solid carbon would lower the total Gibbs energy. Only that yes or no is shown.
+      const canForm = r.carbon_activity > 1;
       const blocked = system.filter((s) => !r.species.includes(s));
-      lines.push(`Carbon activity a<sub>C</sub> = ${sig(a, 3)}. ` + (a > 1
-        ? "It is above 1, so solid carbon (graphite) would lower the Gibbs energy further: <strong>coke formation is thermodynamically favoured</strong> at these conditions." +
-          (blocked.length ? ` With ${blocked.map(chem).join(", ")} switched off the gas is held away from its full equilibrium, which is why the value is so large. ` +
-            "Carbon is then one more product that a selective catalyst has to avoid: the number says it is possible, not that it forms." : "")
-        : "It is below 1, so the gas is not saturated with carbon: no coke is expected from thermodynamics."));
+      lines.push("Solid carbon (soot): " + (canForm
+        ? "making it from this gas would lower the total Gibbs energy further, so <strong>solid carbon can form</strong> at these conditions." +
+          (blocked.length ? ` With ${blocked.map(chem).join(", ")} switched off the gas is held away from its full equilibrium, which makes this more likely. ` +
+            "Solid carbon is then one more product that a selective catalyst has to avoid: the result says it is possible, not that it forms." : "")
+        : "making it from this gas would raise the total Gibbs energy, so no solid carbon is expected from thermodynamics."));
     }
     if (r.excluded.length) {
       lines.push(`Left out because the feed has none of their elements: ${r.excluded.map(chem).join(", ")}.`);
@@ -240,9 +241,11 @@
       "Switch a product off to model a catalyst that cannot form it; the difference between the two answers is what catalyst selectivity has to fight against.");
     // With a real-gas model each pure species also carries its residual Gibbs energy from the equation of state.
     const realGas = r.model !== "ideal";
-    lines.push(`Method: minimise G/RT = Σ n<sub>i</sub>[G<sub>i</sub>°/RT + ln(y<sub>i</sub>P/P°)${realGas ? " + G<sub>i</sub><sup>R</sup>/RT" : ""}] subject to the element balances ` +
-      `(Lagrange multipliers)${realGas ? ", where G<sup>R</sup> is the residual Gibbs energy of the pure species" : ""}. ` +
-      `Converged in ${r.iterations} Newton iterations; largest residual of the equilibrium conditions ${sig(r.kkt_residual, 2)}.`);
+    lines.push(`Method: the solver looks for the mole numbers n<sub>i</sub> that make the total Gibbs energy of the mixture, ` +
+      `G/RT = Σ n<sub>i</sub>[G<sub>i</sub>°/RT + ln(y<sub>i</sub>P/P°)${realGas ? " + G<sub>i</sub><sup>R</sup>/RT" : ""}], as low as possible, ` +
+      `while the number of atoms of every element stays what the feed brought in` +
+      `${realGas ? " (G<sup>R</sup> is the residual Gibbs energy of the pure species)" : ""}. ` +
+      `It is an iterative calculation; this answer took ${r.iterations} steps.`);
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 
@@ -297,9 +300,9 @@
     let cards = fedIds.map((sid) => `<div class="card hero"><div class="k">Equilibrium conversion of ${chem(sid)}</div>
       <div class="v">${pct(r.conversions[sid], 1)}</div><div class="s">${fix(r.feed[sid], 3)} mol fed</div></div>`).join("");
     if (r.carbon_activity !== null && r.carbon_activity !== undefined) {
-      const coke = r.carbon_activity > 1;
-      cards += `<div class="card ${coke ? "bad" : "good"}"><div class="k">Solid carbon (coke)</div><div class="v">${coke ? "can form" : "cannot form"}</div>
-        <div class="s">carbon activity ${sig(r.carbon_activity, 3)} (${coke ? "above" : "below"} 1)</div></div>`;
+      const canForm = r.carbon_activity > 1;
+      cards += `<div class="card ${canForm ? "bad" : "good"}"><div class="k">Solid carbon (soot)</div><div class="v">${canForm ? "can form" : "cannot form"}</div>
+        <div class="s">making it would ${canForm ? "lower" : "raise"} the total Gibbs energy</div></div>`;
     }
     cards += `<div class="card"><div class="k">Moles of gas</div><div class="v">${sig(r.total_moles, 4)}</div>
       <div class="s">from ${sig(Object.values(r.feed).reduce((a, b) => a + b, 0), 4)} mol of feed</div></div>`;
@@ -337,9 +340,9 @@
     const el = r.key_element;
     const sk = s.skipped || [];
     const unit = s.variable === "T" ? "K" : "bar";
-    const hasCoke = s.carbon_activity.some((v) => v !== null);
+    const hasCarbon = s.carbon_activity.some((v) => v !== null);
     out.innerHTML = `<div class="panel"><div class="grid two"><div id="nw-plot-y" class="plot tall"></div><div id="nw-plot-dist" class="plot tall"></div>
-      ${hasCoke ? '<div id="nw-plot-aC" class="plot"></div>' : ""}
+      ${hasCarbon ? '<div id="nw-plot-aC" class="plot"></div>' : ""}
       <div id="nw-plot-conv" class="plot"></div></div>
       ${sk.length ? `<p class="hint" style="margin:8px 0 0">Gaps in the curves: ${sk.length} of ${s.x.length} points
         (${fix(Math.min(...sk), 0)} to ${fix(Math.max(...sk), 0)} ${unit}) could not be calculated with this real-gas model.
@@ -357,10 +360,12 @@
       stackgroup: "one", line: { width: 0.6, color: TS.colorOf(sid) },
     })), TS.layout(`Where the ${el} atoms go`, xTitle, `% of ${el} atoms`, { shapes: [TS.vline(here)], yaxis: { range: [0, 100] } }));
 
-    if (hasCoke) {
-      TS.plot("nw-plot-aC", [{ x: s.x, y: s.carbon_activity, name: "carbon activity", mode: "lines", line: { width: 2.5, color: "#475569" } }],
-        TS.layout("Carbon activity: coke is favoured above the dotted line", xTitle, "a_C",
-          { shapes: [TS.vline(here), TS.hline(1)], yaxis: { type: "log" }, showlegend: false }));
+    if (hasCarbon) {
+      // Yes or no at each point of the plot: the same test as on the card above.
+      const yesNo = s.carbon_activity.map((v) => (v === null ? null : (v > 1 ? 1 : 0)));
+      TS.plot("nw-plot-aC", [{ x: s.x, y: yesNo, name: "solid carbon", mode: "lines", line: { width: 2.5, color: "#475569", shape: "hv" } }],
+        TS.layout("Can solid carbon (soot) form?", xTitle, "",
+          { shapes: [TS.vline(here)], yaxis: { range: [-0.25, 1.25], tickvals: [0, 1], ticktext: ["no", "yes"] }, showlegend: false }));
     }
     TS.plot("nw-plot-conv", Object.keys(s.conversion).map((sid) => ({
       x: s.x, y: s.conversion[sid].map((v) => (v === null ? null : 100 * v)), name: sid, mode: "lines",

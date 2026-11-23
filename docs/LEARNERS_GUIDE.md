@@ -247,7 +247,7 @@ What this teaches: thermodynamics prefers methane. A methanol plant works becaus
 
 If you want to allow or block any substance freely, open "Build your own system" under the switches.
 
-The "solid carbon" card tells you whether soot (coke) can form. A carbon activity above 1 means it can.
+The "solid carbon" card tells you whether solid carbon (soot) can form. It can form when making it would lower the total Gibbs energy; otherwise it cannot.
 
 ### Tab 5: Heat lab (extra feature 2)
 
@@ -270,7 +270,7 @@ Examples:
 - To stay below 1500 K you need 97 % excess air.
 - A steam reformer fed at 600 K with products at 1300 K needs 328 kJ per mole of methane (−34.4 + 200.5 + 161.9 kJ for the three steps).
 
-**When the outlet is cool, the water condenses.** A gas can carry water vapour only up to the vapour pressure. The flue gas of the methane burner is 16 % water, and it starts to drop liquid water at 55.5 °C. That temperature is its dew point. Below it the path gets a fourth step:
+**When the outlet is cool, the water condenses.** A gas can carry water vapour only up to the vapour pressure. The flue gas of the methane burner is 16 % water, and its water vapour becomes saturated at 55.5 °C. Below that temperature the gas drops liquid water, and the path gets a fourth step:
 
 4. Part of the water condenses at the outlet temperature and gives up its latent heat.
 
@@ -279,7 +279,7 @@ Examples (methane with 20 % excess air, feed at 25 °C):
 - Cooled to 40 °C: 1.17 of the 2 mol of water condense, and 847.7 kJ must be removed. With all the water kept as vapour it would be 796.9 kJ.
 - Cooled to 25 °C: 1.66 mol condense and 875.6 kJ comes out. This lies between the LHV (802.6 kJ) and the HHV (890.6 kJ). It does not reach the HHV, because the gas leaves saturated and still carries 0.34 mol of water vapour.
 
-This is how a condensing boiler gets more heat out of the same fuel. The box "Let the water change phase" is on at the start. Untick it to keep every substance in the phase that is written, as the textbook examples do. Above the dew point the box changes nothing, so the flame temperature and the reformer example stay as they are.
+This is how a condensing boiler gets more heat out of the same fuel. The box "Let the water change phase" is on at the start. Untick it to keep every substance in the phase that is written, as the textbook examples do. While the outlet is too warm for water to condense, the box changes nothing, so the flame temperature and the reformer example stay as they are.
 
 Only water can change phase in this tab, and the liquid is taken as pure water.
 
@@ -304,14 +304,14 @@ The full table of the 57 substances, with the source of every number. There is a
 
 This is the proof that the numbers are right. It has three parts:
 
-- **67 reference values** from textbook examples, course slides, the lab handout and the NIST tables. The solver recalculates each one while you watch. All 67 pass. Ten of them are about phase change: six boiling points, the vapour pressure and latent heat of water, and the dew point of a flue gas.
+- **67 reference values** from textbook examples, course slides, the lab handout and the NIST tables. The solver recalculates each one while you watch. All 67 pass. Ten of them are about phase change: six boiling points, the vapour pressure and latent heat of water, and the temperature at which the water vapour of a flue gas becomes saturated.
 - **Five stress tests** from the assignment (see section 6).
 - **Comparison with published research** values.
 
 ## 5. Why you can trust the answers
 
 - **The data are traceable.** From 298.15 K upwards, 54 of the 57 substances use only the textbook tables. The other three come from the NIST database and are labelled. Below 298.15 K, where the textbook has no data, the heat capacities come from NIST tables, and the solver says so whenever it uses them.
-- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency audit" under each result.
+- **It checks itself.** Every result is calculated a second time by a different route. The two must agree. This appears as "Consistency checks" under each result.
 - **It has more than 200 automated tests.** They run every time the code changes.
 - **It refuses bad input.** An unbalanced reaction gets no answer at all.
 - **It warns you.** If a formula is used outside its valid temperature range, you see a warning.
@@ -334,7 +334,7 @@ The assignment asks for mistakes of the AI-built solver that were found and fixe
 | Tab 2 showed a red error for CO₂ hydrogenation | The pressure was still 200 bar from the ammonia example. Water is a liquid there, so there is no gas value | The example opens at its own conditions (50 bar), and a blue box offers a pressure that works |
 | The two burner examples showed an "extrapolated" warning | The flame is hotter than the 2000 K limit of the textbook Cp formula | NIST data are used above the limit. The answer moves from 2066 K to 2069 K, and a note shows both |
 | After tab 2 was narrowed down to the heat of reaction, no tab said how pressure changes favourability | The assignment asks for favourability at a given pressure and temperature | Tab 1 has a pressure box and shows the equilibrium conversion at that pressure |
-| Every substance stayed in the phase that was typed | Liquid water stayed liquid at 500 K, and a flue gas cooled to 25 °C never gave up the latent heat of its water | The solver finds the boiling point from its own data. Tab 1 can pick the stable phase, and in tab 5 the water condenses below the dew point |
+| Every substance stayed in the phase that was typed | Liquid water stayed liquid at 500 K, and a flue gas cooled to 25 °C never gave up the latent heat of its water | The solver finds the boiling point from its own data. Tab 1 can pick the stable phase, and in tab 5 the water condenses when the outlet is cold enough |
 
 The five stress tests of the assignment:
 
@@ -372,12 +372,11 @@ This is why the first visit takes about ten seconds: the browser downloads Pytho
 | Residual property, Hᴿ | Real-gas value minus ideal-gas value |
 | Equation of state | A formula linking pressure, volume and temperature of a gas |
 | Hess's law | Adding reactions adds their ΔH |
-| Gibbs minimisation | Finding the mixture with the lowest total Gibbs energy |
-| Carbon activity | Above 1 means solid carbon (coke) can form |
+| Lowest total Gibbs energy | How tab 4 finds the mixture that forms: of all mixtures the atoms allow, the one whose Gibbs energy is lowest |
 | HHV / LHV | Heating value with liquid water / with water vapour |
 | Latent heat | Heat needed to turn a liquid into vapour without changing its temperature |
 | Vapour pressure | The pressure at which a liquid and its vapour are in balance at a given temperature |
-| Dew point | The temperature at which a gas starts to drop liquid when it is cooled |
+| Saturated | A gas that holds as much water vapour as it can; cooled further, it drops liquid water |
 | ΔU | Heat released at constant volume, as in a bomb calorimeter |
 
 ## 9. Check yourself
@@ -394,7 +393,7 @@ Try to answer before you read the answer.
 8. **Why does a bomb calorimeter measure ΔU and not ΔH?** Its volume is fixed, so no work is done. Heat at constant volume equals ΔU.
 9. **Why is LHV smaller than HHV?** With LHV the water leaves as vapour, so the heat of condensing it is not collected.
 10. **In tab 4, why does switching methane off change the answer?** Methane is the most stable product. Remove it, and the atoms settle into the next best mixture, which contains methanol.
-11. **What does the consistency audit prove?** That two different ways of calculating the same quantity agree. A wrong sign or unit would break it.
+11. **What do the consistency checks prove?** That two different ways of calculating the same quantity agree. A wrong sign or unit would break it.
 12. **Does a favourable ΔG mean the reaction is fast?** No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.
 13. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
 14. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
@@ -411,6 +410,6 @@ Try to answer before you read the answer.
 2. Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.
 3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.66 kJ/mol at 200 bar. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
 4. Click "What actually forms?" Press the three "Try this" buttons: everything allowed, methane off, methane and CO off. Point at the faded switches and say why they are faded. Then drag the temperature slider.
-5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool. Then pick the "Condensing boiler" example and drag the outlet temperature across 329 K: the heat duty bends at the dew point.
+5. Click "How hot does it get?" Drag the excess-air slider and watch the flame cool. Then pick the "Condensing boiler" example and drag the outlet temperature across 329 K: the heat line bends where the water starts to condense.
 6. Click "Bomb calorimeter" and press Ignite.
 7. Finish on **Validation**: 67 of 67 reference values reproduced.

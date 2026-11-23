@@ -5,10 +5,10 @@
   const { $, esc, chem, fix, kJ, int, signed, coeff } = TS;
 
   const STATE_LABEL = (s) => {
-    if (s.phase !== "g") return "condensed phase, no correction";
+    if (s.phase !== "g") return "liquid or solid: no pressure correction";
     if (s.treated_ideal) return "treated as ideal gas";
-    if (s.state === "liquid_like") return "liquid root only: not a gas";
-    if (s.state === "hypothetical_vapour") return "above vapour pressure: hypothetical vapour";
+    if (s.state === "liquid_like") return "a liquid at this T and P, not a gas";
+    if (s.state === "hypothetical_vapour") return "a liquid on its own at this T and P; taken as a vapour";
     return "gas";
   };
 
@@ -55,8 +55,8 @@
     lines.push(`An ideal gas has no forces between its molecules, so its enthalpy depends on temperature only. As ideal gases the ` +
       `reaction ${heat(c.dH_ideal)} ${kJ(Math.abs(c.dH_ideal))} kJ/mol at ${T} K, <em>whatever the pressure</em>.`);
     if (!a.gas_phase_valid) {
-      lines.push(`At ${T} K and ${P} bar, ${a.no_vapour_species.map(chem).join(", ")} has no vapour-like state with the ` +
-        `${esc(a.model_name)} equation: the pure species is a liquid there. A gas-phase heat of reaction is not defined at this ` +
+      lines.push(`At ${T} K and ${P} bar, ${a.no_vapour_species.map(chem).join(", ")} is a liquid, not a gas, according to the ` +
+        `${esc(a.model_name)} equation. A gas-phase heat of reaction is not defined at this ` +
         `pressure, so no value is reported. Lower the pressure or raise the temperature.`);
       return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
     }
@@ -80,8 +80,8 @@
       `let them react as ideal gases, and take the ideal-gas products to the real state. Enthalpy is a state function, so the path does not matter.`);
     lines.push(`The effect grows with pressure (first plot) and fades as the gas gets hotter (third plot), because fast molecules feel each other less.`);
     lines.push(`Pressure also moves the equilibrium composition. That is shown on tab 4 (Product slate), which has a pressure slider.`);
-    lines.push("Assumptions: each species is the pure component at T and P (ideal-solution mixing, so no heat of mixing); " +
-      "solids and liquids are incompressible.");
+    lines.push("Assumptions: each species is taken as the pure species at T and P, and mixing the gases is taken to change no enthalpy; " +
+      "the enthalpy of solids and liquids is taken not to change with pressure.");
     return `<ul class="explain">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
   }
 
@@ -210,7 +210,7 @@
         <div class="v-item"><div class="v-big">Difference: ${ok ? signed(c.residual / 1000, 2) + " kJ/mol" : "–"}</div>
           <div class="v-sub">${ok && c.percent !== null ? `${fix(Math.abs(c.percent), 2)} %: ${esc(c.effect)} (${esc(c.size)})` : "no gas-phase value at this pressure"}</div></div>
       </div>`;
-    // The "liquid root only" note is replaced by a plain box with a way out; a species that would
+    // The note about a species that is a liquid here is replaced by a plain box with a way out; a species that would
     // condense on its own gets a note, not a warning.
     html += TS.notes(r.warnings.filter((w) => w.level !== "info")) +
       TS.notes(a.notes.filter((n) => n.level !== "info" && n.kind !== "no_vapour_root"));
@@ -224,7 +224,7 @@
       </div>${pathBlock(r)}<h3>What the numbers mean</h3>${explain(r)}</div>`;
     const hints = [];
     if (r.sweep.first_invalid_P) {
-      hints.push(`The real-gas curve stops near ${fix(r.sweep.first_invalid_P, 0)} bar: above that, a species has no vapour-like state at this temperature, so a gas-phase value does not exist.`);
+      hints.push(`The real-gas curve stops near ${fix(r.sweep.first_invalid_P, 0)} bar: above that, a species is a liquid at this temperature, so a gas-phase value does not exist.`);
     }
     if (r.sweep_T && r.sweep_T.first_valid_T !== null && r.sweep_T.first_valid_T > r.sweep_T.T[0]) {
       hints.push(`The temperature curve starts near ${fix(r.sweep_T.first_valid_T, 0)} K: below that, a species is a liquid at ${fix(r.P, 0)} bar.`);

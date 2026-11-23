@@ -2,7 +2,7 @@
  *
  * View 1, "Reactor and flame": an energy balance around a reactor. The solver
  * returns the outlet temperature (adiabatic or with a given heat input) or the
- * heat duty for a given outlet temperature, with the three-step path, the
+ * heat to add or remove for a given outlet temperature, with the three-step path, the
  * enthalpy lines of the two mixtures and a sweep of one setting.
  *
  * View 2, "Bomb calorimeter": constant-volume combustion as in the course lab.
@@ -157,19 +157,21 @@
       lines.push(`Taking the ${outMoles} mol of products from 298.15 K to ${kelvin(p.T_out)} K ` +
         `${p.path.dH_P >= 0 ? "needs" : "gives up"} ${kJ(Math.abs(p.path.dH_P))} kJ` +
         (split && w.n_liquid > 0 ? " (with all the water still as vapour)" : "") + ". " +
-        `The sum of the ${split && w.n_liquid > 0 ? "four" : "three"} steps is the heat duty: <strong>${signed(p.Q / 1000, 2)} kJ per mol of ${key}</strong>, ` +
+        `The sum of the ${split && w.n_liquid > 0 ? "four" : "three"} steps is the heat Q: <strong>${signed(p.Q / 1000, 2)} kJ per mol of ${key}</strong>, ` +
         `${p.Q > 0 ? "which the furnace must supply" : "which must be removed by cooling"}.`);
     }
     // What the water of the outlet does. All numbers are the solver's.
     if (split && w.n_liquid > 0) {
-      const dew = w.n_other_gas > 0 ? `its dew point of ${fix(w.T_dew, 1)} K (${fix(w.T_dew - T_FREEZE, 1)} °C)` : `the boiling point of water (${fix(w.T_boil, 1)} K)`;
-      let text = `Step 4, the water: the outlet is ${w.n_other_gas > 0 ? "below" : "at or below"} ${dew}. A gas can hold water vapour only up to the vapour pressure ` +
+      const limit = w.n_other_gas > 0
+        ? `below ${fix(w.T_dew, 1)} K (${fix(w.T_dew - T_FREEZE, 1)} °C), the temperature at which its water vapour becomes saturated`
+        : `at or below the boiling point of water (${fix(w.T_boil, 1)} K)`;
+      let text = `Step 4, the water: the outlet is ${limit}. A gas can hold water vapour only up to the vapour pressure ` +
         `(${sig(w.P_sat, 3)} bar at ${kelvin(p.T_out)} K), so <strong>${sig(w.n_liquid, 3)} of the ${sig(w.n_total, 3)} mol of water condense</strong> ` +
         `and give up ${kJ(-p.path.dH_phase)} kJ of latent heat (${kJ(w.dH_vap)} kJ/mol).`;
       if (w.as_written) {
         text += r.mode === "adiabatic"
           ? ` With every species kept in the phase written, the outlet would be at ${kelvin(w.as_written.T_out)} K.`
-          : ` With every species kept in the phase written, the heat duty would be ${signed(w.as_written.Q / 1000, 2)} kJ.`;
+          : ` With every species kept in the phase written, the heat Q would be ${signed(w.as_written.Q / 1000, 2)} kJ.`;
       }
       lines.push(text);
       if (r.fuel && Math.abs(r.settings.conversion - 1) < 1e-9) {
@@ -178,8 +180,9 @@
           `${sig(w.n_vapour, 3)} mol of water vapour away.`);
       }
     } else if (split && w.T_dew !== null && w.n_other_gas > 0) {
-      lines.push(`The water: the outlet is above its dew point of ${fix(w.T_dew, 1)} K (${fix(w.T_dew - T_FREEZE, 1)} °C), so all ${sig(w.n_total, 3)} mol ` +
-        `of water leave as vapour. Cooled below that temperature, part of it would condense and give up its latent heat.`);
+      lines.push(`The water: the outlet is above ${fix(w.T_dew, 1)} K (${fix(w.T_dew - T_FREEZE, 1)} °C), the temperature at which its water vapour ` +
+        `would become saturated, so all ${sig(w.n_total, 3)} mol of water leave as vapour. Cooled below that temperature, part of it would ` +
+        `condense and give up its latent heat.`);
     }
     // R3: what an inert does depends on the mode and on whether the reactor heats up or cools down
     const inert = p.inert;
@@ -193,7 +196,7 @@
           `More of ${one ? "it" : "them"} pulls the outlet temperature towards the inlet temperature${effect}.`);
       } else {
         lines.push(`${names} ${one ? "takes" : "take"} no part in the reaction. Bringing ${one ? "it" : "them"} from the inlet ` +
-          `to the outlet temperature is part of the heat duty.`);
+          `to the outlet temperature is part of the heat Q.`);
       }
     }
     if (r.target) {
@@ -202,11 +205,11 @@
         : `Temperature limit of ${fix(r.target.target_T, 0)} K: ${esc(r.target.reason)}`);
     }
     if (r.work) {
-      lines.push(`Second-law view: cooled reversibly to 298.15 K` +
+      lines.push(`The most work the hot products could deliver: cooled reversibly to 298.15 K` +
         (r.work.water_condensed > 0 ? ` (${sig(r.work.water_condensed, 3)} mol of water condense on the way)` : "") +
-        `, the hot products could deliver at most ${kJ(-r.work.W_ideal)} kJ of work ` +
-        `(W<sub>ideal</sub> = ΔH − T<sub>σ</sub>ΔS), ${pct(r.work.fraction, 1)} of their heat. A Carnot engine supplied at a constant ` +
-        `${fix(p.T_out, 0)} K would convert ${pct(r.work.carnot_at_T_out, 1)}; the stream does less because its temperature falls as it gives up heat.`);
+        `, they could give at most ${kJ(-r.work.W_ideal)} kJ of work, ${pct(r.work.fraction, 1)} of their heat. ` +
+        `A Carnot engine supplied with heat at a constant ${fix(p.T_out, 0)} K, and rejecting heat at 298.15 K, would convert ` +
+        `${pct(r.work.carnot_at_T_out, 1)}; the stream does less because its temperature falls as it gives up heat.`);
     }
     if (r.mode === "adiabatic" && p.T_out > 1800) {
       lines.push("The reaction is taken to go to the stated conversion; the energy balance does not ask whether equilibrium would allow it.");
@@ -256,7 +259,7 @@
     const adiabatic = r.mode === "adiabatic";
 
     $("#hb-eqn").innerHTML = chem(r.equation) + r.settings.side.map((s) => `<br><small>side reaction:</small> ${chem(s.equation)}`).join("");
-    // p.notes: where the heat capacities come from above the SVN range, and that dissociation is not included
+    // p.notes: where the heat capacities come from above the SVN range, and that hot products breaking apart is not included
     $("#hb-notes").innerHTML = TS.notes(r.notes.map((m) => ({ level: "info", message: m }))) + rangeNotes(p.warnings) + TS.notes(p.notes);
     $("#hb-basis").innerHTML = key;
 
@@ -265,7 +268,7 @@
     let cards = adiabatic
       ? `<div class="card hero"><div class="k">Outlet temperature${Math.abs(p.Q) < 0.5 ? " (adiabatic)" : ""}</div>
            <div class="v">${fix(p.T_out, 0)} <span class="u">K</span></div><div class="s">${fix(p.T_out - T_FREEZE, 0)} °C, from ${kelvin(p.T_in)} K at the inlet</div></div>`
-      : `<div class="card hero"><div class="k">Heat duty</div>
+      : `<div class="card hero"><div class="k">Heat added, Q</div>
            <div class="v">${signed(p.Q / 1000, 1)} <span class="u">kJ per mol ${key}</span></div>
            <div class="s">${p.Q > 0 ? "heat must be supplied" : "heat must be removed"}, ${signed(p.Q_per_kg / 1e6, 2)} MJ per kg</div></div>`;
     cards += `<div class="card ${thermicity}"><div class="k">Heat of reaction at 298.15 K</div>
@@ -279,7 +282,7 @@
     const w = p.water;
     if (w && w.T_dew !== null && (w.applied || w.n_vapour_possible < w.n_vapour)) {
       const wet = w.applied && w.n_liquid > 0;
-      cards += `<div class="card ${wet ? "good" : ""}"><div class="k">${w.n_other_gas > 0 ? "Dew point of the outlet" : "Boiling point of the water"}</div>
+      cards += `<div class="card ${wet ? "good" : ""}"><div class="k">${w.n_other_gas > 0 ? "Water starts to condense at" : "Boiling point of the water"}</div>
         <div class="v">${fix(w.T_dew, 1)} <span class="u">K</span></div>
         <div class="s">${fix(w.T_dew - T_FREEZE, 1)} °C; ${wet ? `${sig(w.n_liquid, 3)} of ${sig(w.n_total, 3)} mol of water condensed` : (w.applied ? "all water leaves as vapour" : "water kept as written")}</div></div>`;
     }
@@ -302,7 +305,7 @@
     const c = r.curves;
     const k = (arr) => arr.map((v) => (v === null ? null : v / 1000));
     const T0 = TS.database.constants.T0;
-    // The enthalpy line of the products bends at the dew point; mark it when it is in view and not crowded by the 298.15 K line.
+    // The enthalpy line of the products bends where the water starts to condense; mark it when it is in view and not crowded by the 298.15 K line.
     const dewOnPlot = !!(w && w.applied && w.T_dew !== null && w.T_dew > c.T[0] && w.T_dew < c.T[c.T.length - 1] &&
       (c.T[c.T.length - 1] - c.T[0]) < 12 * Math.abs(w.T_dew - T0));
     TS.plot("hb-plot-H", [
@@ -315,7 +318,7 @@
       annotations: [{ x: p.T_out, y: p.H_out / 1000, ax: p.T_in, ay: p.H_in / 1000, xref: "x", yref: "y", axref: "x", ayref: "y",
         showarrow: true, arrowhead: 3, arrowsize: 1.1, arrowwidth: 2, arrowcolor: TS.css("--muted"), standoff: 8, startstandoff: 8, text: "" },
       { x: T0, y: 1, yref: "paper", text: "298.15 K", showarrow: false, yanchor: "bottom", font: { size: 11 } }]
-        .concat(dewOnPlot ? [{ x: w.T_dew, y: 0.93, yref: "paper", xanchor: "left", text: " dew point: the line bends", showarrow: false,
+        .concat(dewOnPlot ? [{ x: w.T_dew, y: 0.93, yref: "paper", xanchor: "left", text: " water starts to condense: the line bends", showarrow: false,
           font: { size: 10.5, color: "#c2410c" } }] : []),
     }));
 
@@ -334,10 +337,10 @@
       if (adiabatic && r.target) shapes.push(TS.hline(r.target.target_T, "#11734b"));
       if (!adiabatic) shapes.push(TS.hline(0));
       TS.plot("hb-plot-sweep", [
-        { x: xs, y: ys, name: adiabatic ? "Outlet temperature" : "Heat duty", mode: "lines", line: { width: 2.8, color: "#c2410c" } },
+        { x: xs, y: ys, name: adiabatic ? "Outlet temperature" : "Heat added, Q", mode: "lines", line: { width: 2.8, color: "#c2410c" } },
         { x: [here], y: [hereY], name: "now", mode: "markers", marker: { size: 11, color: "#c2410c", line: { width: 2, color: TS.css("--panel") } } },
-      ], TS.layout(adiabatic ? "Outlet temperature as the setting changes" : "Heat duty as the setting changes", label,
-        adiabatic ? "Outlet temperature (K)" : "Heat duty (kJ per mol)", { shapes, showlegend: false }));
+      ], TS.layout(adiabatic ? "Outlet temperature as the setting changes" : "Heat added (Q) as the setting changes", label,
+        adiabatic ? "Outlet temperature (K)" : "Q (kJ per mol)", { shapes, showlegend: false }));
     }
   }
 

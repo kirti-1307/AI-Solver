@@ -236,8 +236,8 @@ def database(payload: Optional[dict] = None) -> dict:
                 "SVN's formula for the gases of a flame ends at 2000 K, and a flame is hotter. Beyond its range the "
                 "formula keeps rising while the real heat capacity levels off, so it must not be stretched. For "
                 "N2, O2, CO2, H2O, CO, H2, SO2 and NO the heat capacity above the SVN limit, up to 6000 K, is "
-                "therefore taken from the Shomate equations of the NIST Chemistry WebBook (fits of the NIST-JANAF "
-                "tables). The equations are used as published. Inside the SVN range nothing is changed. Every other "
+                "therefore taken from the heat-capacity equations of the NIST Chemistry WebBook (fitted to the "
+                "NIST-JANAF tables). The equations are used as published. Inside the SVN range nothing is changed. Every other "
                 "species keeps its SVN limit, and the solver warns beyond it.")},
             {"species": "Step at 298.15 K", "reason": (
                 "The SVN correlation and the NIST value do not give exactly the same heat capacity at 298.15 K. "
@@ -246,8 +246,8 @@ def database(payload: Optional[dict] = None) -> dict:
                 "Neither source is altered, so "
                 "plots of the heat capacity show a small step at 298.15 K. Enthalpy, entropy and Gibbs energy "
                 "stay continuous because every integral starts at 298.15 K.")},
-            {"species": "H2O2(g)", "reason": "Hydrogen peroxide is absent from SVN Tables B.1 and C.1 to C.4. The gas is taken from the NIST Chemistry WebBook (NIST-JANAF: ΔH°f = -136.11 kJ/mol, S° = 232.95 J/(mol·K), Shomate heat-capacity equation, 298 to 1500 K). It has no critical constants in Table B.1, so it is an ideal gas in pressure calculations. Liquid H2O2 is not included."},
-            {"species": "CH3COOH(g)", "reason": "Acetic acid vapour is not in SVN. NIST Chemistry WebBook: ΔH°f = -432.9 kJ/mol, S° = 282.84 J/(mol·K), heat capacity fitted to the tabulated values (largest deviation 0.21 %). Values are for the ideal-gas monomer; the real vapour is partly dimerised."},
+            {"species": "H2O2(g)", "reason": "Hydrogen peroxide is absent from SVN Tables B.1 and C.1 to C.4. The gas is taken from the NIST Chemistry WebBook (NIST-JANAF: ΔH°f = -136.11 kJ/mol, S° = 232.95 J/(mol·K), NIST heat-capacity equation, 298 to 1500 K). It has no critical constants in Table B.1, so it is an ideal gas in pressure calculations. Liquid H2O2 is not included."},
+            {"species": "CH3COOH(g)", "reason": "Acetic acid vapour is not in SVN. NIST Chemistry WebBook: ΔH°f = -432.9 kJ/mol, S° = 282.84 J/(mol·K), heat capacity fitted to the tabulated values (largest deviation 0.21 %). The values are for single molecules; in the real vapour part of the molecules pair up."},
             {"species": "1,3-Butadiene", "reason": "The Cp298/R printed in SVN Table C.1 (10.720) does not agree with the printed A, B, C (9.931). The constants are used."},
             {"species": "NH3", "reason": "ΔG°f,298 is -16,400 J/mol in the 8th and 9th editions (used here) and -16,450 J/mol in the 6th edition."},
             {"species": "CH3COOH(l)", "reason": "SVN lists liquid acetic acid in Table C.4 (formation data used here) but gives no heat capacity. A constant 123.1 J/(mol·K) from the NIST Chemistry WebBook is used, valid from 290 to 320 K."},
@@ -1071,7 +1071,7 @@ def heat_balance(payload: dict) -> dict:
             limits = (T0, max(2000.0, point["T_out"]) if point["T_out"] >= 600.0 else 600.0, T_ABS_MIN, T_ABS_MAX)
         else:
             raise InputError("The sweep variable must be 'excess', 'T_in', 'conversion', "
-                             "'T_out' (heat-duty mode only) or 'none'.")
+                             "'T_out' (only when the heat is asked for) or 'none'.")
         x_lo = _num(payload, "sweep_min", limits[0], limits[2], limits[3], "Start of the plot")
         x_hi = _num(payload, "sweep_max", limits[1], limits[2], limits[3], "End of the plot")
         if x_hi <= x_lo:
