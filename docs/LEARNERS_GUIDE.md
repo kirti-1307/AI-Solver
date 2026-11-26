@@ -161,7 +161,7 @@ The first page asks "What do you want to find out?" Each card opens the right ta
 
 **The "Pick the stable phase" box.** It is ticked at the start. If you type water, methanol, ethanol, benzene, cyclohexane or toluene without (g) or (l), the solver chooses the phase for you: it finds the boiling point from its own data and uses the liquid below it and the vapour above it, at 1 bar. Example: `CH4 + 2 O2 -> CO2 + 2 H2O` gives H2O(l) and ΔH° = −890.65 kJ/mol at 298.15 K, and H2O(g) at 500 K. The plots then run across the boiling point. The orange ΔH° line has a step there (the latent heat), and the blue ΔG° line only bends. Try `H2 + 1/2 O2 -> H2O`: ΔH° is −283.4 kJ/mol just below 373.2 K and −242.6 kJ/mol just above it.
 
-A phase you type is always kept, because a textbook often wants the other form on purpose. The heat of burning methane to H2O(g) at 25 °C (−802.62 kJ/mol) is the lower heating value, although water is not a vapour at 25 °C and 1 bar. Then a blue box says that the typed phase is not the stable one, and its button "Let the solver choose the phase" takes the typed phase away. If you untick the box, a species typed without a phase is taken as a gas.
+A phase you type is always kept, because a textbook often wants the other form on purpose. The heat of burning methane to H2O(g) at 25 °C (−802.63 kJ/mol) is the lower heating value, although water is not a vapour at 25 °C and 1 bar. Then a blue box says that the typed phase is not the stable one, and its button "Let the solver choose the phase" takes the typed phase away. If you untick the box, a species typed without a phase is taken as a gas.
 
 **The three graphs of tab 1.** Each has a line under it that says how to read it. In short:
 

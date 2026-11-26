@@ -8,6 +8,8 @@ The page needs no installation. The first visit takes about ten seconds while th
 
 **New to the solver?** Read the beginner's guide, which explains every idea and every tab in plain words: [docs/LEARNERS_GUIDE.md](docs/LEARNERS_GUIDE.md), also on the site at https://kirti-1307.github.io/AI-Solver/guide.html
 
+**Presenting it?** The six slides are in [presentation/Thermo_Solver_Presentation.pptx](presentation/Thermo_Solver_Presentation.pptx), the words to say and what to click in [docs/PRESENTATION_SCRIPT.md](docs/PRESENTATION_SCRIPT.md), and the preparation notes with viva questions and answers in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md) (both also as PDF next to them).
+
 ## What it does
 
 | Tab | What you get |
@@ -85,7 +87,8 @@ thermosolver/           the solver, pure Python, standard library only
     literature.py       published research values for comparison
     api.py              JSON interface used by the page
 tests/                  automated tests (unittest)
-docs/                   beginner's guide, presentation script, theory, data sources, testing, debug log, review, deploy checklist
+docs/                   beginner's guide, presentation script, study guide (build_print.py makes their PDFs), theory, data sources, testing, debug log, review, deploy checklist
+presentation/           the six slides (make_slides.py builds them with python-pptx)
 report/                 the two-page assignment report (Word and PDF; make_pdf.ps1 makes the PDF from the Word file)
 ```
 

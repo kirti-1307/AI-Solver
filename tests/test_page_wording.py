@@ -14,6 +14,7 @@ import json
 import os
 import re
 import unittest
+import zipfile
 
 from thermosolver import api, library
 
@@ -111,10 +112,23 @@ class TestPageFiles(unittest.TestCase):
                 self.assertNotIn(term, lower, f"'{term}' in {name}")
 
     def test_the_guide_uses_the_same_words(self):
-        for name in (os.path.join("docs", "LEARNERS_GUIDE.md"), "guide.html", os.path.join("docs", "PRESENTATION_SCRIPT.md")):
+        for name in (os.path.join("docs", "LEARNERS_GUIDE.md"), "guide.html", os.path.join("docs", "PRESENTATION_SCRIPT.md"),
+                     os.path.join("docs", "STUDY_GUIDE.md")):
             lower = read(name).lower()
             for term in FORBIDDEN:
                 self.assertNotIn(term, lower, f"'{term}' in {name}")
+        # The six slides and their speaker notes, read straight from the .pptx.
+        path = os.path.join(ROOT, "presentation", "Thermo_Solver_Presentation.pptx")
+        with zipfile.ZipFile(path) as deck:
+            slides = [n for n in deck.namelist() if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)]
+            notes = [n for n in deck.namelist() if re.fullmatch(r"ppt/notesSlides/notesSlide\d+\.xml", n)]
+            self.assertEqual(len(slides), 6)
+            self.assertEqual(len(notes), 6)
+            for name in slides + notes:
+                lower = "".join(re.findall(r"<a:t>([^<]*)</a:t>", deck.read(name).decode("utf-8"))).lower()
+                self.assertTrue(lower.strip(), name)
+                for term in FORBIDDEN:
+                    self.assertNotIn(term, lower, f"'{term}' in {name}")
 
     def test_full_source_names_only_where_the_data_are_documented(self):
         allowed = {"tab-data.js", "tab-validation.js"}
