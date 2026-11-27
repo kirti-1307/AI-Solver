@@ -8,7 +8,7 @@ The page needs no installation. The first visit takes about ten seconds while th
 
 **New to the solver?** Read the beginner's guide, which explains every idea and every tab in plain words: [docs/LEARNERS_GUIDE.md](docs/LEARNERS_GUIDE.md), also on the site at https://kirti-1307.github.io/AI-Solver/guide.html
 
-**Presenting it?** The six slides are in [presentation/Thermo_Solver_Presentation.pptx](presentation/Thermo_Solver_Presentation.pptx), the words to say and what to click in [docs/PRESENTATION_SCRIPT.md](docs/PRESENTATION_SCRIPT.md), and the preparation notes with viva questions and answers in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md) (both also as PDF next to them).
+**Presenting it?** The six slides are in [presentation/Thermo_Solver_Presentation.pptx](presentation/Thermo_Solver_Presentation.pptx), a light-theme pitch deck that opens with Goldilocks and the three bears is written out slide by slide in [presentation/PITCH_DECK.md](presentation/PITCH_DECK.md), the words to say and what to click in [docs/PRESENTATION_SCRIPT.md](docs/PRESENTATION_SCRIPT.md), and the preparation notes with viva questions and answers in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md) (both also as PDF next to them).
 
 ## What it does
 
