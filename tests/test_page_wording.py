@@ -113,7 +113,8 @@ class TestPageFiles(unittest.TestCase):
 
     def test_the_guide_uses_the_same_words(self):
         for name in (os.path.join("docs", "LEARNERS_GUIDE.md"), "guide.html", os.path.join("docs", "PRESENTATION_SCRIPT.md"),
-                     os.path.join("docs", "STUDY_GUIDE.md"), os.path.join("presentation", "PITCH_DECK.md")):
+                     os.path.join("docs", "STUDY_GUIDE.md"), os.path.join("docs", "SPEAKER_POINTERS.md"),
+                     os.path.join("presentation", "PITCH_DECK.md")):
             lower = read(name).lower()
             for term in FORBIDDEN:
                 self.assertNotIn(term, lower, f"'{term}' in {name}")

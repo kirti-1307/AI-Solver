@@ -2,7 +2,7 @@
 
     python docs/build_print.py
 
-Writes docs/STUDY_GUIDE.pdf and docs/PRESENTATION_SCRIPT.pdf from the Markdown
+Writes docs/STUDY_GUIDE.pdf, docs/PRESENTATION_SCRIPT.pdf and docs/SPEAKER_POINTERS.pdf from the Markdown
 files next to them. The Markdown is turned into HTML with the same reader as
 the guide page (build_guide.body), then Microsoft Edge prints it to PDF, so
 this needs Windows with Edge installed. Run it again after editing either file.
@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_guide import body  # noqa: E402
 
 DOCS = Path(__file__).resolve().parent
-FILES = ("STUDY_GUIDE", "PRESENTATION_SCRIPT")
+FILES = ("STUDY_GUIDE", "PRESENTATION_SCRIPT", "SPEAKER_POINTERS")
 EDGE = (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe")
 

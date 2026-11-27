@@ -1,12 +1,12 @@
 # Pitch deck brief: Thermodynamic Reaction Energy Solver
 
-This file is the full content of a 7-slide pitch deck, slide by slide: the words on each slide, the picture or chart, and what I say (the speaker notes). It is written to be handed to Claude to design the deck.
+This file is the full content of a 9-slide deck: a Goldilocks opening, one slide for each of the seven tabs of the website, and a closing slide. For every slide it gives the words on the slide (short pointers), the picture, and what I say (the speaker notes). It is written to be handed to Claude to design the deck.
 
 ## How to use this file
 
 1. Open Claude and attach this file. If you want the exact graphs from the report, also attach `presentation/figure_slate.png` and `presentation/figure_calorimeter.png` (optional: the data for every chart are in the section "Data for the charts").
-2. Ask: **"Design a light-theme pitch deck from this brief, one slide per section under 'The slides'. Keep every number and every word on the slides exactly as written, and put the 'What I say' text in the speaker notes."**
-3. After the slides, I switch to the live demo (part 2 of `docs/PRESENTATION_SCRIPT.md`).
+2. Ask: **"Design a light-theme deck from this brief, one slide per section under 'The slides'. Keep every number and every word on the slides exactly as written, keep the pointers short, and put the 'What I say' text in the speaker notes."**
+3. The words to say are also in `docs/PRESENTATION_SCRIPT.md`, and a one-page sheet of pointers to keep beside me is `docs/SPEAKER_POINTERS.md`.
 
 ---
 
@@ -17,12 +17,14 @@ This file is the full content of a 7-slide pitch deck, slide by slide: the words
 | Presenter | Kirti Roshankumar Thakar, Roll No. 25A1CHEB0107 |
 | Course | Chemical Engineering Thermodynamics, Assignment 2, Prof. M. Ali Haider |
 | Audience | the professor and my classmates (chemical engineering students) |
-| Length | 7 slides, about 6.5 minutes, then a live demo of the website (about 7 minutes) |
-| Goal | present the idea of the solver, opening with a story |
+| Length | 9 slides, about 7.5 minutes, then a short live demo (about 4 minutes) |
+| Goal | present the idea of the solver and what each tab does, opening with a story |
 | Live site | https://ai-solver-seven.vercel.app/ and https://kirti-1307.github.io/AI-Solver/ (only these two addresses; they always show the latest version) |
 | AI platform used | Claude |
 
-**The story thread.** The deck opens with Goldilocks and the three bears: Goldilocks asks Baby Bear "How hot is the porridge?", and the answer is "too hot, too cold, just right". Every reaction has the same question: how much heat (ΔH°), and is it "just right" at this temperature, meaning are the products favoured (ΔG°)? The three bowls come back on slides 2 and 4, and the last slide closes the story.
+**The story thread.** Goldilocks finds three bowls of porridge and asks: how hot is each porridge? In the story she finds out by tasting, and burns her tongue. The solver answers for her: it works out ΔH, the heat a reaction gives out or takes in, and heat is what decides how hot something gets. Each tab then answers a part of her question, and on slide 6 (the bomb calorimeter) the solver turns heat into an actual temperature rise. The last slide closes the story.
+
+**A point to get right (I may be asked).** ΔH is heat, in kJ/mol, not a temperature. The temperature follows from the heat and the heat capacity: ΔT = heat / heat capacity, which is exactly what the calorimeter of tab 5 does. So the slides say "ΔH: how much heat", never "ΔH is the temperature".
 
 ---
 
@@ -37,16 +39,26 @@ This file is the full content of a 7-slide pitch deck, slide by slide: the words
 | Panels and cards | pale cream `#F5EFE3` or pale grey-blue `#EEF2F7` |
 | Text and headings | navy `#16233A` |
 | Second text (captions, footer) | slate `#5B6778` |
-| Main accent, one key number per slide, "too hot" | orange `#C2410C` |
-| "Too cold", second chart series | blue `#0B5CAD` |
-| "Just right" only | green `#2F7D4A` |
+| Main accent, the one key number per slide | orange `#C2410C` |
+| Second accent, charts | blue `#0B5CAD` |
 
 - **Fonts.** Headings in a friendly serif (Cambria or similar), body in a clean sans (Calibri or similar). Slide 1 may use a storybook-style serif for the question.
-- **The motif: three bowls.** A big, a medium and a small bowl of porridge, with steam lines. They are the picture on slide 1, the three quantities ΔH°, ΔS°, ΔG° on slide 2, and "too hot, too cold, just right" on slide 4. Keep them simple and flat (outline or soft fill), the same drawing every time.
-- **Few words, big numbers.** One message per slide. Key numbers large (about 40 to 60 pt) with a short label under them.
-- **Charts native** (editable), from the data at the end of this file.
-- **Chemistry and symbols typed properly:** CO₂, H₂, CH₃OH, H₂O, CH₄, NH₃, ΔH°, ΔS°, ΔG°, Cₚ, Hᴿ. Units with a space: 46.6 kJ/mol, 893 K, 4.7 %.
-- **Footer** on slides 2 to 7: "Thermodynamic Reaction Energy Solver · Assignment 2" on the left, the slide number on the right.
+- **The motif: the tab tiles of the website.** Every tab slide has one square tile at the top left, like the cards on the website's start page: a big symbol with a small label under it, and the tab number above. Use the same tile shape on every slide:
+
+| Slide | Tile symbol | Tile label |
+|---|---|---|
+| Tab 1 | ΔH | HEAT |
+| Tab 2 | P | PRESSURE |
+| Tab 3 | Σ | HESS |
+| Tab 4 | G | SLATE |
+| Tab 5 | ΔU | BOMB |
+| Tab 6 | Cₚ | DATA |
+| Tab 7 | ✓ | CHECK |
+
+- **Layout of a tab slide:** the tile and the title at the top; three or four short pointers on the left; one "Example" box at the bottom with the key number in orange; on the right a small chart or a big number where this file gives one. Lots of white space.
+- **A small bowl icon** (a bowl of porridge with steam lines) in the corner of the "Example" box of each tab slide, to keep the story going. Keep it small and simple.
+- **Chemistry and symbols typed properly:** CO₂, H₂, CH₃OH, H₂O, CH₄, NH₃, ΔH°, ΔS°, ΔG°, Cₚ, Hᴿ. Units with a space: 46.56 kJ/mol, 723 K, 4.7 %.
+- **Footer** on slides 2 to 9: "Thermodynamic Reaction Energy Solver · Assignment 2" on the left, the slide number on the right.
 - **16:9.**
 
 **Rules for the wording.** I have to be able to explain every word on the slides, so:
@@ -54,223 +66,253 @@ This file is the full content of a 7-slide pitch deck, slide by slide: the words
 - Use the slide text as written. It may be shortened, but do not add facts, numbers or technical terms that are not in this file.
 - Keep every number exactly as given (they are the solver's own results).
 - Say "the reactants are favoured" or "the products are favoured", never "not favourable" or "not feasible".
-- The standard state (°) is the pure species at 1 bar, at any temperature; 298.15 K is only the temperature of the tables. Do not write "standard conditions of 298 K".
+- ΔH is heat, not temperature (see above).
+- The standard state (°) is the pure species at 1 bar, at any temperature; 298.15 K is only the temperature of the tables.
 
 ---
 
 ## The slides
 
-### Slide 1: The story (cover)
+### Slide 1: How hot is each porridge? (cover)
 
-**Purpose:** a catchy opening. The picture fills the slide.
+**Purpose:** a catchy opening. The picture fills most of the slide.
 
 **Picture** (an original storybook illustration of the folk tale, not in the style of any film studio or existing book):
 
-> A warm, light storybook illustration in a soft, flat watercolour style. Inside a cosy wooden cottage kitchen, Goldilocks, a young girl with golden curly hair, sits at a wooden table with three bowls of porridge: a big bowl with lots of steam, a medium bowl with no steam, and a small bowl with a little steam. Baby Bear, small and friendly, stands next to the table holding a kitchen thermometer. Goldilocks looks at Baby Bear and asks the question in a speech bubble. Light, airy colours: cream, honey, soft orange, soft blue. No other text in the picture.
+> A warm, light storybook illustration in a soft, flat watercolour style. Inside a cosy wooden cottage kitchen, Goldilocks, a young girl with golden curly hair, sits at a wooden table with three bowls of porridge: a big bowl with lots of steam, a medium bowl with no steam, and a small bowl with a little steam. She looks puzzled and asks her question in a speech bubble. Beside the bowls stands a small, friendly open laptop whose screen shows "ΔH", answering her in a second speech bubble. Light, airy colours: cream, honey, soft orange, soft blue. No other text in the picture.
 
 **On the slide:**
-- Speech bubble (Goldilocks): **How hot is the porridge?**
-- Small labels under the bowls (optional): *too hot* (big bowl), *too cold* (medium bowl), *just right* (small bowl)
-- A slim band along the bottom: **Thermodynamic Reaction Energy Solver** · Kirti Roshankumar Thakar · Roll No. 25A1CHEB0107
+- Goldilocks' speech bubble: **How hot is each porridge?**
+- The laptop's speech bubble: **Let me work out ΔH: the heat!**
+- A slim band along the bottom: **Thermodynamic Reaction Energy Solver** · Kirti Roshankumar Thakar · Roll No. 25A1CHEB0107 · Prof. M. Ali Haider
+
+**What I say** (50 seconds):
+
+Good morning, everyone. I want to start with a story you all know. Goldilocks walks into the house of the three bears and finds three bowls of porridge. And she has one question: how hot is each porridge?
+
+In the story, she finds out the hard way. She tastes them. Papa Bear's is too hot, Mama Bear's is too cold, and Baby Bear's is just right.
+
+But what if she didn't have to burn her tongue? What if something could work it out for her? That's my project, a Thermodynamic Reaction Energy Solver. It works out ΔH, the heat a reaction gives out or takes in. And heat is what decides how hot something gets.
+
+So let me show you, tab by tab, how the solver answers Goldilocks' question for chemical reactions.
+
+---
+
+### Slide 2: Tab 1 · Reaction
+
+**Tile:** ΔH · HEAT
+
+**On the slide:**
+
+Title: **Tab 1 · Heat, entropy and Gibbs energy of a reaction**
+
+- Pick a reaction, or type your own
+- Checks the element balance first
+- ΔH°, ΔS°, ΔG° at any temperature from 298.15 K
+- Tells you: gives out or takes in heat? Which side is favoured?
+
+Example box: CO₂ + 3H₂ → CH₃OH + H₂O at 523 K · **ΔH° = −57.94 kJ/mol** (gives out heat) · ΔG° = +46.56 kJ/mol (reactants favoured)
+
+**What I say** (1 minute):
+
+Tab 1 is where it all starts. You pick a reaction from the list, or you type your own.
+
+Before anything else, the solver checks that every element balances. If it doesn't, you get no numbers, only the balanced version as a hint.
+
+Then it gives you three numbers, at any temperature from 298.15 K up. ΔH°: how much heat. ΔS°: how the disorder changes. And ΔG°: which side is favoured.
+
+Take CO2 to methanol at 523 K. ΔH° is −57.94 kJ/mol, so it gives out heat. But ΔG° is +46.56, so at this temperature the reactants are favoured.
+
+---
+
+### Slide 3: Tab 2 · Pressure and real gas
+
+**Tile:** P · PRESSURE
+
+**On the slide:**
+
+Title: **Tab 2 · What does pressure change?**
+
+- Ideal gas: ΔH does not change with pressure
+- Real gas: adds the residual enthalpy Hᴿ of each gas
+- The solver picks the equation of state for each gas, from measured NIST data
+
+Right side, big number (orange): **4.7 %**, with the label: more heat from real-gas ammonia
+
+Example box: N₂ + 3H₂ → 2NH₃ at 723 K and 200 bar · ideal gas −106.50 kJ/mol · **real gas −111.55 kJ/mol**
+
+**What I say** (1 minute):
+
+Now, real reactors don't run at 1 bar. So tab 2 asks: what does pressure do?
+
+For an ideal gas, the answer is nothing. Its H depends only on temperature.
+
+But in a real gas the molecules attract each other, and the solver adds that effect for each gas. It's called the residual enthalpy. And the solver picks the equation of state for each gas by itself: the one that comes closest to measured data from NIST.
+
+For ammonia at 723 K and 200 bar, the ideal gas gives −106.50 kJ/mol, and the real gas −111.55. That's 4.7 % more heat.
+
+---
+
+### Slide 4: Tab 3 · Combine reactions
+
+**Tile:** Σ · HESS
+
+**On the slide:**
+
+Title: **Tab 3 · Build a reaction from others (Hess's law)**
+
+- Add two or three reactions, each with a multiplier
+- A negative multiplier reverses a reaction
+- The sum is checked against the direct answer
+
+Example box: reverse water-gas shift (+39.50) + methanol synthesis (−97.44) = **−57.94 kJ/mol** at 523 K, the same as tab 1
 
 **What I say** (45 seconds):
 
-Good morning. Before I start, a short story. You all know Goldilocks and the three bears. In my version, Goldilocks is a little more careful: before she eats, she asks Baby Bear one question. "How hot is the porridge?" And Baby Bear says: "Papa's bowl is too hot, Mama's is too cold, and mine is just right."
+Tab 3 is Hess's law, which we all know from class. You add two or three reactions, each with a multiplier. A negative multiplier just flips a reaction around.
 
-Notice that the bear did not give her a number. Whether it is too hot or just right depends on the temperature, and on what you want from it.
+The solver adds them up, cancels whatever appears on both sides, and checks the sum against the direct answer.
+
+For example, the reverse water-gas shift, +39.50, plus methanol synthesis, −97.44, gives −57.94 kJ/mol. That's exactly what tab 1 gave us for CO2 to methanol. Same answer, two routes.
 
 ---
 
-### Slide 2: Goldilocks' question, for every reaction
+### Slide 5: Tab 4 · Product slate (extra feature 1)
 
-**Purpose:** connect the story to the project, and state the problem and the idea.
-
-**Visual:** the three bowls in a row at the top, each labelled with a quantity. Below them, two columns: "The problem" (left) and "My idea" (right, in a card).
+**Tile:** G · SLATE, with a small tag "extra feature 1"
 
 **On the slide:**
 
-Title: **Goldilocks' question, for every reaction**
+Title: **Tab 4 · What actually forms?**
 
-Three bowls:
-- Big bowl: **ΔH°** · How hot? The heat the reaction gives out or takes in
-- Medium bowl: **ΔS°** · The change in disorder
-- Small bowl (green): **ΔG°** · Just right? Which side is favoured
+- You choose which products the catalyst may form
+- The solver finds the mixture with the lowest total Gibbs energy
+- Sliders for temperature and pressure
 
-The problem:
-- The textbook tables answer it at one temperature only: 298.15 K.
-- At any other temperature: a Cₚ integral for every species, a page of working each time.
-- Shortcuts mislead: a constant ΔCₚ is 9.0 kJ/mol off on average at 1000 K, and up to 31.5 kJ/mol.
+Right side: chart B (or `figure_slate.png`).
 
-My idea:
-- A solver that does the full textbook method for **any reaction at any temperature**, in a few seconds.
-- It shows every step and plot, explains the result in plain words, and checks itself against the textbook.
+Example box: CO₂ + 3H₂ at 523 K and 50 bar · **methane 74.9 %** of the carbon · methane off: methanol 20.6 % · at 100 bar: 39.4 %
 
 **What I say** (1 minute):
 
-As chemical engineers, we ask Goldilocks' question about every reaction. How hot: how much heat does the reaction give out or take in? That is ΔH°. And is it just right: at this temperature, are the products favoured? That is ΔG°, which comes from ΔH° and the entropy change ΔS°.
+Tab 4 is my first extra feature, and it's my favourite. Let me ask you something. If I put CO2 and hydrogen into a reactor at 523 K and 50 bar, what comes out?
 
-The problem is that the textbook tables give these numbers at one temperature only, 298.15 K. At any other temperature we need a heat-capacity integral for every species, which is a page of working for one reaction at one temperature. So people use shortcuts, like taking ΔCp as constant. For the 40 predefined reactions whose data reach 1000 K, that shortcut is off by 9.0 kJ/mol on average, and by up to 31.5 kJ/mol.
+Most of you would say methanol, right?
 
-My idea was a solver that does the full textbook method every time, for any reaction at any temperature, in a few seconds. It shows every step and every plot, explains the result in plain words, and checks itself against the textbook.
+In this tab I don't give the solver any reaction. I only choose which products are allowed, and it finds the mixture with the lowest total Gibbs energy.
 
----
-
-### Slide 3: How it works
-
-**Purpose:** the method in one picture.
-
-**Visual:** five numbered step cards in a row, joined by arrows; step 4 in orange. Under them, one strip with the three main equations. Under that, three short facts.
-
-**On the slide:**
-
-Title: **How it works**
-
-1. **Reaction:** 45 predefined, or type any reaction
-2. **Balance check:** every element; an unbalanced reaction gets no numbers
-3. **Data:** 57 species from the textbook's tables, NIST data only where the textbook has none
-4. **Calculation:** Cₚ integrals → ΔH°, ΔS°, ΔG°; residual enthalpy for pressure
-5. **Results:** numbers, plots, every step, a plain-word explanation
-
-Equations strip:
-
-    ΔH°(T) = ΔH°₂₉₈ + R ∫ (ΔCₚ°/R) dT        ΔG° = ΔH° − TΔS°        ΔH(T,P) = ΔH°(T) + Σ νᵢ Hᵢᴿ
-
-Facts:
-- Runs in any browser: the Python solver works inside the page
-- Seven tabs, from one reaction to a whole reactor
-- No server: nothing is sent anywhere
-
-**What I say** (1 minute):
-
-The user picks one of 45 predefined reactions, or types any reaction. First, the solver checks the balance of every element. An unbalanced reaction gets no numbers at all, only the balanced form as a suggestion.
-
-Then it takes the data from its database: 57 species, mostly from the textbook's tables, with NIST data only where the textbook has none. It integrates the heat capacities from 298.15 K to the chosen temperature and gets ΔH°, ΔS° and ΔG°. For pressure, it adds the residual enthalpy of each gas from an equation of state.
-
-Everything runs inside the browser. There is no server, so the page works anywhere.
+And the answer is methane. Methane takes 74.9 % of the carbon. If I switch methane off, the way a selective catalyst would, methanol gets 20.6 %, and at 100 bar, 39.4 %. So thermodynamics prefers methane, and the catalyst is what gives us methanol. I'll show you this live in a minute.
 
 ---
 
-### Slide 4: Too hot, too cold, just right
+### Slide 6: Tab 5 · Bomb calorimeter (extra feature 2)
 
-**Purpose:** the story's three bowls, with real reactions. The main result about temperature.
-
-**Visual:** the three bowls again, as three cards side by side: orange "Too hot", blue "Too cold", green "Just right". Each card has the reaction, the temperature, and ΔG° as the big number.
+**Tile:** ΔU · BOMB, with a small tag "extra feature 2"
 
 **On the slide:**
 
-Title: **Too hot, too cold, just right**
+Title: **Tab 5 · Our bomb calorimeter lab, on screen**
 
-| Too hot (orange) | Too cold (blue) | Just right (green) |
-|---|---|---|
-| CO₂ + 3H₂ → CH₃OH + H₂O at 523 K | CH₄ + H₂O → CO + 3H₂ at 700 K | CH₄ + H₂O → CO + 3H₂ at 1000 K |
-| **ΔG° = +46.6 kJ/mol** | **ΔG° = +47.9 kJ/mol** | **ΔG° = −27.0 kJ/mol** |
-| Gives out heat (ΔH° = −57.9 kJ/mol), so heating favours the reactants | Takes in heat (ΔH° = +219.9 kJ/mol), and the reactants are still favoured | The products are favoured above 893 K, where ΔG° = 0 |
-
-Bottom line: **For any reaction, the solver shows ΔG° at every temperature from 298.15 K up, and where it changes sign.**
-
-**What I say** (1 minute):
-
-So let's go back to the three bowls, with real reactions. Too hot: CO2 to methanol gives out heat, but it turns four moles of gas into two, so ΔS° is negative. At 523 K, ΔG° is +46.6 kJ/mol, so the reactants are favoured, and heating it more makes this worse. That does not mean nothing reacts: some methanol still forms, only less.
-
-Too cold: steam reforming takes in heat. At 700 K, ΔG° is +47.9 kJ/mol, so the reactants are still favoured. Just right: the same reaction at 1000 K has ΔG° = −27.0 kJ/mol, so the products are favoured. The turning point is 893 K, where ΔG° is zero.
-
-The solver shows this for any reaction, as a graph from 298.15 K up.
-
----
-
-### Slide 5: Real gases at high pressure
-
-**Purpose:** the pressure result, and why the solver chooses the equation of state.
-
-**Visual:** left, one big stat with a short explanation. Right, a native horizontal bar chart (chart A).
-
-**On the slide:**
-
-Title: **Real gases at high pressure**
-
-Left:
-- Big number (orange): **4.7 %**
-- Label: **more heat from real-gas ammonia at 723 K and 200 bar**
-- Small text: −111.55 instead of −106.50 kJ/mol. The difference is the residual enthalpy of each gas, from an equation of state.
-
-Right (chart A): **Average error against NIST measured residual enthalpy (kJ/mol)**, then under the chart:
-- 24 gases, 380 measured points. Closest for each gas: Soave/Redlich/Kwong 14, Peng/Robinson 6, Redlich/Kwong 4.
-- **So the solver, not the user, picks the equation for each gas.** (orange)
-
-**What I say** (1 minute):
-
-Real reactors also run at high pressure. For an ideal gas, H depends on temperature only, but a real gas is different. For ammonia synthesis at 723 K and 200 bar, the real gas releases 4.7 % more heat than the ideal gas: −111.55 instead of −106.50 kJ/mol. The difference is the residual enthalpy of each gas, which comes from an equation of state.
-
-But which equation? I compared the five equations of the course with measured data from NIST, for 24 gases and 380 points. The chart shows the average error. No single equation is the best for every gas, so the solver, not the user, picks the closest one for each gas: Soave/Redlich/Kwong for 14 gases, Peng/Robinson for 6 and Redlich/Kwong for 4.
-
----
-
-### Slide 6: Two extra features
-
-**Purpose:** the two features beyond the assignment.
-
-**Visual:** two cards side by side, each with a small icon tile, a title, a chart, and two or three short lines. Left chart: chart B (or `figure_slate.png`). Right chart: chart C (or `figure_calorimeter.png`).
-
-**On the slide:**
-
-Title: **Two extra features**
-
-Left card, icon tile "G": **Product slate**
-- The mixture with the lowest total Gibbs energy of the allowed species
-- Methane takes 74.9 % of the carbon; with methane switched off, methanol takes 20.6 %
-- **The catalyst decides what forms.** (orange)
-
-Right card, icon tile "ΔU": **Bomb calorimeter**
-- A closed vessel gives ΔU, not ΔH: ΔH = ΔU + Δn_gas RT (set "gas" as a subscript of Δn)
 - Calibrated with benzoic acid: 3059.3 cal/°C
-- **1 g of ethanol: 2.31 °C. It also names an unknown sample.** (orange)
+- A closed vessel measures ΔU, not ΔH
+- Turns heat into a temperature rise
+- Works backwards: names an unknown sample
+
+Right side: chart C (or `figure_calorimeter.png`).
+
+Example box: 1 g of ethanol → **2.31 °C** · and a small line: "Goldilocks finally gets her temperature"
 
 **What I say** (1 minute):
 
-On top of what the assignment asks, I added two features. The product slate is a live reactor. I only choose which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. For CO2 and hydrogen at 523 K and 50 bar, methane takes 74.9 % of the carbon. If I switch methane off, like a selective catalyst would, methanol takes 20.6 %, and at 100 bar 39.4 %. So thermodynamics favours methane, and it is the catalyst that makes methanol possible. I will show you this live in a minute.
+Tab 5 is my second extra feature, and this is where Goldilocks finally gets a temperature. It's our bomb calorimeter lab, on screen.
 
-The second feature answers Goldilocks' question quite literally: how hot does it get? It repeats our bomb calorimeter lab. The bomb is a closed vessel, so it measures ΔU and not ΔH. After a calibration with the benzoic acid run of the handout, it predicts the temperature rise of any fuel, 2.31 °C for 1 g of ethanol, and it can work backwards to name an unknown sample.
+First, it calibrates with the benzoic acid run from our handout: 3059.3 calories per degree.
+
+Then it burns a sample. The bomb is a closed vessel, so it measures ΔU, not ΔH. And it turns that heat into a temperature rise.
+
+1 g of ethanol: the temperature goes up by 2.31 °C. And it works backwards too. Give it a temperature rise, and it tells you which fuel you most likely burned.
 
 ---
 
-### Slide 7: Checked, and ready to try
+### Slide 7: Tab 6 · Species data
 
-**Purpose:** why the numbers can be trusted, the close of the story, and the hand-over to the demo.
-
-**Visual:** four stat cards in a row (the first number in orange). Below, a small Baby Bear with the thermometer and the three bowls (a smaller copy of the slide 1 drawing), next to "Live demo now" and the links.
+**Tile:** Cₚ · DATA
 
 **On the slide:**
 
-Title: **Checked, and ready to try**
+Title: **Tab 6 · The data behind every number**
+
+- 57 species: 42 gases, 7 liquids, 8 solids
+- From the textbook's tables; NIST only where the textbook has none
+- Every value shows its source
+- A calculator for the heat to warm one species
+
+Example box: 1 mol of methane, 298.15 K → 1000 K · **38.49 kJ**
+
+**What I say** (30 seconds):
+
+Tab 6 is the data behind everything. There are 57 species: gases, liquids and solids. The values come from our textbook's tables, and from NIST only where the textbook has nothing. Every number shows where it came from.
+
+There's also a small calculator for warming one species. Heating one mole of methane from 298.15 K to 1000 K takes 38.49 kJ. That's Goldilocks warming her porridge, only with methane.
+
+---
+
+### Slide 8: Tab 7 · Validation
+
+**Tile:** ✓ · CHECK
+
+**On the slide:**
+
+Title: **Tab 7 · Can we trust the numbers?**
+
+- Every check runs live, in the browser
+- Reference values, stress tests, published values
+
+Four stat cards in a row (the first number in orange):
 
 | 67/67 | 5/5 | 8 | 441 |
 |---|---|---|---|
 | reference values from the textbook, the course and NIST | stress tests of the assignment passed | errors of the AI-generated solver found and corrected | automated tests run on every change |
 
-- **Live demo now**
-- ai-solver-seven.vercel.app · kirti-1307.github.io/AI-Solver · github.com/kirti-1307/AI-Solver
+Small line under the cards: 8 published reactions agree within 0.5 kJ/mol.
 
-**What I say** (40 seconds):
+**What I say** (45 seconds):
 
-Finally, why the numbers can be trusted. The solver reproduces 67 of 67 reference values from the textbook, the course material and NIST. It passes all five stress tests of the assignment. I found and corrected eight errors of the AI-generated solver. And 441 automated tests run every time the code changes.
+And finally, the big question: can we trust these numbers?
 
-So, how hot is the porridge? For any reaction, at any temperature, the solver can now tell you, and whether it is just right. Let me show you the solver live.
+Tab 7 runs every check live, in the browser, while you watch. 67 out of 67 reference values from the textbook, the course and NIST. All five stress tests of the assignment. And eight published reactions, within 0.5 kJ/mol.
+
+Along the way, I found and fixed eight mistakes in the AI-generated code. And 441 automated tests run every time the code changes.
+
+---
+
+### Slide 9: So, how hot is the porridge?
+
+**Purpose:** close the story and hand over to the demo and the questions.
+
+**Picture:** a smaller copy of the slide 1 drawing, now with Goldilocks happily eating from the small bowl, and the laptop beside her.
+
+**On the slide:**
+
+Title: **So, how hot is the porridge?**
+
+- ΔH: how much heat
+- ΔG: which side is favoured
+- The calorimeter: heat turned into degrees
+
+Bottom: **Live demo now** · ai-solver-seven.vercel.app · kirti-1307.github.io/AI-Solver · **Thank you!**
+
+**What I say** (30 seconds):
+
+So, back to Goldilocks. How hot is the porridge? The solver tells her how much heat there is: that's ΔH. It tells her which side wins: that's ΔG. And with the calorimeter, it even turns that heat into degrees. No burnt tongues.
+
+Let me quickly show you the solver live.
 
 ---
 
 ## Data for the charts
 
-**Chart A (slide 5): average error of each equation of state against NIST measured residual enthalpy, kJ/mol** (24 gases, 380 points). Horizontal bars, smallest at the top. Soave/Redlich/Kwong in orange, Peng/Robinson in blue, the rest in a pale grey-blue. Show the values on the bars.
-
-| Equation | Average error (kJ/mol) |
-|---|---|
-| Soave/Redlich/Kwong | 0.137 |
-| Peng/Robinson | 0.160 |
-| Redlich/Kwong | 0.510 |
-| van der Waals | 1.246 |
-| Virial | 1.349 |
-
-**Chart B (slide 6, left): where the carbon goes, CO₂ + 3H₂ at 523 K** (share of carbon atoms, %). A 100 % stacked bar for each case: methane grey, methanol blue, CO orange, unreacted CO₂ pale grey-blue.
+**Chart B (slide 5): where the carbon goes, CO₂ + 3H₂ at 523 K** (share of carbon atoms, %). A 100 % stacked bar for each case: methane grey, methanol blue, CO orange, unreacted CO₂ pale grey-blue.
 
 | Case | CH₄ | CH₃OH | CO | Unreacted CO₂ |
 |---|---|---|---|---|
@@ -278,7 +320,7 @@ So, how hot is the porridge? For any reaction, at any temperature, the solver ca
 | Methane off, 50 bar | 0 | 20.6 | 7.5 | 71.9 |
 | Methane off, 100 bar | 0 | 39.4 | 3.5 | 57.0 |
 
-**Chart C (slide 6, right): temperature rise in the lab bomb calorimeter for 1 g of each fuel, °C** (calorimeter constant 3059.3 cal/°C from the benzoic acid run). Vertical bars, ethanol in orange, the rest in blue, values on top.
+**Chart C (slide 6): temperature rise in the lab bomb calorimeter for 1 g of each fuel, °C** (calorimeter constant 3059.3 cal/°C from the benzoic acid run). Vertical bars, ethanol in orange, the rest in blue, values on top.
 
 | Fuel | Temperature rise (°C) |
 |---|---|
@@ -298,16 +340,14 @@ All numbers are the solver's own results, so they match the website in the live 
 
 | Number | Where to see it on the website |
 |---|---|
-| ΔG° = +46.6 kJ/mol, ΔH° = −57.9 kJ/mol (CO₂ to methanol, 523 K) | tab 1, "CO2 hydrogenation to methanol" at 523.15 K |
-| ΔG° = +47.9 kJ/mol, ΔH° = +219.9 kJ/mol (steam reforming, 700 K) | tab 1, "Methane steam reforming" at 700 K |
-| ΔG° = −27.0 kJ/mol (steam reforming, 1000 K); ΔG° = 0 at 893 K | tab 1, "Methane steam reforming" at 1000 K; the explanation says "ΔG° changes sign at 893 K" |
-| 9.0 and 31.5 kJ/mol (constant ΔCₚ, 40 reactions at 1000 K) | tab 7, stress test 2 |
-| 4.7 %, −111.55 and −106.50 kJ/mol (ammonia, 723 K, 200 bar) | tab 2, ammonia synthesis |
-| Chart A; 14, 6 and 4 gases | tab 7, the equation of state check |
-| 74.9 %, 20.6 %, 39.4 % (product slate) | tab 4, CO₂ + 3H₂ at 523 K, buttons and pressure slider |
-| 3059.3 cal/°C, 2.31 °C (ethanol) | tab 5 |
-| 67/67, 5/5, 8 | tab 7, and the report, section 6 |
-| 441 tests | the test suite (`python -m unittest discover -s tests`) |
+| ΔH° = −57.94 kJ/mol, ΔG° = +46.56 kJ/mol (CO₂ to methanol, 523 K) | tab 1, "CO2 hydrogenation to methanol" at 523.15 K |
+| −106.50, −111.55 kJ/mol, 4.7 % (ammonia, 723 K, 200 bar) | tab 2, it opens on ammonia synthesis |
+| +39.50 + (−97.44) = −57.94 kJ/mol | tab 3, the first worked example |
+| 74.9 %, 20.6 %, 39.4 % (product slate) | tab 4, buttons "1. Everything allowed" and "2. Methane off", pressure slider at 100 bar |
+| 3059.3 cal/°C, 2.31 °C (ethanol) | tab 5, Ignite |
+| 57 species, 38.49 kJ (methane, 298.15 K to 1000 K) | tab 6, the database and the sensible-heat calculator |
+| 67/67, 5/5, 0.5 kJ/mol | tab 7 |
+| 8 errors, 441 tests | the report (section 6) and the test suite |
 
 ---
 
@@ -315,12 +355,14 @@ All numbers are the solver's own results, so they match the website in the live 
 
 | Slide | Time |
 |---|---|
-| 1. The story | 45 s |
-| 2. Goldilocks' question, for every reaction | 1 min |
-| 3. How it works | 1 min |
-| 4. Too hot, too cold, just right | 1 min |
-| 5. Real gases at high pressure | 1 min |
-| 6. Two extra features | 1 min |
-| 7. Checked, and ready to try | 40 s |
-| **Slides in total** | **about 6.5 minutes** |
-| Live demo (`docs/PRESENTATION_SCRIPT.md`, part 2) | 7 minutes |
+| 1. How hot is each porridge? | 50 s |
+| 2. Tab 1 · Reaction | 1 min |
+| 3. Tab 2 · Pressure and real gas | 1 min |
+| 4. Tab 3 · Combine reactions | 45 s |
+| 5. Tab 4 · Product slate | 1 min |
+| 6. Tab 5 · Bomb calorimeter | 1 min |
+| 7. Tab 6 · Species data | 30 s |
+| 8. Tab 7 · Validation | 45 s |
+| 9. So, how hot is the porridge? | 30 s |
+| **Slides in total** | **about 7.5 minutes** |
+| Live demo (`docs/PRESENTATION_SCRIPT.md`, part 2) | about 4 minutes |

@@ -4,7 +4,9 @@ This guide has everything needed to present the Thermodynamic Reaction Energy So
 
 ## 1. The project in one minute (the idea)
 
-**The story.** The talk opens with Goldilocks and the three bears. Goldilocks asks Baby Bear "How hot is the porridge?" and gets "too hot, too cold, just right". Every reaction has the same two questions: how much heat does it give out or take in (ΔH°), and is it just right at this temperature, meaning are the products favoured (ΔG°)? The textbook tables answer them at 298.15 K only; the solver answers them at any temperature. The three bowls come back on slide 4 as real reactions: CO₂ to methanol at 523 K is "too hot", steam reforming at 700 K is "too cold", and steam reforming at 1000 K is "just right".
+**The story.** The talk opens with Goldilocks and the three bears. Goldilocks finds three bowls of porridge and asks: how hot is each porridge? In the story she finds out by tasting (too hot, too cold, just right) and burns her tongue. The solver works it out for her instead: it gives ΔH, the heat a reaction gives out or takes in, and heat is what decides how hot something gets. Each tab then answers a part of her question, and on tab 5 (the bomb calorimeter) the solver turns heat into an actual temperature rise.
+
+**Be careful with one point.** ΔH is heat (kJ/mol), not a temperature. The temperature follows from the heat and the heat capacity: ΔT = heat / heat capacity. That is exactly what the calorimeter does (1 g of ethanol: 2.31 °C). So say "ΔH tells how much heat", never "ΔH is the temperature".
 
 **The problem.** The heat of reaction at a temperature other than 298.15 K needs a heat-capacity integral for every species of the reaction. By hand that is a page of working for one reaction at one temperature, and a slip in one constant is easy to miss. So people take shortcuts (a constant ΔCp, or no ΔCp at all), and those can be badly off: for the 40 predefined reactions whose data reach 1000 K, a constant ΔCp puts ΔH° off by 9.0 kJ/mol on average and by up to 31.5 kJ/mol. A real reactor also asks two questions that one ΔG° cannot answer: what does high pressure do, and which products actually form when several reactions compete.
 
@@ -24,8 +26,8 @@ This guide has everything needed to present the Thermodynamic Reaction Energy So
 | The same at 523.15 K | ΔH° = −57.94 kJ/mol, ΔS° = −199.76 J/(mol·K), ΔG° = +46.56 kJ/mol |
 | ΔCp° of that reaction at 298.15 K | −43.95 J/(mol·K) (negative, so ΔH° falls as T rises) |
 | Steam reforming: products favoured | above 893 K (ΔG° changes sign) |
-| Steam reforming at 700 K ("too cold") | ΔH° = +219.9 kJ/mol, ΔG° = +47.9 kJ/mol |
-| Steam reforming at 1000 K ("just right") | ΔG° = −27.0 kJ/mol; ΔH° = 225.3 kJ/mol with Cp(T), 238.8 with a constant ΔCp, 205.8 with ΔCp ignored |
+| Steam reforming at 700 K | ΔH° = +219.9 kJ/mol, ΔG° = +47.9 kJ/mol |
+| Steam reforming at 1000 K | ΔG° = −27.0 kJ/mol; ΔH° = 225.3 kJ/mol with Cp(T), 238.8 with a constant ΔCp, 205.8 with ΔCp ignored |
 | Constant ΔCp at 1000 K, 40 reactions | 9.0 kJ/mol off on average, up to 31.5 (benzene hydrogenation) |
 | Methane combustion at 298.15 K | −890.65 kJ/mol with liquid water, −802.63 with water vapour; the gap is 2 × 44.01 kJ/mol |
 | Boiling points from the solver's own data | water 373.2 K, methanol 337.1 K, ethanol 351.3 K |
@@ -39,18 +41,22 @@ This guide has everything needed to present the Thermodynamic Reaction Energy So
 | 1 g of ethanol in the calorimeter | ΔH = −1366.8 kJ/mol, ΔU = −1364.3 kJ/mol, 29.62 MJ/kg, rise 2.31 °C |
 | Heating values of ethanol | HHV 29.67 MJ/kg, LHV 26.80 MJ/kg |
 | Validation | 67 of 67 reference values; 8 published reactions within 0.5 kJ/mol; 441 automated tests |
+| Hess's law on tab 3, 523 K | reverse water-gas shift +39.50 + methanol synthesis −97.44 = −57.94 kJ/mol |
+| Sensible heat on tab 6 | 1 mol of methane from 298.15 K to 1000 K: 38.49 kJ |
 
-## 3. The seven slides in short
+## 3. The nine slides in short
 
-The deck is written out in full in `presentation/PITCH_DECK.md`; the words to say are in the presentation script.
+The deck is written out in full in `presentation/PITCH_DECK.md`; the words to say are in the presentation script, and a one-page sheet of pointers is `docs/SPEAKER_POINTERS.md`.
 
-1. **The story.** Goldilocks asks Baby Bear "How hot is the porridge?": too hot, too cold, just right. Project title, my name and roll number along the bottom.
-2. **Goldilocks' question, for every reaction.** Three bowls: ΔH° (how hot?), ΔS° (disorder), ΔG° (just right?). The tables answer at 298.15 K only; by hand it is long, and shortcuts mislead (up to 31.5 kJ/mol). The idea: the full method for any reaction at any temperature.
-3. **How it works.** Reaction → balance check → data (57 species) → Cp integrals → ΔH°, ΔS°, ΔG° → residual enthalpy for pressure → results with plots and explanations, all in the browser.
-4. **Too hot, too cold, just right.** CO₂ to methanol at 523 K: ΔG° = +46.6 kJ/mol. Steam reforming at 700 K: +47.9 kJ/mol; at 1000 K: −27.0 kJ/mol; the turn at 893 K.
-5. **Real gases at high pressure.** Ammonia at 723 K and 200 bar releases 4.7 % more heat as a real gas. No single equation of state is best (the chart of average errors), so the solver picks one per gas.
-6. **Two extra features.** Product slate (methane 74.9 %, methanol 20.6 % with methane off: the catalyst decides). Bomb calorimeter (ΔU, not ΔH; 2.31 °C for 1 g of ethanol; identifies an unknown sample).
-7. **Checked, and ready to try.** 67/67 reference values, 5/5 stress tests, 8 AI errors corrected, 441 automated tests. "So, how hot is the porridge?" Then the live demo.
+1. **How hot is each porridge?** Goldilocks and the three bowls. She tastes and burns her tongue; the solver works out ΔH, the heat, instead. Project title, my name and roll number along the bottom.
+2. **Tab 1, Reaction.** Pick or type a reaction; balance check first; ΔH°, ΔS°, ΔG° from 298.15 K up; gives out or takes in heat, which side is favoured. CO₂ to methanol at 523 K: −57.94 and +46.56 kJ/mol.
+3. **Tab 2, Pressure and real gas.** Ideal gas: pressure changes nothing. Real gas: residual enthalpy of each gas, with the equation of state the solver picks from NIST data. Ammonia at 723 K and 200 bar: −106.50 → −111.55 kJ/mol, 4.7 %.
+4. **Tab 3, Combine reactions.** Hess's law with multipliers; a negative one reverses a reaction. +39.50 + (−97.44) = −57.94 kJ/mol, the same as tab 1.
+5. **Tab 4, Product slate (extra feature 1).** Choose the allowed products; lowest total Gibbs energy. Methane 74.9 %; methane off: methanol 20.6 %; 100 bar: 39.4 %. The catalyst decides.
+6. **Tab 5, Bomb calorimeter (extra feature 2).** Benzoic acid calibration 3059.3 cal/°C; ΔU, not ΔH; heat into a temperature rise: 1 g of ethanol, 2.31 °C; names an unknown sample.
+7. **Tab 6, Species data.** 57 species; textbook tables, NIST only where needed; every source shown; warming 1 mol of methane to 1000 K: 38.49 kJ.
+8. **Tab 7, Validation.** 67/67 reference values, 5/5 stress tests, 8 published reactions within 0.5 kJ/mol, 8 AI errors corrected, 441 automated tests.
+9. **So, how hot is the porridge?** ΔH: how much heat. ΔG: which side wins. The calorimeter: heat into degrees. Then the live demo.
 
 ## 4. The thermodynamics behind it
 
@@ -331,15 +337,15 @@ The words to say while showing it are in the presentation script, part 2, tab 4.
 ### A. The project and the idea
 
 **Why did you start with Goldilocks?**
-Because her question is the one we ask about every reaction. "How hot is the porridge?" is how much heat the reaction gives out or takes in (ΔH°), and "just right" is whether the products are favoured at that temperature (ΔG°). And like the porridge, the answer depends on the temperature, which is exactly what the solver works out.
+Because her question, "how hot is each porridge?", is a question about heat, and heat is what my solver works out. She finds out by tasting and burns her tongue; the solver works it out instead, through ΔH. And on tab 5 it even turns the heat into a temperature rise, like our calorimeter lab.
 
-**Which bowl is which reaction?**
-Too hot: CO₂ to methanol at 523 K, ΔG° = +46.6 kJ/mol. It gives out heat, so heating favours the reactants. Too cold: steam reforming at 700 K, ΔG° = +47.9 kJ/mol. Just right: steam reforming at 1000 K, ΔG° = −27.0 kJ/mol. Its ΔG° changes sign at 893 K.
+**Does ΔH tell you the temperature of the porridge?**
+Not directly. ΔH is heat, in kJ per mole of reaction. The temperature follows from the heat and the heat capacity: ΔT = heat / heat capacity. That is exactly what the bomb calorimeter does: the heat of 1 g of ethanol divided by the calorimeter constant (3059.3 cal/°C) gives 2.31 °C. So ΔH tells how much heat; with the heat capacity, that gives how hot.
 
-**Does "just right" mean ΔG° < 0, and is a "too hot" reaction useless?**
-In the story, "just right" means the products are favoured, ΔG° < 0. A positive ΔG° still gives some product, only less than reactant at equilibrium. And a negative ΔG° says nothing about speed: the reaction may still need a catalyst. So the story is about where the equilibrium lies, not how fast it is reached.
+**Why do you need ΔG as well as ΔH?**
+ΔH tells how much heat; it does not tell which side is favoured. That needs ΔG° = ΔH° − TΔS°. CO₂ to methanol gives out heat (ΔH° = −57.94 kJ/mol at 523 K), but ΔG° = +46.56 kJ/mol, so the reactants are favoured there. A positive ΔG° still gives some product, only less than reactant at equilibrium.
 
-**Why is steam reforming "too cold" at 700 K?**
+**Why is steam reforming only favoured at high temperature?**
 CH₄ + H₂O → CO + 3H₂ takes in heat (ΔH° = +219.9 kJ/mol at 700 K) but turns 2 moles of gas into 4, so ΔS° is positive. In ΔG° = ΔH° − TΔS° the −TΔS° term only outweighs ΔH° above 893 K. That is why steam reforming is run hot; the predefined reaction opens at 1073 K.
 
 **Why did you build this?**
@@ -571,5 +577,6 @@ For a gas with NIST data, about the average error of its chosen equation (for ex
 
 - Laptop charged, slides open, the site loaded with **Solver ready** showing, spare address and local copy ready.
 - Use only https://ai-solver-seven.vercel.app/ or https://kirti-1307.github.io/AI-Solver/. Check that tab 1 starts with the short line "Pick a reaction or type your own. The solver calculates ΔH°, ΔS° and ΔG°…"; if not, press Ctrl+Shift+R once.
-- Tell the story (slide 1), say the idea (slide 2), then show it live. Keep each tab to the numbers above.
+- Tell the story (slide 1), give each tab its slide (slides 2 to 8), close the story (slide 9), then show it live. Keep each tab to the numbers above.
+- Keep the one-page pointer sheet (`docs/SPEAKER_POINTERS.md`, printed) beside you: one block per slide, with the line to start with and the number to say.
 - If you do not know an answer, say what you do know and where the solver shows it. Every number on the screen comes from the solver, not from memory.
