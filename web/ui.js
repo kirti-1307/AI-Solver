@@ -6,6 +6,27 @@
 
 const TS = {};
 
+/* -------------------------------------------------------------- fresh page */
+/* GitHub Pages lets a browser keep index.html for up to 10 minutes, so right after an update a visitor
+ * can still get the old page. Ask the server for the current index.html, past every cache, and reload
+ * once if it names a newer release (the ?v= tag) than the page on screen. */
+TS.reloadIfOutdated = async () => {
+  const tag = (html) => (html.match(/web\/ui\.js\?v=([\w.]+)/) || [])[1];
+  const mine = tag(document.documentElement.innerHTML);
+  if (!mine || !window.fetch || location.protocol === "file:") return;
+  try {
+    const res = await fetch(`${location.pathname}?fresh=${Date.now()}`, { cache: "no-store" });
+    const live = res.ok ? tag(await res.text()) : null;
+    if (!live || live === mine) return;
+    // Reload at most once for each release, so a cache that still answers with the old page cannot loop.
+    if (sessionStorage.getItem("ts-reloaded-for") === live) return;
+    sessionStorage.setItem("ts-reloaded-for", live);
+    location.reload();
+  } catch (err) {
+    // offline, or storage blocked: keep the page that is on screen
+  }
+};
+
 /* ------------------------------------------------------------------ engine */
 TS.Engine = class {
   constructor(onStatus) {
@@ -18,7 +39,7 @@ TS.Engine = class {
     });
     this.ready.catch(() => {});
     try {
-      this.worker = new Worker("web/worker.js?v=1.8.11");
+      this.worker = new Worker("web/worker.js?v=1.8.12");
     } catch (err) {
       this._fail(`This browser could not start the calculation engine (${err}). ` +
         "Open the page through a web server (http://…), not directly from a file.");

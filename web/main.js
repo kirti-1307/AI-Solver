@@ -71,6 +71,7 @@
   }
 
   async function start() {
+    TS.reloadIfOutdated();             // an older copy kept by the browser fetches the new release
     for (const button of $$(".tabs button")) {
       button.addEventListener("click", () => showTab(button.dataset.tab));
     }
