@@ -322,7 +322,7 @@ The words to say while showing it are in the presentation script, part 2, tab 4.
 
 - Standard values are at 1 bar. The pressure effect treats each gas as the pure gas at T and P, so mixing is taken to change no enthalpy.
 - The chosen equation of state is the closest of five, not exact (ammonia: still 0.18 kJ/mol off on average), and for a gas without NIST data it is a best guess.
-- Phase change is handled at 1 bar for six compounds on tab 1. On tabs 2 and 4 a species that would condense at high pressure is flagged, not condensed.
+- Phase change is handled at 1 bar for six compounds on tab 1. At high pressure nothing is condensed: on tab 2 a gas that would be a liquid at that T and P gets no gas-phase value (the tab says so and offers a pressure that works); on tab 4 water diluted in the mixture is kept as a vapour.
 - The calorimeter assumes complete combustion to CO₂ and liquid water.
 - Thermodynamics says where a reaction can end up, not how fast it gets there.
 
@@ -547,6 +547,12 @@ The page needs the internet once, to load Python and the plotting library. If on
 **What do the automated tests check?**
 The data against the printed tables, every formula against an independent calculation, the reference values, the stress tests, the wording of the page, and that the hosted files fit together. They run on every change.
 
+**Why are there two web addresses?**
+The same files from the GitHub repository are hosted twice, as a spare: on GitHub Pages (kirti-1307.github.io/AI-Solver) and on Vercel (ai-solver-seven.vercel.app). Every change pushed to GitHub updates both within a minute or two. Vercel also makes a separate, frozen copy of every single update, each with its own long address; those are snapshots of old versions, so only the two addresses above are used.
+
+**After an update, why did the old page still show?**
+A browser may keep a copy of the page for up to 10 minutes. The page now checks the server's version when it opens and reloads itself once if it is out of date; Ctrl+Shift+R also loads the latest version.
+
 ### J. Harder questions
 
 **Why does ΔG° not jump at a boiling point while ΔH° does?**
@@ -564,5 +570,6 @@ For a gas with NIST data, about the average error of its chosen equation (for ex
 ## 11. On the day
 
 - Laptop charged, slides open, the site loaded with **Solver ready** showing, spare address and local copy ready.
+- Use only https://ai-solver-seven.vercel.app/ or https://kirti-1307.github.io/AI-Solver/. Check that tab 1 starts with the short line "Pick a reaction or type your own. The solver calculates ΔH°, ΔS° and ΔG°…"; if not, press Ctrl+Shift+R once.
 - Tell the story (slide 1), say the idea (slide 2), then show it live. Keep each tab to the numbers above.
 - If you do not know an answer, say what you do know and where the solver shows it. Every number on the screen comes from the solver, not from memory.

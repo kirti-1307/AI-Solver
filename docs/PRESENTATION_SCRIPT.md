@@ -5,7 +5,8 @@ About 14 minutes: 6.5 minutes on the seven slides (the idea, opening with the st
 **Before the class**
 
 - Open the slides (the light-theme deck designed from `presentation/PITCH_DECK.md`) and start the slide show on slide 1. The older six-slide deck, `presentation/Thermo_Solver_Presentation.pptx`, is a spare.
-- In the browser, open https://ai-solver-seven.vercel.app/ (spare: https://kirti-1307.github.io/AI-Solver/). Wait until the top right says **Solver ready**, which takes about ten seconds on the first visit. Then stay on the **Start** page.
+- In the browser, open https://ai-solver-seven.vercel.app/ (spare: https://kirti-1307.github.io/AI-Solver/). Use only these two addresses: a Vercel link with extra letters in it is a frozen copy of an old version. Wait until the top right says **Solver ready**, which takes about ten seconds on the first visit. Then stay on the **Start** page.
+- Check that tab 1 starts with "Pick a reaction or type your own. The solver calculates ΔH°, ΔS° and ΔG°…". If it shows a longer, older text, press **Ctrl+Shift+R** once to load the latest version.
 - Keep the browser at 100 % zoom, and close every other tab.
 - If both addresses are down but the internet works: run `python serve.py` in the project folder and open http://localhost:8000. The page always needs the internet once, to load Python and the plotting library.
 
@@ -51,7 +52,7 @@ But which equation? I compared the five equations of the course with measured da
 
 ### Slide 6: Two extra features (1 minute)
 
-On top of what the assignment asks, I added two features. The product slate is a live reactor. I only choose which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. For CO2 and hydrogen at 523 K and 50 bar, methane takes 74.9 % of the carbon. If I switch methane off, like a selective catalyst would, methanol takes 20.6 %, and at 100 bar 39.4 %. So thermodynamics favours methane, and it is the catalyst that makes methanol possible.
+On top of what the assignment asks, I added two features. The product slate is a live reactor. I only choose which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. For CO2 and hydrogen at 523 K and 50 bar, methane takes 74.9 % of the carbon. If I switch methane off, like a selective catalyst would, methanol takes 20.6 %, and at 100 bar 39.4 %. So thermodynamics favours methane, and it is the catalyst that makes methanol possible. I will show you this live in a minute.
 
 The second feature answers Goldilocks' question quite literally: how hot does it get? It repeats our bomb calorimeter lab. The bomb is a closed vessel, so it measures ΔU and not ΔH. After a calibration with the benzoic acid run of the handout, it predicts the temperature rise of any fuel, 2.31 °C for 1 g of ethanol, and it can work backwards to name an unknown sample.
 

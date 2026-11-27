@@ -131,13 +131,13 @@ Three things happen at a boiling point:
 
 The same data give the **vapour pressure**: the pressure at which a liquid and its vapour are in balance at a given temperature. For water the solver finds 0.0317 bar at 25 °C and 0.199 bar at 60 °C. The steam table says 0.0317 and 0.199 bar.
 
-### Not favourable does not mean no ΔH
+### "Reactants favoured" does not mean no ΔH
 
 ΔH is the enthalpy of the products minus the enthalpy of the reactants. Both are properties of the substances, so ΔH exists for any balanced reaction, whether it goes by itself or not.
 
-"Not favourable" only means K is smaller than 1: at equilibrium there is more reactant than product. It does not mean nothing reacts. Whatever amount does react gives out, or takes in, ΔH per mole. You also need this ΔH to design the reactor, and it is the ΔH of the reverse reaction with the sign flipped.
+"Reactants favoured" only means K is smaller than 1: at equilibrium there is more reactant than product. It does not mean nothing reacts. Whatever amount does react gives out, or takes in, ΔH per mole. You also need this ΔH to design the reactor, and it is the ΔH of the reverse reaction with the sign flipped.
 
-Example: at 523 K, CO₂ + 3 H₂ → CH₃OH + H₂O is not favourable (K = 2.2 × 10⁻⁵), and still every mole that reacts releases 57.94 kJ. A methanol plant runs this reaction at 50 bar and has to remove exactly that heat.
+Example: at 523 K, the reactants of CO₂ + 3 H₂ → CH₃OH + H₂O are favoured (K = 2.2 × 10⁻⁵), and still every mole that reacts releases 57.94 kJ. A methanol plant runs this reaction at 50 bar and has to remove exactly that heat.
 
 ## 4. The tabs, one by one
 
@@ -165,7 +165,7 @@ A phase you type is always kept, because a textbook often wants the other form o
 
 **The three graphs of tab 1.** Each has a line under it that says how to read it. In short:
 
-1. **Energy changes versus temperature.** Orange is ΔH° (heat), blue is ΔG° (which side is favoured), green is T·ΔS°. Blue is always orange minus green. Where the blue line crosses zero, the favoured side changes. The dots show your temperature.
+1. **Energy changes versus temperature.** Orange is ΔH° (heat), blue is ΔG° (which side is favoured), green is T·ΔS°. Blue is always orange minus green. Where the blue line crosses zero, the favoured side changes. The dots show your temperature. The thin dashed and dotted lines are two shortcuts: a constant ΔCp, and ΔCp ignored (taken as zero, so ΔH° and ΔS° keep their 298.15 K values). The gap between them and the solid lines is how far off the shortcuts are.
 2. **Heat-capacity change, ΔCp°.** Cp of the products minus Cp of the reactants. It is the slope of the orange ΔH° line: negative ΔCp° means ΔH° falls as it gets hotter.
 3. **Sensible heat of each species.** One bar per substance: the heat it takes up between 298.15 K and your temperature. Added together, the bars are the difference between ΔH° at your temperature and ΔH° at 298.15 K.
 
@@ -370,7 +370,7 @@ Try to answer before you read the answer.
 
 1. **A reaction has ΔH = −50 kJ/mol. Does it give out or take in heat?** It gives out heat. It is exothermic.
 2. **A reaction turns 4 gas molecules into 2. Is ΔS positive or negative?** Negative. There is less gas, so less disorder.
-3. **Can an exothermic reaction be unfavourable?** Yes. If ΔS is negative, the −T·ΔS term is positive and grows with temperature. Methanol from CO₂ at 523 K is an example.
+3. **Can an exothermic reaction have its reactants favoured?** Yes. If ΔS is negative, the −T·ΔS term is positive and grows with temperature. Methanol from CO₂ at 523 K is an example.
 4. **K = 0.00002. Mostly products or mostly reactants?** Mostly reactants.
 5. **Why does pressure help ammonia synthesis?** The reaction reduces the number of gas molecules from 4 to 2. Higher pressure favours the side with fewer molecules.
 6. **Does "standard state" mean 298.15 K?** No. It fixes the pressure at 1 bar. The temperature is whatever you choose. 298.15 K is only the temperature at which the tables list the heats of formation; other temperatures are reached with Cp.
@@ -379,7 +379,7 @@ Try to answer before you read the answer.
 9. **In tab 4, why does switching methane off change the answer?** Methane is the most stable product. Remove it, and the atoms settle into the next best mixture, which contains methanol.
 10. **What do the consistency checks prove?** That two different ways of calculating the same quantity agree. A wrong sign or unit would break it.
 11. **Does a favourable ΔG mean the reaction is fast?** No. Thermodynamics says where a reaction can end up, not how quickly. That is why catalysts are needed.
-12. **A reaction is not favourable. Why does it still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Not favourable" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
+12. **The reactants are favoured. Why does the reaction still have a ΔH?** ΔH is the enthalpy of the products minus that of the reactants, so it exists for any balanced reaction. "Reactants favoured" only means K is below 1. Some product still forms, and each mole that reacts exchanges ΔH.
 13. **Where do the heat capacities below 298.15 K come from?** From NIST tables, between 200 K and 298.15 K. The textbook formulas start at 298 K and are not used below it.
 14. **In tab 4, why can the methanol switch not be clicked while methane is allowed?** Methanol holds 0.0 % of the carbon then, so blocking it would change nothing. Switch methane off and methanol holds 20.6 %; now its switch matters.
 15. **A reaction is favoured at 50 bar but not at 1 bar. Did K change?** No. K depends on temperature only. Pressure changes how far the reaction goes when the number of gas molecules changes.

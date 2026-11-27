@@ -17,9 +17,9 @@ This file is the full content of a 7-slide pitch deck, slide by slide: the words
 | Presenter | Kirti Roshankumar Thakar, Roll No. 25A1CHEB0107 |
 | Course | Chemical Engineering Thermodynamics, Assignment 2, Prof. M. Ali Haider |
 | Audience | the professor and my classmates (chemical engineering students) |
-| Length | 7 slides, about 6 minutes, then a live demo of the website |
+| Length | 7 slides, about 6.5 minutes, then a live demo of the website (about 7 minutes) |
 | Goal | present the idea of the solver, opening with a story |
-| Live site | https://ai-solver-seven.vercel.app/ and https://kirti-1307.github.io/AI-Solver/ |
+| Live site | https://ai-solver-seven.vercel.app/ and https://kirti-1307.github.io/AI-Solver/ (only these two addresses; they always show the latest version) |
 | AI platform used | Claude |
 
 **The story thread.** The deck opens with Goldilocks and the three bears: Goldilocks asks Baby Bear "How hot is the porridge?", and the answer is "too hot, too cold, just right". Every reaction has the same question: how much heat (ΔH°), and is it "just right" at this temperature, meaning are the products favoured (ΔG°)? The three bowls come back on slides 2 and 4, and the last slide closes the story.
@@ -227,7 +227,7 @@ Right card, icon tile "ΔU": **Bomb calorimeter**
 
 **What I say** (1 minute):
 
-On top of what the assignment asks, I added two features. The product slate is a live reactor. I only choose which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. For CO2 and hydrogen at 523 K and 50 bar, methane takes 74.9 % of the carbon. If I switch methane off, like a selective catalyst would, methanol takes 20.6 %, and at 100 bar 39.4 %. So thermodynamics favours methane, and it is the catalyst that makes methanol possible.
+On top of what the assignment asks, I added two features. The product slate is a live reactor. I only choose which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. For CO2 and hydrogen at 523 K and 50 bar, methane takes 74.9 % of the carbon. If I switch methane off, like a selective catalyst would, methanol takes 20.6 %, and at 100 bar 39.4 %. So thermodynamics favours methane, and it is the catalyst that makes methanol possible. I will show you this live in a minute.
 
 The second feature answers Goldilocks' question quite literally: how hot does it get? It repeats our bomb calorimeter lab. The bomb is a closed vessel, so it measures ΔU and not ΔH. After a calibration with the benzoic acid run of the handout, it predicts the temperature rise of any fuel, 2.31 °C for 1 g of ethanol, and it can work backwards to name an unknown sample.
 
