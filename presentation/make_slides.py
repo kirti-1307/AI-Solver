@@ -3,7 +3,9 @@
     python presentation/make_slides.py
 
 Every number on the slides is the solver's (see docs/STUDY_GUIDE.md, section 2).
-The speaker notes are the words of docs/PRESENTATION_SCRIPT.md, part 1.
+This is the older six-slide deck, kept as a spare; its speaker notes follow the
+script as it was before the Goldilocks opening. The deck to present now is the
+light-theme one written out in presentation/PITCH_DECK.md.
 The look follows the website: navy and white with one orange accent, and the
 square "tile" of the start page as the repeated element.
 """

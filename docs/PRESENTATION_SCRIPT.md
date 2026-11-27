@@ -1,31 +1,31 @@
 # Presentation script: Thermodynamic Reaction Energy Solver
 
-About 12 minutes: 5 minutes on the six slides (the idea), 6 minutes of live demo, and a short close. The words to say are in plain text. What to click is in *italics* inside square brackets. Every number below is what the solver shows, so it matches the screen. For the questions afterwards, see the study guide (`docs/STUDY_GUIDE.md`).
+About 13 minutes: 6.5 minutes on the seven slides (the idea, opening with the story of Goldilocks and the three bears), 6 minutes of live demo, and a short close. The words to say are in plain text. What to click is in *italics* inside square brackets. Every number below is what the solver shows, so it matches the screen. For the questions afterwards, see the study guide (`docs/STUDY_GUIDE.md`).
 
 **Before the class**
 
-- Open the slides (`presentation/Thermo_Solver_Presentation.pptx`) and start the slide show on slide 1.
+- Open the slides (the light-theme deck designed from `presentation/PITCH_DECK.md`) and start the slide show on slide 1. The older six-slide deck, `presentation/Thermo_Solver_Presentation.pptx`, is a spare.
 - In the browser, open https://ai-solver-seven.vercel.app/ (spare: https://kirti-1307.github.io/AI-Solver/). Wait until the top right says **Solver ready**, which takes about ten seconds on the first visit. Then stay on the **Start** page.
 - Keep the browser at 100 % zoom, and close every other tab.
 - If both addresses are down but the internet works: run `python serve.py` in the project folder and open http://localhost:8000. The page always needs the internet once, to load Python and the plotting library.
 
 ---
 
-## Part 1: The slides (5 minutes)
+## Part 1: The slides (6.5 minutes)
 
-### Slide 1: Title (20 seconds)
+### Slide 1: The story (45 seconds)
 
-Good morning. My project is a Thermodynamic Reaction Energy Solver. It is a web page that works out the heat of reaction, the entropy change and the Gibbs energy change of a chemical reaction at any temperature, and shows what pressure does to them, using the data and the equations of Smith, Van Ness and Abbott. I built it with Claude as the AI platform.
+Good morning. Before I start, a short story. You all know Goldilocks and the three bears. In my version, Goldilocks is a little more careful: before she eats, she asks Baby Bear one question. "How hot is the porridge?" And Baby Bear says: "Papa's bowl is too hot, Mama's is too cold, and mine is just right."
 
-### Slide 2: The idea (1 minute 15 seconds)
+Notice that the bear did not give her a number. Whether it is too hot or just right depends on the temperature, and on what you want from it.
 
-Let me start with the problem. In our course, the heat of reaction at a temperature other than 298.15 K needs a heat-capacity integral for every species. By hand, that takes a page of working for one reaction at one temperature, and a slip in one constant is easy to miss.
+### Slide 2: Goldilocks' question, for every reaction (1 minute)
 
-So people use shortcuts. They take ΔCp as constant, or they ignore it. These shortcuts can be badly off: for the 40 predefined reactions whose data reach 1000 K, a constant ΔCp puts ΔH° off by 9.0 kJ/mol on average and by up to 31.5 kJ/mol.
+As chemical engineers, we ask Goldilocks' question about every reaction. How hot: how much heat does the reaction give out or take in? That is ΔH°. And is it just right: at this temperature, are the products favoured? That is ΔG°, which comes from ΔH° and the entropy change ΔS°.
 
-And a real reactor adds two more questions that a single ΔG° cannot answer: what does high pressure do, and which products actually form when several reactions compete for the same atoms.
+The problem is that the textbook tables give these numbers at one temperature only, 298.15 K. At any other temperature we need a heat-capacity integral for every species, which is a page of working for one reaction at one temperature. So people use shortcuts, like taking ΔCp as constant. For the 40 predefined reactions whose data reach 1000 K, that shortcut is off by 9.0 kJ/mol on average, and by up to 31.5 kJ/mol.
 
-My idea was a solver that does the full textbook method every time, in a few seconds, shows every step and every plot, explains the result in plain words, and checks itself against the textbook.
+My idea was a solver that does the full textbook method every time, for any reaction at any temperature, in a few seconds. It shows every step and every plot, explains the result in plain words, and checks itself against the textbook.
 
 ### Slide 3: How it works (1 minute)
 
@@ -35,29 +35,31 @@ Then it takes the data from its database: 57 species, mostly from the textbook's
 
 Everything runs inside the browser. There is no server, so the page works anywhere.
 
-### Slide 4: What it shows (1 minute)
+### Slide 4: Too hot, too cold, just right (1 minute)
 
-Three results from the solver.
+So let's go back to the three bowls, with real reactions. Too hot: CO2 to methanol gives out heat, but it turns four moles of gas into two, so ΔS° is negative. At 523 K, ΔG° is +46.6 kJ/mol, so the reactants are favoured, and heating it more makes this worse. That does not mean nothing reacts: some methanol still forms, only less.
 
-First, temperature decides which side is favoured. CO2 to methanol gives out heat, but it turns four moles of gas into two, so ΔS° is negative. At 523 K, ΔG° is +46.6 kJ/mol, so the reactants are favoured. Steam reforming is the opposite case: its products are favoured above 893 K.
+Too cold: steam reforming takes in heat. At 700 K, ΔG° is +47.9 kJ/mol, so the reactants are still favoured. Just right: the same reaction at 1000 K has ΔG° = −27.0 kJ/mol, so the products are favoured. The turning point is 893 K, where ΔG° is zero.
 
-Second, pressure matters for real gases. For ammonia synthesis at 200 bar, the real gas releases 4.7 % more heat than the ideal gas.
+The solver shows this for any reaction, as a graph from 298.15 K up.
 
-Third, no single equation of state is best. I compared the five equations of the course with measured data from NIST for 24 gases. The chart shows the average error: Soave/Redlich/Kwong and Peng/Robinson are far better than van der Waals and the virial equation. So the solver, not the user, chooses the equation for each gas.
+### Slide 5: Real gases at high pressure (1 minute)
 
-### Slide 5: Two extra features (1 minute)
+Real reactors also run at high pressure. For an ideal gas, H depends on temperature only, but a real gas is different. For ammonia synthesis at 723 K and 200 bar, the real gas releases 4.7 % more heat than the ideal gas: −111.55 instead of −106.50 kJ/mol. The difference is the residual enthalpy of each gas, which comes from an equation of state.
 
-On top of what the assignment asks, I added two features.
+But which equation? I compared the five equations of the course with measured data from NIST, for 24 gases and 380 points. The chart shows the average error. No single equation is the best for every gas, so the solver, not the user, picks the closest one for each gas: Soave/Redlich/Kwong for 14 gases, Peng/Robinson for 6 and Redlich/Kwong for 4.
 
-The product slate is a live reactor. I only choose which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. For CO2 and hydrogen at 523 K and 50 bar, methane takes 74.9 % of the carbon. If I switch methane off, like a selective catalyst would, methanol takes 20.6 %. So thermodynamics favours methane, and it is the catalyst that makes methanol possible.
+### Slide 6: Two extra features (1 minute)
 
-The second feature repeats our bomb calorimeter lab. The bomb is a closed vessel, so it measures ΔU and not ΔH. After a calibration with the benzoic acid run of the handout, it predicts the temperature rise of any fuel, 2.31 °C for 1 g of ethanol, and it can work backwards to name an unknown sample.
+On top of what the assignment asks, I added two features. The product slate is a live reactor. I only choose which species may exist, and the solver finds the mixture with the lowest total Gibbs energy. For CO2 and hydrogen at 523 K and 50 bar, methane takes 74.9 % of the carbon. If I switch methane off, like a selective catalyst would, methanol takes 20.6 %, and at 100 bar 39.4 %. So thermodynamics favours methane, and it is the catalyst that makes methanol possible.
 
-### Slide 6: Checked, and ready to try (40 seconds)
+The second feature answers Goldilocks' question quite literally: how hot does it get? It repeats our bomb calorimeter lab. The bomb is a closed vessel, so it measures ΔU and not ΔH. After a calibration with the benzoic acid run of the handout, it predicts the temperature rise of any fuel, 2.31 °C for 1 g of ethanol, and it can work backwards to name an unknown sample.
+
+### Slide 7: Checked, and ready to try (40 seconds)
 
 Finally, why the numbers can be trusted. The solver reproduces 67 of 67 reference values from the textbook, the course material and NIST. It passes all five stress tests of the assignment. I found and corrected eight errors of the AI-generated solver. And 441 automated tests run every time the code changes.
 
-Let me show you the solver live.
+So, how hot is the porridge? For any reaction, at any temperature, the solver can now tell you, and whether it is just right. Let me show you the solver live.
 
 ---
 
@@ -73,15 +75,19 @@ First, the balance check. Here methane plus oxygen gives CO2 and water, typed wi
 
 *[Pick "CO2 hydrogenation to methanol" from the list. The temperature is 523.15 K]*
 
-Now a real reaction at 523 K. The cards show ΔH° = −57.94 kJ/mol, so it gives out heat, ΔS° = −199.76 J/(mol·K), and ΔG° = +46.56 kJ/mol, so the reactants are favoured. That does not mean nothing reacts: some product still forms, only less.
+Now the "too hot" bowl from the slides, at 523 K. The cards show ΔH° = −57.94 kJ/mol, so it gives out heat, ΔS° = −199.76 J/(mol·K), and ΔG° = +46.56 kJ/mol, so the reactants are favoured. That does not mean nothing reacts: some product still forms, only less.
 
 *[Scroll to the graphs]*
 
 The first graph shows the same three quantities against temperature, from 298.15 K up. Orange is ΔH°, blue is ΔG°. For this reaction ΔG° stays positive over the whole graph. The dashed lines show what the shortcuts would give. The bars show the sensible heat of each species, and the table under them gives every number of the calculation.
 
+*[Pick "Methane steam reforming" from the list, type the temperature 1000 K and press Calculate]*
+
+And the "just right" bowl: steam reforming at 1000 K has ΔG° = −27.03 kJ/mol, so the products are favoured. The explanation under the cards says that ΔG° changes sign at 893 K.
+
 *[Type `CH4 + 2 O2 -> CO2 + 2 H2O` with the temperature 298.15 K and press Calculate]*
 
-A second reaction: methane combustion, with water typed without a phase. The solver finds the boiling point of water from its own data, 373.2 K, and uses the phase that is stable at my temperature. At 298.15 K that is liquid water, and ΔH° is −890.65 kJ/mol. If I type H2O(g) on purpose, it keeps the vapour and gives −802.63 kJ/mol, the lower heating value.
+A last reaction: methane combustion, with water typed without a phase. The solver finds the boiling point of water from its own data, 373.2 K, and uses the phase that is stable at my temperature. At 298.15 K that is liquid water, and ΔH° is −890.65 kJ/mol. If I type H2O(g) on purpose, it keeps the vapour and gives −802.63 kJ/mol, the lower heating value.
 
 ### Tab 2: pressure (1 minute)
 
@@ -93,7 +99,7 @@ For an ideal gas, H depends on temperature only, so the ideal-gas ΔH is −106.
 
 The three steps reach the real value like Hess's law: real reactants to ideal gas, the ideal-gas reaction, then ideal products to real gas. The table shows each gas with the equation of state the solver chose for it.
 
-### Tab 4: product slate (1 minute 30 seconds)
+### Tab 4: product slate (1 minute)
 
 *[Click tab 4. Click "1. Everything allowed", then "2. Methane off"]*
 
@@ -123,7 +129,7 @@ And this tab runs all the reference values and the five stress tests live, in th
 
 ## Part 3: Close (20 seconds)
 
-To sum up: the solver does the full textbook method for any reaction, shows what pressure does to real gases with the equation of state that fits each gas best, shows which products really form, and repeats our calorimeter lab. Every number is checked against the textbook. Thank you, and I am happy to take questions.
+To sum up: the solver does the full textbook method for any reaction, tells you whether it is too hot, too cold or just right at any temperature, shows what pressure does to real gases with the equation of state that fits each gas best, shows which products really form, and repeats our calorimeter lab. Every number is checked against the textbook. Thank you, and I am happy to take questions.
 
 ---
 

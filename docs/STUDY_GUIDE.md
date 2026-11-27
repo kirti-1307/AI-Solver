@@ -4,6 +4,8 @@ This guide has everything needed to present the Thermodynamic Reaction Energy So
 
 ## 1. The project in one minute (the idea)
 
+**The story.** The talk opens with Goldilocks and the three bears. Goldilocks asks Baby Bear "How hot is the porridge?" and gets "too hot, too cold, just right". Every reaction has the same two questions: how much heat does it give out or take in (ΔH°), and is it just right at this temperature, meaning are the products favoured (ΔG°)? The textbook tables answer them at 298.15 K only; the solver answers them at any temperature. The three bowls come back on slide 4 as real reactions: CO₂ to methanol at 523 K is "too hot", steam reforming at 700 K is "too cold", and steam reforming at 1000 K is "just right".
+
 **The problem.** The heat of reaction at a temperature other than 298.15 K needs a heat-capacity integral for every species of the reaction. By hand that is a page of working for one reaction at one temperature, and a slip in one constant is easy to miss. So people take shortcuts (a constant ΔCp, or no ΔCp at all), and those can be badly off: for the 40 predefined reactions whose data reach 1000 K, a constant ΔCp puts ΔH° off by 9.0 kJ/mol on average and by up to 31.5 kJ/mol. A real reactor also asks two questions that one ΔG° cannot answer: what does high pressure do, and which products actually form when several reactions compete.
 
 **The idea.** A web page that does the full textbook method (Smith, Van Ness and Abbott) for any reaction in a few seconds, shows every step and plot, explains the result in plain words, and checks itself against the textbook.
@@ -21,8 +23,9 @@ This guide has everything needed to present the Thermodynamic Reaction Energy So
 | CO₂ + 3 H₂ → CH₃OH + H₂O, at 298.15 K | ΔH° = −48.97 kJ/mol, ΔS° = −177.08 J/(mol·K), ΔG° = +3.83 kJ/mol |
 | The same at 523.15 K | ΔH° = −57.94 kJ/mol, ΔS° = −199.76 J/(mol·K), ΔG° = +46.56 kJ/mol |
 | ΔCp° of that reaction at 298.15 K | −43.95 J/(mol·K) (negative, so ΔH° falls as T rises) |
-| Steam reforming becomes favourable | above 893 K (ΔG° changes sign) |
-| Steam reforming at 1000 K | ΔH° = 225.3 kJ/mol with Cp(T), 238.8 with a constant ΔCp, 205.8 with ΔCp ignored |
+| Steam reforming: products favoured | above 893 K (ΔG° changes sign) |
+| Steam reforming at 700 K ("too cold") | ΔH° = +219.9 kJ/mol, ΔG° = +47.9 kJ/mol |
+| Steam reforming at 1000 K ("just right") | ΔG° = −27.0 kJ/mol; ΔH° = 225.3 kJ/mol with Cp(T), 238.8 with a constant ΔCp, 205.8 with ΔCp ignored |
 | Constant ΔCp at 1000 K, 40 reactions | 9.0 kJ/mol off on average, up to 31.5 (benzene hydrogenation) |
 | Methane combustion at 298.15 K | −890.65 kJ/mol with liquid water, −802.63 with water vapour; the gap is 2 × 44.01 kJ/mol |
 | Boiling points from the solver's own data | water 373.2 K, methanol 337.1 K, ethanol 351.3 K |
@@ -30,21 +33,24 @@ This guide has everything needed to present the Thermodynamic Reaction Energy So
 | Real-gas effect, other cases | CO₂ to methanol at 50 bar 10.6 %, steam reforming at 1100 K 0.2 % |
 | Equations of state against NIST data | 24 gases, 380 points; closest: Soave/Redlich/Kwong 14 gases, Peng/Robinson 6, Redlich/Kwong 4 |
 | Average error against NIST data | SRK 0.137, PR 0.160, RK 0.510, van der Waals 1.246, virial 1.349 kJ/mol |
-| Product slate, CO₂ + 3 H₂, 523 K, 50 bar | everything allowed: methane 74.9 % of the carbon; methane off: methanol 20.6 %, CO 7.5 % |
+| Product slate, CO₂ + 3 H₂, 523 K, 50 bar | everything allowed: methane 74.9 % of the carbon; methane off: methanol 20.6 %, CO 7.5 %; methane off at 100 bar: methanol 39.4 % |
 | Only methanol allowed | 0.6 % at 1 bar, 24.5 % at 50 bar |
 | Calorimeter constant | (1.1942 g × 6319 cal/g + 41 cal) / 2.48 °C = 3059.3 cal/°C |
 | 1 g of ethanol in the calorimeter | ΔH = −1366.8 kJ/mol, ΔU = −1364.3 kJ/mol, 29.62 MJ/kg, rise 2.31 °C |
 | Heating values of ethanol | HHV 29.67 MJ/kg, LHV 26.80 MJ/kg |
 | Validation | 67 of 67 reference values; 8 published reactions within 0.5 kJ/mol; 441 automated tests |
 
-## 3. The six slides in short
+## 3. The seven slides in short
 
-1. **Title.** Name of the project, what it does, my name and roll number, AI platform: Claude.
-2. **The idea.** Hand calculation is long and shortcuts mislead (up to 31.5 kJ/mol); a reactor adds pressure and competing reactions. The solver does the full method every time and checks itself.
+The deck is written out in full in `presentation/PITCH_DECK.md`; the words to say are in the presentation script.
+
+1. **The story.** Goldilocks asks Baby Bear "How hot is the porridge?": too hot, too cold, just right. Project title, my name and roll number along the bottom.
+2. **Goldilocks' question, for every reaction.** Three bowls: ΔH° (how hot?), ΔS° (disorder), ΔG° (just right?). The tables answer at 298.15 K only; by hand it is long, and shortcuts mislead (up to 31.5 kJ/mol). The idea: the full method for any reaction at any temperature.
 3. **How it works.** Reaction → balance check → data (57 species) → Cp integrals → ΔH°, ΔS°, ΔG° → residual enthalpy for pressure → results with plots and explanations, all in the browser.
-4. **What it shows.** Temperature decides favourability (CO₂ to methanol: ΔG° = +46.6 kJ/mol at 523 K); pressure matters for real gases (ammonia 4.7 %); no single equation of state is best (the chart of average errors).
-5. **Two extra features.** Product slate (methane 74.9 %, methanol 20.6 % with methane off: the catalyst decides). Bomb calorimeter (ΔU, not ΔH; 2.31 °C for 1 g of ethanol; identifies an unknown sample).
-6. **Checked, and ready to try.** 67/67 reference values, 5/5 stress tests, 8 AI errors corrected, 441 automated tests. Then the live demo.
+4. **Too hot, too cold, just right.** CO₂ to methanol at 523 K: ΔG° = +46.6 kJ/mol. Steam reforming at 700 K: +47.9 kJ/mol; at 1000 K: −27.0 kJ/mol; the turn at 893 K.
+5. **Real gases at high pressure.** Ammonia at 723 K and 200 bar releases 4.7 % more heat as a real gas. No single equation of state is best (the chart of average errors), so the solver picks one per gas.
+6. **Two extra features.** Product slate (methane 74.9 %, methanol 20.6 % with methane off: the catalyst decides). Bomb calorimeter (ΔU, not ΔH; 2.31 °C for 1 g of ethanol; identifies an unknown sample).
+7. **Checked, and ready to try.** 67/67 reference values, 5/5 stress tests, 8 AI errors corrected, 441 automated tests. "So, how hot is the porridge?" Then the live demo.
 
 ## 4. The thermodynamics behind it
 
@@ -87,7 +93,7 @@ If ΔCp° is negative, ΔH° falls as T rises. For CO₂ to methanol, ΔCp° = �
 
 - ΔG° < 0: the products are favoured (K > 1). ΔG° > 0: the reactants are favoured (K < 1), but some product still forms.
 - ΔH° < 0 and ΔS° < 0: favoured at low temperature (CO₂ to methanol; at 523 K ΔG° = +46.56 kJ/mol, K = 2.2 × 10⁻⁵).
-- ΔH° > 0 and ΔS° > 0: favoured at high temperature (steam reforming, above 893 K).
+- ΔH° > 0 and ΔS° > 0: favoured at high temperature (steam reforming, above 893 K: ΔG° = +47.9 kJ/mol at 700 K, −27.0 at 1000 K).
 - The temperature where ΔG° = 0 is where the favoured side changes. For CO₂ to methanol it is 276 K, below the range of tab 1.
 - K here is Kp: written with partial pressures in bar divided by the standard pressure of 1 bar. It depends on temperature only. Pressure changes the equilibrium composition, not K.
 
@@ -255,6 +261,18 @@ Every graph's axes cover only the range where it has data. On tab 2 the four gra
 ## 10. Viva questions and answers
 
 ### A. The project and the idea
+
+**Why did you start with Goldilocks?**
+Because her question is the one we ask about every reaction. "How hot is the porridge?" is how much heat the reaction gives out or takes in (ΔH°), and "just right" is whether the products are favoured at that temperature (ΔG°). And like the porridge, the answer depends on the temperature, which is exactly what the solver works out.
+
+**Which bowl is which reaction?**
+Too hot: CO₂ to methanol at 523 K, ΔG° = +46.6 kJ/mol. It gives out heat, so heating favours the reactants. Too cold: steam reforming at 700 K, ΔG° = +47.9 kJ/mol. Just right: steam reforming at 1000 K, ΔG° = −27.0 kJ/mol. Its ΔG° changes sign at 893 K.
+
+**Does "just right" mean ΔG° < 0, and is a "too hot" reaction useless?**
+In the story, "just right" means the products are favoured, ΔG° < 0. A positive ΔG° still gives some product, only less than reactant at equilibrium. And a negative ΔG° says nothing about speed: the reaction may still need a catalyst. So the story is about where the equilibrium lies, not how fast it is reached.
+
+**Why is steam reforming "too cold" at 700 K?**
+CH₄ + H₂O → CO + 3H₂ takes in heat (ΔH° = +219.9 kJ/mol at 700 K) but turns 2 moles of gas into 4, so ΔS° is positive. In ΔG° = ΔH° − TΔS° the −TΔS° term only outweighs ΔH° above 893 K. That is why steam reforming is run hot; the predefined reaction opens at 1073 K.
 
 **Why did you build this?**
 Because the textbook method for ΔH°, ΔS° and ΔG° at a temperature other than 298.15 K is long by hand, and the usual shortcuts can be off by up to 31.5 kJ/mol at 1000 K. The solver does the full method every time, shows the steps, and checks itself.
@@ -448,5 +466,5 @@ For a gas with NIST data, about the average error of its chosen equation (for ex
 ## 11. On the day
 
 - Laptop charged, slides open, the site loaded with **Solver ready** showing, spare address and local copy ready.
-- Say the idea first (slide 2), then show it live. Keep each tab to the numbers above.
+- Tell the story (slide 1), say the idea (slide 2), then show it live. Keep each tab to the numbers above.
 - If you do not know an answer, say what you do know and where the solver shows it. Every number on the screen comes from the solver, not from memory.
