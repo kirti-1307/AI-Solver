@@ -4,15 +4,7 @@
  * solver uses, for each gas, the one closest to measured data (thermosolver/eoschoice.py). */
 "use strict";
 (() => {
-  const { $, esc, chem, fix, kJ, int, signed, coeff } = TS;
-
-  const STATE_LABEL = (s) => {
-    if (s.phase !== "g") return "liquid or solid: no pressure correction";
-    if (s.treated_ideal) return "treated as ideal gas";
-    if (s.state === "liquid_like") return "a liquid at this T and P, not a gas";
-    if (s.state === "hypothetical_vapour") return "a liquid on its own at this T and P; taken as a vapour";
-    return "gas";
-  };
+  const { $, esc, chem, fix, kJ, signed } = TS;
 
   const heat = (joule) => (joule < 0 ? "releases" : "absorbs");
 
@@ -77,19 +69,9 @@
       `${fix(Math.abs(c.percent), 2)} % ${c.percent < 0 ? "less" : "more"} than the ideal-gas value. The pressure effect is ` +
       `<strong>${esc(c.size)}</strong> here: a heat balance made with the ideal-gas value would be off by ` +
       `${kJ(Math.abs(c.residual))} kJ for every mole that reacts.`);
-    const p = c.path;
-    // The terms of steps 1 and 3, written out from the table at the bottom of the tab (the sums are the solver's).
-    const J = (v) => TS.int(v).replace("-", "−");
-    const terms = (products) => a.species.filter((s) => (products ? s.nu > 0 : s.nu < 0))
-      .map((s) => `${coeff(s.nu)} × ${s.HR < 0 ? `(${J(s.HR)})` : J(s.HR)}`).join(" + ");
-    lines.push(`The three steps above reach the real-gas value by a detour, in the same way as Hess's law. ` +
-      `<strong>Step 1</strong>: take the reactants from real gas to ideal gas. That removes their H<sup>R</sup>: ` +
-      `−[${terms(false)}] J = ${signed(p.reactants_to_ideal / 1000, 2)} kJ. ` +
-      `<strong>Step 2</strong>: let the ideal gases react. That is ΔH° from tab 1, ${signed(p.ideal_reaction / 1000, 2)} kJ. ` +
-      `<strong>Step 3</strong>: take the products from ideal gas to real gas. That adds their H<sup>R</sup>: ` +
-      `${terms(true)} J = ${signed(p.products_to_real / 1000, 2)} kJ. ` +
-      `Each H<sup>R</sup> is in the table at the bottom of this tab, from the equation of state chosen for that gas. H depends only on where you start and where ` +
-      `you end, not on the route, so the three steps add up to the real-gas value (${signed(p.total / 1000, 2)} kJ/mol).`);
+    // 27 November 2026: the three steps (real reactants to ideal gas, ideal-gas reaction, ideal products to real gas)
+    // are no longer shown here, at the user's request; the solver still returns them (r.comparison.path), and the
+    // study guide explains them.
     lines.push(`The gap between real and ideal grows with pressure (first graph), because the molecules are pushed closer together ` +
       `and attract each other more. It shrinks as the temperature rises (third graph), because hotter molecules move faster and have ` +
       `more energy, so the pull between them matters less and the gas behaves more like an ideal gas (Z closer to 1).`);
@@ -112,48 +94,6 @@
     if (g.P_suggest) buttons.push(`<button type="button" class="link pr-fix" data-p="${g.P_suggest}">Use ${fix(g.P_suggest, 0)} bar</button>`);
     if (hot) buttons.push(`<button type="button" class="link pr-fix" data-t="${hot}">Use ${hot} K</button>`);
     return TS.message("info", text + (buttons.length ? `<br>${buttons.join(" &nbsp;·&nbsp; ")}` : ""));
-  }
-
-  function leg(title, detail, joule, extra = "") {
-    const cls = joule < -0.5 ? "neg" : (joule > 0.5 ? "pos" : "");
-    return `<div class="leg ${cls} ${extra}"><div class="t">${title}</div><div class="d">${detail}</div>
-      <div class="q">${signed(joule / 1000, 2)} kJ</div></div>`;
-  }
-
-  function pathBlock(r) {
-    const p = r.comparison.path;
-    if (p.total === null || r.model === "ideal") return "";
-    return `<h3>The real-gas heat of reaction in three steps</h3><div class="path">
-      ${leg("Step 1", "real reactants → ideal gas", p.reactants_to_ideal)}
-      ${leg("Step 2", `reaction as ideal gases, ΔH°(${fix(r.T, 0)} K)`, p.ideal_reaction)}
-      ${leg("Step 3", "ideal-gas products → real gas", p.products_to_real)}
-      ${leg("Sum", `ΔH at ${fix(r.P, 0)} bar, real gas`, p.total, "sum")}</div>`;
-  }
-
-  /* ----------------------------------------------------------- tables */
-  /* Which equation of state a gas uses, and why (the solver's choice). */
-  function equationCell(s) {
-    const c = s.choice;
-    if (!c || s.phase !== "g") return `<td class="l dim">–</td>`;
-    if (c.basis === "no_critical") return `<td class="l dim">ideal gas (no critical constants)</td>`;
-    const why = c.basis === "measured"
-      ? `closest to NIST data: off by ${fix(c.mean_error / 1000, 2)} kJ/mol on average (${c.points} points)`
-      : `no NIST data for this gas: the closest equation over all ${c.gases} measured gases`;
-    return `<td class="l"><strong>${esc(s.model_name)}</strong><br><span class="dim">${why}</span></td>`;
-  }
-
-  function residualTable(r) {
-    const rows = r.at_P.species.map((s) => `<tr>
-      <td class="l mono">${chem(s.species)}</td><td>${s.nu > 0 ? "+" : "−"}${coeff(s.nu)}</td>
-      ${equationCell(s)}
-      <td>${s.Tr === null ? "–" : fix(s.Tr, 3)}</td><td>${s.Pr === null ? "–" : fix(s.Pr, 3)}</td>
-      <td>${fix(s.Z, 4)}</td><td>${int(s.HR)}</td><td>${fix(s.SR, 3)}</td>
-      <td>${int(s.nu * s.HR)}</td>
-      <td class="l ${s.state === "liquid_like" ? "fail" : "dim"}">${STATE_LABEL(s)}</td></tr>`).join("");
-    return `<div class="table-scroll"><table><thead><tr><th class="l">Species</th><th>ν</th><th class="l">Equation of state</th><th>T<sub>r</sub></th><th>P<sub>r</sub></th>
-      <th>Z</th><th>H<sup>R</sup> (J/mol)</th><th>S<sup>R</sup> (J/mol·K)</th><th>ν·H<sup>R</sup> (J)</th><th class="l">State</th></tr></thead>
-      <tbody>${rows}<tr class="sum"><td class="l" colspan="8">Σ ν<sub>i</sub>H<sub>i</sub><sup>R</sup> = ΔH(T,P) − ΔH°(T)</td>
-      <td>${r.at_P.gas_phase_valid ? int(r.at_P.sum_HR) : "not defined"}</td><td></td></tr></tbody></table></div>`;
   }
 
   /* ------------------------------------------------------------ plots */
@@ -240,16 +180,15 @@
         <div class="v-item"><div class="v-big">Difference: ${ok ? signed(c.residual / 1000, 2) + " kJ/mol" : "–"}</div>
           <div class="v-sub">${ok && c.percent !== null ? `${fix(Math.abs(c.percent), 2)} %: ${esc(c.effect)} (${esc(c.size)})` : "no gas-phase value at this pressure"}</div></div>
       </div>`;
-    // The note about a species that is a liquid here is replaced by a plain box with a way out; a species that would
-    // condense on its own gets a note, not a warning.
+    // The note about a species that is a liquid here is replaced by a plain box with a way out. The note on a species
+    // that would condense on its own but stays a vapour in the mixture is not shown (27 November 2026, the user's request).
     html += TS.notes(r.warnings.filter((w) => w.level !== "info")) +
       TS.notes(a.notes.filter((n) => n.level !== "info" && n.kind !== "no_vapour_root"));
     if (!ok) html += limitBox(r);
-    html += TS.notes(a.notes.filter((n) => n.kind === "condensation"));
     html += `<div class="cards">
         <div class="card"><div class="k">Residual part, Σ ν H<sup>R</sup></div><div class="v">${ok ? signed(c.residual / 1000, 3) : "–"} <span class="u">kJ/mol</span></div><div class="s">real gas minus ideal gas</div></div>
         <div class="card"><div class="k">Residual entropy part, Σ ν S<sup>R</sup></div><div class="v">${ok ? signed(a.sum_SR, 2) : "–"} <span class="u">J/(mol·K)</span></div><div class="s">real gas minus ideal gas</div></div>
-      </div>${pathBlock(r)}<h3>What the numbers mean</h3>${explain(r)}</div>`;
+      </div><h3>What the numbers mean</h3>${explain(r)}</div>`;
     const hints = [];
     if (r.sweep.first_invalid_P) {
       hints.push(`The real-gas curve stops near ${fix(r.sweep.first_invalid_P, 0)} bar: above that, a species is a liquid at this temperature, so a gas-phase value does not exist.`);
@@ -266,8 +205,8 @@
         across from one graph to another. The value at your pressure in the first graph, the sum of the bars and the dot in the third graph
         are the same number.</p>
       ${hints.map((h) => `<p class="hint" style="margin:8px 0 0">${h}</p>`).join("")}</div>`;
-    html += `<div class="panel"><h3>Residual properties of each species at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar</h3>
-      ${residualTable(r)}${TS.notes(a.notes.filter((n) => n.level === "info" && n.kind !== "condensation"))}</div>`;
+    // The table of residual properties per species (equation of state, Tr, Pr, Z, HR, SR) is not shown since
+    // 27 November 2026, at the user's request; the solver still returns every number in r.at_P.species.
     $("#pr-out").innerHTML = html;
     for (const button of $("#pr-out").querySelectorAll(".pr-fix")) {
       button.addEventListener("click", () => {

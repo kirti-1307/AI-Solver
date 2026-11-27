@@ -1,6 +1,6 @@
 # Presentation script: Thermodynamic Reaction Energy Solver
 
-About 13 minutes: 6.5 minutes on the seven slides (the idea, opening with the story of Goldilocks and the three bears), 6 minutes of live demo, and a short close. The words to say are in plain text. What to click is in *italics* inside square brackets. Every number below is what the solver shows, so it matches the screen. For the questions afterwards, see the study guide (`docs/STUDY_GUIDE.md`).
+About 14 minutes: 6.5 minutes on the seven slides (the idea, opening with the story of Goldilocks and the three bears), 7 minutes of live demo, and a short close. The words to say are in plain text. What to click is in *italics* inside square brackets. Every number below is what the solver shows, so it matches the screen. For the questions afterwards, see the study guide (`docs/STUDY_GUIDE.md`).
 
 **Before the class**
 
@@ -63,7 +63,7 @@ So, how hot is the porridge? For any reaction, at any temperature, the solver ca
 
 ---
 
-## Part 2: The live demo (6 minutes)
+## Part 2: The live demo (7 minutes)
 
 *[Switch to the browser. It is on the Start page]*
 
@@ -95,19 +95,39 @@ A last reaction: methane combustion, with water typed without a phase. The solve
 
 For an ideal gas, H depends on temperature only, so the ideal-gas ΔH is −106.50 kJ/mol at any pressure. At 200 bar the real gas gives −111.55 kJ/mol, so it releases 4.7 % more heat. The difference is the residual enthalpy.
 
-*[Point at the three steps, then scroll to the table at the bottom]*
+*[Scroll to the graphs]*
 
-The three steps reach the real value like Hess's law: real reactants to ideal gas, the ideal-gas reaction, then ideal products to real gas. The table shows each gas with the equation of state the solver chose for it.
+In the first graph the ideal gas is the flat line at zero, and the orange curve is the real-gas difference, which grows with pressure. In the second graph each bar is one gas. The tallest is ammonia: it is the gas closest to its critical point, so it is the furthest from an ideal gas.
 
-### Tab 4: product slate (1 minute)
+### Tab 4: product slate (2 minutes 30 seconds)
 
-*[Click tab 4. Click "1. Everything allowed", then "2. Methane off"]*
+*[Click tab 4. It opens on CO2 hydrogenation at 523 K and 50 bar, with "1. Everything allowed" selected]*
 
-With every product allowed, methane takes 74.9 % of the carbon. With methane off, methanol takes 20.6 % and CO 7.5 %.
+Let me start with a question. If I put CO2 and hydrogen into a reactor at 523 K and 50 bar, and wait until nothing changes any more, what comes out? Most of us would say methanol, because that is why we make this mixture.
 
-*[Drag the pressure slider to 100 bar]*
+Here I do not give the solver any reaction. I only say which species are allowed to exist: these switches. The solver then finds the mixture with the lowest total Gibbs energy that keeps every carbon, hydrogen and oxygen atom. A mixture settles where its Gibbs energy is lowest, like a ball rolling to the bottom of a valley.
 
-At 100 bar methanol rises to 39.4 %, because high pressure helps the reaction that makes fewer gas molecules.
+*[Point at the bars "Where the C atoms go"]*
+
+And the answer is not methanol. Methane takes 74.9 % of the carbon, and methanol almost nothing: the line under the bars says its mole fraction is 1.5 × 10⁻¹⁰. Why 74.9 and not 100? Because methane needs four hydrogens per CO2 and we fed only three, so the hydrogen runs out at 75 %.
+
+*[Click "2. Methane off"]*
+
+Now I switch methane off. That is what a selective catalyst does: it simply cannot make methane. Now methanol takes 20.6 % of the carbon, CO 7.5 %, and the rest stays as CO2. So thermodynamics prefers methane, and it is the catalyst that makes methanol possible.
+
+*[Type 450 in the temperature box and press Enter]*
+
+What if I cool the reactor? At 450 K methanol goes up to 45.9 %, because making methanol gives out heat.
+
+*[Type 700 and press Enter]*
+
+And if I heat it? At 700 K, CO takes 41.0 % and methanol almost nothing, because making CO from CO2 takes in heat.
+
+*[Type 523 again, then drag the pressure slider to 100 bar]*
+
+Last, pressure. At 100 bar methanol rises to 39.4 %, because the methanol reaction turns four moles of gas into two, and high pressure favours fewer moles.
+
+So in one line: tab 4 shows what thermodynamics allows when reactions compete, and the switches show how much the catalyst decides.
 
 ### Tab 5: bomb calorimeter (1 minute)
 

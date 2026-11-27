@@ -170,6 +170,9 @@ class TestPageFiles(unittest.TestCase):
         self.assertNotIn('call("heat_balance"', script)
         self.assertIn('TS.engine.call("calorimeter"', script)
         self.assertNotIn("heatExample", read("web", "main.js"))
+        # 27 November 2026: the handout's shortcut for the lower heating value is explained in the study guide only
+        self.assertNotIn("The lab handout takes the lower heating value", script)
+        self.assertNotIn("fix(run.LHV_shortcut", script)
 
 
 class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
@@ -207,9 +210,11 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         self.assertIn("H = U + PV = U + RT", script)
         html = read("index.html")
         # 23 November 2026: the paragraph on how the equation is chosen was taken off tab 2 at the user's
-        # request; the table at the bottom still names each gas's equation, and the Validation tab the comparison
+        # request; 27 November 2026: the table that named each gas's equation went too. The Validation tab
+        # still shows the comparison with NIST data that the choice is based on.
         self.assertNotIn("You do not pick the equation of state", html)
-        self.assertIn("equationCell(s)", script)
+        self.assertNotIn("equationCell", script)
+        self.assertIn('TS.engine.call("eos_check")', read("web", "tab-validation.js"))
 
     def test_graphs_that_are_compared_share_their_scales(self):
         pressure = read("web", "tab-pressure.js")
@@ -225,11 +230,13 @@ class TestRequestsOfTheTwentyThirdOfNovember(unittest.TestCase):
         for gone in ("auditTable", "Change caused by pressure", "Same state, every model", "modelTable", "r.models"):
             self.assertNotIn(gone, script)
         self.assertNotIn("The table under", read("index.html"))
+        # 27 November 2026: the note on water that "would be a liquid on its own" is not shown on tab 2
+        self.assertNotIn('n.kind === "condensation"', script)
 
-    def test_tab_2_explains_the_three_steps_and_the_pressure_effect_in_plain_words(self):
+    def test_tab_2_explains_the_pressure_effect_in_plain_words(self):
         script = read("web", "tab-pressure.js")
-        self.assertIn("in the same way as Hess's law", script)
-        self.assertIn("p.reactants_to_ideal", script)                      # the step values are quoted
+        self.assertNotIn("in the same way as Hess's law", script)            # the three steps left the page
+        self.assertNotIn("p.reactants_to_ideal", script)
         self.assertIn("hotter molecules move faster", script)
         self.assertIn("Why a real gas is different", script)
 
@@ -291,6 +298,10 @@ class TestSecondRoundOfTheTwentyThirdOfNovember(unittest.TestCase):
         start, end = html.index('id="tab-reaction"'), html.index('id="tab-pressure"')
         self.assertNotIn('id="rx-P"', html)
         self.assertNotIn("conversion", html[start:end].lower())
+        # 27 November 2026: a short description only, and plain names for the two shortcuts on Cp
+        self.assertIn("The solver calculates ΔH°, ΔS° and ΔG° at the temperature you choose", html[start:end])
+        self.assertNotIn("standard state", html[start:end].lower())
+        self.assertNotIn("frozen", script)
         # the solver still works the conversion out (at 1 bar when no pressure is sent)
         r = ok("analyze", {"equation": "CO2 + 3 H2 -> CH3OH + H2O", "T": 523.15})
         self.assertEqual(r["P"], 1.0)
@@ -299,24 +310,28 @@ class TestSecondRoundOfTheTwentyThirdOfNovember(unittest.TestCase):
     def test_tab_2_no_longer_points_to_tab_4(self):
         self.assertNotIn("Pressure also moves the equilibrium composition", read("web", "tab-pressure.js"))
 
-    def test_tab_2_writes_out_steps_1_and_3_from_the_table(self):
+    def test_the_three_steps_and_the_residual_table_left_tab_2_but_stay_in_the_solver(self):
+        # 27 November 2026: "remove the 3 steps part from the website. but include it in my study guide",
+        # and "remove the last table on residual properties". Display only: the solver still returns both.
         script = read("web", "tab-pressure.js")
-        self.assertIn("That removes their H<sup>R</sup>", script)
-        self.assertIn("That adds their H<sup>R</sup>", script)
-        self.assertIn("terms(false)", script)
-        self.assertIn("terms(true)", script)
-        self.assertIn("table at the bottom of this tab", script)
-        # the sums written out on the page are the solver's step values
+        for gone in ("pathBlock", "in three steps", "That removes their H<sup>R</sup>", "residualTable",
+                     "Residual properties of each species", "table at the bottom of this tab"):
+            self.assertNotIn(gone, script)
+        self.assertIn("three steps", read("docs", "STUDY_GUIDE.md"))
         r = ok("pressure", AMMONIA)
         species, path = r["at_P"]["species"], r["comparison"]["path"]
         self.assertAlmostEqual(-sum(-s["nu"] * s["HR"] for s in species if s["nu"] < 0), path["reactants_to_ideal"], places=6)
         self.assertAlmostEqual(sum(s["nu"] * s["HR"] for s in species if s["nu"] > 0), path["products_to_real"], places=6)
+        self.assertAlmostEqual(path["total"], r["comparison"]["dH_real"], places=6)
 
     def test_tab_4_has_no_method_line_no_table_of_numbers_and_no_soot_graph(self):
         script = read("web", "tab-network.js")
         for gone in ("Method: the solver", "r.iterations", "nw-live-table", "Equilibrium mixture as numbers",
                      "nw-plot-aC", "Can solid carbon (soot) form?"):
             self.assertNotIn(gone, script)
+        # 27 November 2026: nor the notes on water that would be a liquid on its own (only warnings show)
+        self.assertNotIn('n.kind === "condensation"', script)
+        self.assertNotIn('n.kind === "vapour_fallback"', script)
 
     def test_bars_are_drawn(self):
         # The fill of a bar is a <span>. Without display: block it is an inline box, which ignores

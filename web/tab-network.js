@@ -266,8 +266,9 @@
       pending = null;
     }
 
-    $("#nw-live-notes").innerHTML = TS.notes(r.warnings) +
-      TS.notes(r.notes.filter((n) => n.level !== "info" || n.kind === "condensation" || n.kind === "vapour_fallback"));
+    // The notes on a species that would be a liquid on its own but stays a vapour in the mixture ("condensation",
+    // "vapour_fallback") are not shown since 27 November 2026, at the user's request; the solver still sends them.
+    $("#nw-live-notes").innerHTML = TS.notes(r.warnings) + TS.notes(r.notes.filter((n) => n.level !== "info"));
     $("#nw-live-title").innerHTML = `Where the ${esc(el)} atoms go at ${fix(r.T, 0)} K, ${fix(r.P, 1)} bar`;
 
     // Rows keep the order of the system so the bars do not jump around while dragging.

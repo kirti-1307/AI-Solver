@@ -180,7 +180,6 @@ A grey band on a plot means the Cp formula is being used outside the temperature
 **You read:**
 
 - The headline: the ideal-gas ΔH, the real-gas ΔH and the difference between them.
-- The three steps. They reach the real-gas ΔH by a detour, in the same way as Hess's law. Step 1: take the reactants from real gas to ideal gas, which removes their Hᴿ. Step 2: let them react as ideal gases, which is ΔH° from tab 1. Step 3: take the ideal-gas products to real gas, which adds their Hᴿ. H depends only on where you start and where you end, so the detour gives the same answer as the direct route. Each Hᴿ is in the table at the bottom of the tab. Example, ammonia at 723 K and 200 bar (N₂ + 3 H₂ → 2 NH₃): step 1 = −(1 × 177 + 3 × 325) J = −1.15 kJ; step 2 = −106.50 kJ; step 3 = 2 × (−1949) J = −3.90 kJ. Total: −111.55 kJ/mol.
 - The first graph: the ideal gas is the flat zero line, and the orange curve is the residual part, how much the real gas differs from it. It grows with pressure.
 - The list of bars at the top: six industrial reactions, sorted by how much pressure matters. Click one to load it.
 
@@ -201,7 +200,7 @@ Example, methanol at 523 K and 50 bar, which uses Soave/Redlich/Kwong: Tr = 1.02
 
 **Which equation of state does the solver use?** You do not choose it: the solver does, for each gas, because a wrong choice would give a wrong answer without any warning. It has compared the five equations of the course (the virial equation, van der Waals, Redlich/Kwong, Soave/Redlich/Kwong and Peng/Robinson) with measured data. For 24 gases of the database, NIST gives the measured enthalpy at 300 to 1000 K and up to 300 bar, and the measured Hᴿ is H(T, P) − H(T, 0.01 bar), because at 0.01 bar a gas is practically ideal. At each of these 380 points the solver works out Hᴿ with all five equations, and each gas gets the equation with the smallest average difference.
 
-The result: Soave/Redlich/Kwong is closest for 14 gases, Peng/Robinson for 6 and Redlich/Kwong for 4 (methane, CO, hydrogen and oxygen, all small, light molecules). The virial equation and van der Waals are never the closest. A gas that NIST does not cover, such as ethanol, uses Soave/Redlich/Kwong, which is the closest on average over all 380 points (0.137 kJ/mol, against 0.160 for Peng/Robinson). The table at the bottom of tab 2 shows the equation of each gas, and the Validation tab shows the whole comparison.
+The result: Soave/Redlich/Kwong is closest for 14 gases, Peng/Robinson for 6 and Redlich/Kwong for 4 (methane, CO, hydrogen and oxygen, all small, light molecules). The virial equation and van der Waals are never the closest. A gas that NIST does not cover, such as ethanol, uses Soave/Redlich/Kwong, which is the closest on average over all 380 points (0.137 kJ/mol, against 0.160 for Peng/Robinson). The Validation tab shows the whole comparison.
 
 One reaction can therefore use different equations for different gases. That is fine, because each gas is treated on its own as the pure species at T and P. Each gas keeps its one equation at every temperature and pressure, so its Hᴿ changes smoothly along the graphs.
 
@@ -240,7 +239,7 @@ Tab 1 looks at one reaction at a time. In a real reactor several reactions compe
 
 **You do:** drag the temperature, pressure and feed-ratio sliders. Click a product to switch it off. Or press the numbered "Try this" buttons, which do the switching for you.
 
-**Real gases.** The gases of tab 4 are real gases, each with the equation of state chosen for it (see tab 2). If a gas would be a liquid on its own at that temperature and pressure (water at 523 K above about 90 bar), its equation has no gas state there. In the mixture it is diluted and stays a vapour, so for that point the solver describes it with the virial equation, which has a gas state at any pressure, and says so in a note.
+**Real gases.** The gases of tab 4 are real gases, each with the equation of state chosen for it (see tab 2).
 
 **What a switch means:** off means the catalyst cannot make that product. So a switch imitates a selective catalyst.
 
@@ -394,7 +393,7 @@ Try to answer before you read the answer.
 
 1. Open the **Start** page and click "Try to break it". The unbalanced reaction is rejected.
 2. Click "Heat, entropy and Gibbs energy". Point at the headline, the four cards and the plot of ΔG against temperature.
-3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.55 kJ/mol at 200 bar, and the equation each gas uses in the table at the bottom. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
+3. Click "What does pressure change?" Show the ideal gas next to the real gas: −106.50 against −111.55 kJ/mol at 200 bar. Then click "CO₂ hydrogenation to methanol" in the list of bars: 10.6 %.
 4. Click "What actually forms?" Press the three "Try this" buttons: everything allowed, methane off, methane and CO off. Point at the faded switches and say why they are faded. Then drag the temperature slider.
 5. Click "Bomb calorimeter" and press Ignite: 1 g of ethanol raises the temperature by 2.31 °C. Then click "Identify an unknown sample" and press Identify.
 6. Finish on **Validation**: 67 of 67 reference values reproduced.

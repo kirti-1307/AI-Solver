@@ -143,10 +143,9 @@
         <div class="val">${fix(run.dT, 3)} <span class="dim">°C</span></div></div>`}
       <div class="step-row"><div><div class="t">${found ? "5" : "7"}. Heating values at constant pressure</div>
         <div class="f">higher: −ΔH<sub>c</sub>/M with liquid water; lower: the same with water vapour (${fix(run.water_per_gram, 3)} g of water per g of fuel)</div></div>
-        <div class="val">${fix(run.HHV / 1000, 2)} / ${fix(run.LHV / 1000, 2)} <span class="dim">MJ/kg</span></div></div>
-      <p class="hint" style="margin:10px 0 0">The lab handout takes the lower heating value as HHV − m<sub>w</sub>·h<sub>fg</sub>, starting from the bomb value. Here that gives
-        ${fix(run.LHV_shortcut / 1000, 2)} MJ/kg with h<sub>fg</sub> = ${fix(run.h_fg_water, 0)} J/g at 298.15 K, against ${fix(run.LHV / 1000, 2)} MJ/kg from the
-        formation data. The small difference is the Δn<sub>gas</sub>RT term.</p></div>`;
+        <div class="val">${fix(run.HHV / 1000, 2)} / ${fix(run.LHV / 1000, 2)} <span class="dim">MJ/kg</span></div></div></div>`;
+    // The handout's shortcut LHV = HHV - m_w h_fg (run.LHV_shortcut) is not shown since 27 November 2026, at the
+    // user's request; the study guide explains it.
 
     $("#bc-out").innerHTML = html;
     animateRise(dT);

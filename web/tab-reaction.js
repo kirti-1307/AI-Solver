@@ -119,8 +119,8 @@
       <div class="table-scroll"><table><thead><tr><th class="l">Treatment of ΔC<sub>p</sub></th><th>ΔH° (kJ/mol)</th>
         <th>error</th><th>ΔG° (kJ/mol)</th><th>error</th></tr></thead><tbody>
       <tr><td class="l"><strong>C<sub>p</sub>(T) = A + BT + CT² + DT⁻²</strong> (used)</td><td>${kJ(e.dH)}</td><td>–</td><td>${kJ(e.dG)}</td><td>–</td></tr>
-      <tr><td class="l">Constant ΔC<sub>p</sub> frozen at 298.15 K</td><td>${kJ(e.constant_cp.dH)}</td><td>${signed((e.constant_cp.dH - e.dH) / 1000)}</td><td>${kJ(e.constant_cp.dG)}</td><td>${signed((e.constant_cp.dG - e.dG) / 1000)}</td></tr>
-      <tr><td class="l">ΔC<sub>p</sub> ignored (ΔH°, ΔS° frozen at 298.15 K)</td><td>${kJ(e.no_cp.dH)}</td><td>${signed((e.no_cp.dH - e.dH) / 1000)}</td><td>${kJ(e.no_cp.dG)}</td><td>${signed((e.no_cp.dG - e.dG) / 1000)}</td></tr>
+      <tr><td class="l">Constant ΔC<sub>p</sub> (its value at 298.15 K, used at every temperature)</td><td>${kJ(e.constant_cp.dH)}</td><td>${signed((e.constant_cp.dH - e.dH) / 1000)}</td><td>${kJ(e.constant_cp.dG)}</td><td>${signed((e.constant_cp.dG - e.dG) / 1000)}</td></tr>
+      <tr><td class="l">ΔC<sub>p</sub> ignored (taken as zero, so ΔH° and ΔS° keep their 298.15 K values)</td><td>${kJ(e.no_cp.dH)}</td><td>${signed((e.no_cp.dH - e.dH) / 1000)}</td><td>${kJ(e.no_cp.dG)}</td><td>${signed((e.no_cp.dG - e.dG) / 1000)}</td></tr>
       </tbody></table></div>
       <p class="hint" style="margin-top:10px">Hess path behind the temperature correction: cool the reactants from T to 298.15 K
         (${signed(p.cool_reactants / 1000)} kJ), react at 298.15 K (${signed(p.react_at_T0 / 1000)} kJ), heat the products back

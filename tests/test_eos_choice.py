@@ -165,16 +165,17 @@ class TestTheTabs(unittest.TestCase):
 
     def test_a_gas_with_no_gas_state_of_its_own_in_a_mixture(self):
         # Water at 523 K and 100 bar: SRK has no gas state for pure water. In the mixture it stays a
-        # vapour, described by the virial correlation, and the page says so.
+        # vapour, described by the virial correlation (the note is not shown on the page since 27 November 2026).
         sp = SPECIES["H2O(g)"]
         self.assertEqual(residual(sp, 523.0, 100.0, "auto").state, "liquid_like")
         res = mixture_residual(sp, 523.0, 100.0, "auto")
         self.assertEqual(res.state, "hypothetical_vapour")
         self.assertEqual(res.model, "virial")
         self.assertEqual(res.lnphi, residual(sp, 523.0, 100.0, "virial").lnphi)
-        self.assertTrue(any(n["kind"] == "vapour_fallback" for n in res.notes))
+        self.assertEqual([n["level"] for n in res.notes if n["kind"] == "vapour_fallback"], ["info"])
         with open(os.path.join(ROOT, "web", "tab-network.js"), encoding="utf-8") as fh:
-            self.assertIn("vapour_fallback", fh.read())                   # the page shows that note
+            # since 27 November 2026 the page shows no info notes on tab 4 (the user's request), so not this one
+            self.assertIn('TS.notes(r.notes.filter((n) => n.level !== "info"))', fh.read())
         # just below the pressure where SRK loses the gas state, the two differ little
         below = residual(sp, 523.0, 90.0, "auto")
         self.assertEqual(below.model, "srk")

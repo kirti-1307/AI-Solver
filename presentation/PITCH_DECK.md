@@ -323,4 +323,4 @@ All numbers are the solver's own results, so they match the website in the live 
 | 6. Two extra features | 1 min |
 | 7. Checked, and ready to try | 40 s |
 | **Slides in total** | **about 6.5 minutes** |
-| Live demo (`docs/PRESENTATION_SCRIPT.md`, part 2) | 6 minutes |
+| Live demo (`docs/PRESENTATION_SCRIPT.md`, part 2) | 7 minutes |

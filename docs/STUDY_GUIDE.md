@@ -97,6 +97,19 @@ If ΔCp° is negative, ΔH° falls as T rises. For CO₂ to methanol, ΔCp° = �
 - The temperature where ΔG° = 0 is where the favoured side changes. For CO₂ to methanol it is 276 K, below the range of tab 1.
 - K here is Kp: written with partial pressures in bar divided by the standard pressure of 1 bar. It depends on temperature only. Pressure changes the equilibrium composition, not K.
 
+**Why the lines of the energy graph on tab 1 look almost straight.** The graph shows ΔH°, ΔG° and T·ΔS° against temperature. They are not exactly straight, only nearly:
+
+- ΔH° changes with T at a rate of ΔCp°, which is small: for CO₂ to methanol about −44 J/(mol·K), so over 225 K ΔH° moves only by about 9 kJ/mol (from −48.97 to −57.94). On a scale of tens of kJ that looks almost flat. Because ΔCp° itself changes a little with T, the line bends a little.
+- ΔG° = ΔH° − T·ΔS°. If ΔH° and ΔS° did not change at all, ΔG° would be an exact straight line, starting at ΔH°298 with a slope of −ΔS°298. They change only slowly, so the real ΔG° line is very close to a straight line. For CO₂ to methanol it rises from +3.83 kJ/mol at 298.15 K to +46.56 kJ/mol at 523 K, a slope of about +0.19 kJ/(mol·K), which is −ΔS°.
+- T·ΔS° is T times a slowly changing ΔS°, so it is also close to a straight line through zero.
+- At a boiling point (with "Pick the stable phase" ticked) the lines have a step or a kink: that is real, not a mistake (section 4.7).
+
+**The two shortcut lines (dashed and dotted) on that graph, and the table "How much does the heat-capacity treatment matter?":**
+
+- **Constant ΔCp:** ΔCp° is taken at its 298.15 K value and used at every temperature. Then ΔH°(T) = ΔH°298 + ΔCp°298·(T − 298.15), an exact straight line.
+- **ΔCp ignored:** ΔCp° is taken as zero, so ΔH° and ΔS° keep their 298.15 K values at every temperature (the page used to say "frozen" for this). Then ΔG°(T) = ΔH°298 − T·ΔS°298, also an exact straight line. For CO₂ to methanol at 523.15 K this gives −48.97 + 523.15 × 0.17708 = +43.67 kJ/mol, against the correct +46.56.
+- The solid lines use Cp(T) = A + BT + CT² + DT⁻² for every species, which is the full textbook method. The gap between a solid line and its shortcut line is the error of that shortcut (stress test 2).
+
 ### 4.6 Standard state
 
 The ° sign means the standard state: the pure species at 1 bar, at any temperature. 298.15 K is only the reference temperature at which the tables give the formation data. So ΔH°(523 K) is still a standard value. Tab 1 works from 298.15 K upwards.
@@ -147,7 +160,7 @@ The generalized virial correlation (for low to moderate pressure):
 
 Example, methanol at 523 K and 50 bar (Soave/Redlich/Kwong): Tr = 1.02, Pr = 0.62, Z = 0.774, Hᴿ/RT = −0.948, Hᴿ = −0.948 × 8.314 × 523.15 = −4.12 kJ/mol. Hydrogen at the same conditions (Redlich/Kwong): Tr = 15.76, Z = 1.019, Hᴿ = +0.07 kJ/mol, almost ideal.
 
-**The three steps on tab 2** reach the real-gas ΔH by a detour, like Hess's law. For ammonia at 723 K and 200 bar:
+**The three steps** (not shown on the website; only in case you are asked how the real-gas ΔH is put together). They reach the real-gas ΔH by a detour, like Hess's law: take the real reactants to ideal gas (this removes their Hᴿ), let the ideal gases react (ΔH° from tab 1), then take the ideal products to real gas (this adds their Hᴿ). H is a state function, so the detour gives the same answer as the direct route. It also shows why Hᴿ is worked out for each species: steps 1 and 3 are sums over the gases. For ammonia at 723 K and 200 bar:
 
 | Step | What | Value |
 |---|---|---|
@@ -187,7 +200,11 @@ A switch imitates a selective catalyst: off means the catalyst cannot make that 
 
 The bomb is closed and rigid: no volume change, no work, so the heat released is ΔU, not ΔH. Calibration with benzoic acid (handout): C_cal = (1.1942 × 6319 + 41) / 2.48 = 3059.3 cal/°C. The corrections are the heat from the burnt thread and wire.
 
-Ethanol: C₂H₅OH(l) + 3 O₂ → 2 CO₂ + 3 H₂O(l). ΔH = −1366.8 kJ/mol from the heats of formation. Δn_gas = 2 − 3 = −1, so ΔU = ΔH − Δn_gas·RT = −1366.8 + 2.48 = −1364.3 kJ/mol. That is 29.62 MJ/kg, and 1 g raises the temperature by 2.31 °C. HHV (water as liquid) 29.67 MJ/kg, LHV (water as vapour) 26.80 MJ/kg; the gap is the latent heat of the water formed. Backwards: 1 g and 2.30 °C give 29.44 MJ/kg, closest to ethanol (0.6 % away; graphite next, 11 % away).
+Ethanol: C₂H₅OH(l) + 3 O₂ → 2 CO₂ + 3 H₂O(l). ΔH = −1366.8 kJ/mol from the heats of formation. Δn_gas = 2 − 3 = −1, so ΔU = ΔH − Δn_gas·RT = −1366.8 + 2.48 = −1364.3 kJ/mol. That is 29.62 MJ/kg, and 1 g raises the temperature by 2.31 °C. HHV (water as liquid) 29.67 MJ/kg, LHV (water as vapour) 26.80 MJ/kg; the gap is the latent heat of the water formed.
+
+**The lab handout's shortcut for the LHV** (not shown on the website; only in case you are asked). The handout works out the lower heating value as LHV = HHV − m_w·h_fg: start from the bomb value, and take away the latent heat of the water formed. Here m_w is the mass of water formed per gram of fuel (ethanol: 3 × 18.015 / 46.07 = 1.173 g/g) and h_fg is the latent heat of water at 298.15 K, 2443 J/g (that is 44.01 kJ/mol ÷ 18.015 g/mol). For ethanol: 29.62 − 1.173 × 2.443 = 26.75 MJ/kg. The solver's LHV from the formation data (water as vapour) is 26.80 MJ/kg. The small difference is the Δn_gas·R·T term: the bomb value is −ΔU/M, while the heating values at constant pressure use −ΔH/M, and the two differ by Δn_gas·R·T/M = 2.48 kJ/mol ÷ 46.07 g/mol = 0.054 MJ/kg for ethanol. So the handout's shortcut is a very good approximation, off by much less than 1 %.
+
+Backwards: 1 g and 2.30 °C give 29.44 MJ/kg, closest to ethanol (0.6 % away; graphite next, 11 % away).
 
 ## 5. The website, tab by tab
 
@@ -195,7 +212,7 @@ Ethanol: C₂H₅OH(l) + 3 O₂ → 2 CO₂ + 3 H₂O(l). ΔH = −1366.8 kJ/mol
 |---|---|---|
 | Start | Cards that open each tab with an example | "Try to break it" |
 | 1 Reaction | ΔH°, ΔS°, ΔG° at any T from 298.15 K, with plots, steps and the species table | CO₂ to methanol at 523 K; methane combustion with H2O typed without a phase |
-| 2 Pressure and real gas | Ideal against real-gas ΔH at T and P | Ammonia at 723 K and 200 bar; the table of equations |
+| 2 Pressure and real gas | Ideal against real-gas ΔH at T and P | Ammonia at 723 K and 200 bar; the four graphs |
 | 3 Combine reactions | Hess's law with multipliers | RWGS (+39.50) + methanol from CO (−97.44) = −57.94 kJ/mol at 523 K |
 | 4 Product slate (extra) | Which products form when reactions compete | The three "Try this" buttons, the pressure slider |
 | 5 Bomb calorimeter (extra) | ΔU, ΔH, heating values, identify a sample | Ignite 1 g of ethanol; identify 2.30 °C |
@@ -203,6 +220,57 @@ Ethanol: C₂H₅OH(l) + 3 O₂ → 2 CO₂ + 3 H₂O(l). ΔH = −1366.8 kJ/mol
 | 7 Validation | Reference values, stress tests, published values, the equations against NIST | 67 of 67 |
 
 Every graph's axes cover only the range where it has data. On tab 2 the four graphs share one range of values, so a number can be read across from one to another.
+
+### Tab 4, explained
+
+**What it does, in one sentence.** You put the feed gases in a reactor and say which products the catalyst is allowed to make; the solver finds the mixture that comes out at equilibrium (the one with the lowest total Gibbs energy that keeps every atom) and shows where the carbon atoms end up.
+
+**Why it is needed.** Tab 1 handles one reaction at a time. But from CO₂ + H₂, three reactions compete for the same carbon atoms. At 523 K:
+
+| Reaction | ΔG° at 523 K | ΔH° at 523 K |
+|---|---|---|
+| CO₂ + 3H₂ → CH₃OH + H₂O (methanol) | +46.56 kJ/mol | −57.94 kJ/mol |
+| CO₂ + 4H₂ → CH₄ + 2H₂O (methane) | −71.07 kJ/mol | −175.32 kJ/mol |
+| CO₂ + H₂ → CO + H₂O (reverse water-gas shift) | +19.58 kJ/mol | +39.50 kJ/mol |
+
+Three separate ΔG° values cannot say how the carbon is shared between them. Tab 4 can, because it works on the whole mixture at once.
+
+**How the solver finds the mixture, in plain words.** At a fixed temperature and pressure, a mixture settles where its total Gibbs energy is as low as it can get, like a ball rolling to the bottom of a valley. The solver changes the amounts of all the allowed species step by step, always keeping the number of C, H and O atoms equal to what the feed brought in, until G cannot get any lower:
+
+    G/RT = Σ nᵢ [Gᵢ°/RT + ln(yᵢ·P/P°) + Gᵢᴿ/RT]
+
+The first term is each species' standard Gibbs energy (from the tables, as on tab 1), the second is the effect of its mole fraction and the pressure, and the third is the real-gas correction. No list of reactions is needed: every reaction between the allowed species is included automatically.
+
+**What is on the screen, from top to bottom:**
+
+| Item | What it is |
+|---|---|
+| Example system | Three ready systems: CO₂ hydrogenation (opens first), methane steam reforming, dry reforming of methane |
+| Temperature and Pressure sliders | The reactor conditions. The bars follow while you drag; the two graphs are redrawn when you let go |
+| "The catalyst may form" switches | One per species. On: the catalyst can make it. Off: it cannot. The small label says what the switch does now |
+| Label "feed" (dashed) | Fed to the reactor (CO₂ and H₂), so it cannot be switched off |
+| Label "needed" | Without it nothing can react: water, because the oxygen atoms of CO₂ have to go somewhere |
+| Label "no effect now" (faded) | It holds almost none of the carbon, so switching it off would change nothing at these settings |
+| A percentage | The share of the carbon atoms that species holds now |
+| "Try this" buttons 1, 2, 3 | Ready settings of the switches: everything allowed; methane off; methane and CO off. The line under them says what changed |
+| "Where the C atoms go" | Bars: the share of the carbon atoms in each species. They add up to 100 % |
+| "Mole fractions at equilibrium" | Bars: the mole fraction y of each species in the gas that leaves |
+| "Moles of gas" card | Total moles at equilibrium, from 4 mol of feed (1 CO₂ + 3 H₂) |
+| "What it means" | The result in sentences |
+| Two graphs | Mole fractions, and where the carbon goes, against temperature from 400 to 900 K; the line marks your temperature |
+
+**The numbers to know (CO₂ + 3H₂):**
+
+| Setting | Where the carbon goes | Other numbers |
+|---|---|---|
+| 1. Everything allowed, 523 K, 50 bar | CH₄ 74.9 %, unreacted CO₂ 25.1 % | 2.50 mol of gas; y(H₂O) = 0.598, y(H₂) = 0.002; methanol 1.5 × 10⁻¹⁰ |
+| 2. Methane off, 523 K, 50 bar | CH₃OH 20.6 %, CO 7.5 %, CO₂ 71.9 % | 3.59 mol of gas |
+| 3. Methane and CO off, 523 K, 50 bar | CH₃OH 24.5 %, CO₂ 75.5 % | 0.6 % methanol at 1 bar |
+| Methane off, 450 K, 50 bar | CH₃OH 45.9 %, CO 0.6 % | colder helps methanol |
+| Methane off, 700 K, 50 bar | CO 41.0 %, CH₃OH 0.3 % | hotter helps CO |
+| Methane off, 523 K, 100 bar | CH₃OH 39.4 %, CO 3.5 % | higher pressure helps methanol |
+
+The words to say while showing it are in the presentation script, part 2, tab 4.
 
 ## 6. Where the data come from
 
@@ -322,7 +390,7 @@ Through ΔG° = ΔH° − TΔS°. With ΔH° < 0 and ΔS° < 0, a higher T makes
 Because ΔCp° is negative (−43.95 J/(mol·K) at 298.15 K): the products hold less heat than the reactants, so ΔH° falls as T rises, from −48.97 to −57.94 kJ/mol at 523 K.
 
 **Where is Hess's law used?**
-In ΔH°298 = Σ νᵢ ΔH°f,i, in the path through 298.15 K, in the three steps of tab 2, and on tab 3: RWGS (+39.50) plus methanol from CO (−97.44) gives −57.94 kJ/mol, exactly the direct value.
+In ΔH°298 = Σ νᵢ ΔH°f,i, in the path through 298.15 K, in the three steps behind the real-gas ΔH (section 4.8), and on tab 3: RWGS (+39.50) plus methanol from CO (−97.44) gives −57.94 kJ/mol, exactly the direct value.
 
 ### C. Heat capacity and temperature
 
@@ -334,6 +402,12 @@ Cp changes with temperature. At 1000 K a constant ΔCp is off by 9.0 kJ/mol on a
 
 **What happens outside a formula's range?**
 The result is still shown, with a warning and a shaded band on the plot. Tab 1 starts at 298.15 K, where the textbook's tables start.
+
+**Why does the energy graph of tab 1 look linear?**
+It is only nearly linear. ΔH° changes at the rate ΔCp°, which is small (about −44 J/(mol·K) for CO₂ to methanol, so ΔH° moves only about 9 kJ/mol over 225 K). And ΔG° = ΔH° − TΔS°: with ΔH° and ΔS° changing only slowly, ΔG° is almost a straight line with slope −ΔS°. It would be exactly straight if ΔCp were zero; that is the dotted shortcut line (section 4.5).
+
+**What does "ΔCp ignored" mean?**
+ΔCp° is taken as zero, so ΔH° and ΔS° keep their 298.15 K values at every temperature, and ΔG° = ΔH°298 − T·ΔS°298. It is a shortcut; the gap to the solid line is its error (+43.67 against +46.56 kJ/mol for CO₂ to methanol at 523 K). "Constant ΔCp" is the other shortcut: ΔCp° kept at its 298.15 K value.
 
 **What are the bars of the sensible-heat chart?**
 ν·∫Cp dT of each species from 298.15 K to T. They add up to ΔH°(T) − ΔH°298.
@@ -367,7 +441,10 @@ They are far above their critical temperatures (Tr = 5.73 and 21.79), so attract
 Near Tr = 1 a gas is almost a liquid: the molecules are close and slow enough for their attraction to matter. Methanol at 523 K has Tr = 1.02 and Hᴿ = −4.12 kJ/mol at 50 bar.
 
 **Which equation of state does the solver use, and why not always Peng/Robinson?**
-For each gas, the one closest to NIST measured data: SRK for 14 gases, PR for 6, RK for 4. Peng/Robinson is not the closest for every gas, and the average errors show it: SRK 0.137 kJ/mol against PR 0.160.
+For each gas, the one closest to NIST measured data: SRK for 14 gases, PR for 6, RK for 4. Peng/Robinson is not the closest for every gas, and the average errors show it: SRK 0.137 kJ/mol against PR 0.160. The Validation tab (tab 7) shows the comparison for every gas, with the column "Used by the solver".
+
+**What are the three steps behind the real-gas ΔH?**
+Real reactants to ideal gas (removes their Hᴿ), the ideal-gas reaction (ΔH° from tab 1), ideal products to real gas (adds their Hᴿ). Like Hess's law, the detour gives the same answer because H is a state function. Ammonia at 723 K and 200 bar: −1.15 − 106.50 − 3.90 = −111.55 kJ/mol (section 4.8).
 
 **Why is the older Redlich/Kwong chosen for methane?**
 The measured data say so: for methane it is 0.046 kJ/mol off against 0.051 for SRK. The solver prefers the equation that matches the measurements, not the newest one.
@@ -402,7 +479,25 @@ Switching that product off would change nothing at the current settings, because
 Methanol formation reduces the number of gas molecules, so higher pressure helps (39.4 % at 100 bar with methane off). It is exothermic, so a higher temperature pushes towards CO (41.0 % CO at 700 K).
 
 **Are the gases ideal on this tab?**
-No, they are real gases, each with the equation of state chosen for it. If a gas would be a liquid on its own at high pressure, it stays a vapour in the mixture, and for that point the solver describes it with the virial equation and says so.
+No, they are real gases, each with the equation of state chosen for it. If a gas would be a liquid on its own at high pressure (water at 523 K above about 90 bar), it is diluted in the mixture and stays a vapour, and for that point the solver describes it with the virial equation, which has a gas state at any pressure. (The page does not show a note about this.)
+
+**Why does methane take 74.9 % of the carbon, and not all of it?**
+Hydrogen runs out. Making methane needs 4 H₂ per CO₂, and the feed has only 3, so at most 3/4 = 75 % of the CO₂ can become methane. At equilibrium almost no hydrogen is left (y = 0.002).
+
+**Why is water the largest mole fraction (0.598) when methane is allowed?**
+Every CH₄ comes with 2 H₂O: CO₂ + 4H₂ → CH₄ + 2H₂O. And the hydrogen is almost used up.
+
+**Why does the number of moles of gas fall from 4 to 2.50?**
+CO₂ + 4H₂ → CH₄ + 2H₂O turns 5 moles of gas into 3. Fewer moles is also why high pressure favours methane and methanol.
+
+**Why is water "needed"?**
+The oxygen atoms of CO₂ have to go somewhere. Methanol and CO keep only one of the two oxygen atoms, and methane none, so every route needs water. Without water nothing can react.
+
+**Is this how fast the reactor gets there?**
+No. It is the equilibrium mixture: what the reactor would reach with unlimited time. Thermodynamics gives the limit; the catalyst and the reaction rates decide how close a real reactor gets.
+
+**How is this different from tab 1's ΔG°?**
+Tab 1 is one reaction between pure species at 1 bar. Tab 4 is a whole mixture: it includes the mole fractions (the ln y term), the pressure and the real-gas correction, and all the reactions at once.
 
 ### G. The bomb calorimeter
 
@@ -420,6 +515,9 @@ The heat from the burnt thread and wire, which is not from the sample.
 
 **What is the difference between HHV and LHV?**
 HHV counts the water formed as liquid (29.67 MJ/kg for ethanol), LHV as vapour (26.80 MJ/kg). The gap is the latent heat of that water.
+
+**The lab handout gets the LHV differently. Why does it give a slightly different number?**
+The handout uses LHV = HHV − m_w·h_fg, starting from the bomb value: 29.62 − 1.173 × 2.443 = 26.75 MJ/kg for ethanol, against 26.80 from the formation data. The bomb value is −ΔU/M, but heating values are at constant pressure (−ΔH/M); the two differ by Δn_gas·R·T/M = 0.054 MJ/kg. That small term is the whole difference (section 4.11).
 
 **How does it identify an unknown sample?**
 It turns the measured rise into a calorific value (2.30 °C for 1 g gives 29.44 MJ/kg) and lists the liquid and solid fuels by how close they are: ethanol 0.6 % away, graphite 11 %.
